@@ -58,7 +58,9 @@ class Dashboard:
             'ram_percent': 0,
             'ram_cleanups': 0,
             'priority_high': 0,
-            'priority_low': 0
+            'priority_low': 0,
+            'ping_ms': 0,
+            'ping_baseline': 0
         }
         
         # Detecta GPUs
@@ -313,12 +315,34 @@ class Dashboard:
         # Estimate: ~100 ads/trackers blocked per minute with AdGuard DNS
         ads_blocked = int((uptime / 60) * 100)
         
-        # Estimated Data Saved (avg ad = 150KB)
-        data_saved_mb = (ads_blocked * 150) / 1024
+        # Data Saved calculation (avg ad = 150KB, tracker = 5KB)
+        data_saved_kb = (ads_blocked * 50)  # Average 50KB per blocked request
+        if data_saved_kb >= 1024:
+            data_saved_str = f"{data_saved_kb/1024:.1f}MB"
+        else:
+            data_saved_str = f"{data_saved_kb}KB"
+        
+        # Real ping stats
+        ping_ms = self.stats.get('ping_ms', 0)
+        ping_baseline = self.stats.get('ping_baseline', 0)
+        
+        # Calculate improvement (negative = better)
+        if ping_baseline > 0 and ping_ms > 0:
+            ping_improvement = ping_baseline - ping_ms
+            if ping_improvement > 0:
+                ping_str = f"[green]{ping_ms}ms ▼{ping_improvement}ms[/green]"
+            elif ping_improvement < 0:
+                ping_str = f"[yellow]{ping_ms}ms ▲{abs(ping_improvement)}ms[/yellow]"
+            else:
+                ping_str = f"[cyan]{ping_ms}ms[/cyan]"
+        elif ping_ms > 0:
+            ping_str = f"[cyan]{ping_ms}ms[/cyan]"
+        else:
+            ping_str = "[dim]--ms[/dim]"
         
         table = Table(show_header=True, box=None, expand=True)
-        table.add_column("System Intelligence", style="bold cyan")
-        table.add_column("Live Statistics", justify="center", style="green")
+        table.add_column("Network & DNS", style="bold cyan")
+        table.add_column("Performance", justify="center", style="green")
         table.add_column("Active Modules", justify="center", style="yellow")
         
         # Build active modules string
@@ -330,7 +354,7 @@ class Dashboard:
             modules.append("[green]●[/] GPU")
         if self.has_intel:
             modules.append("[green]●[/] iGPU")
-        modules.append("[green]●[/] DNS")  # AdGuard DNS
+        modules.append("[green]●[/] DNS")
         
         modules_str = " ".join(modules)
         
@@ -338,12 +362,12 @@ class Dashboard:
         ads_str = f"{ads_blocked/1000:.1f}K" if ads_blocked >= 1000 else str(ads_blocked)
         
         table.add_row(
-            f"[white]V3.0 • AdGuard DNS • [magenta]🛡️ {ads_str} Blocked[/magenta][/white]",
-            f"RAM: [bold]{cleaned_gb:.1f}GB[/bold] | Data Saved: [cyan]{data_saved_mb:.1f}MB[/cyan] | ⏱️ {time_str}",
+            f"[white]🛡️ {ads_str} Blocked | 💾 {data_saved_str} Saved[/white]",
+            f"📶 Ping: {ping_str} | RAM: [bold]{cleaned_gb:.1f}GB[/bold] | ⏱️ {time_str}",
             f"Hi:{self.stats['priority_high']} Lo:{self.stats['priority_low']} | {modules_str}"
         )
         
-        return Panel(table, title="[bold]🎯  Smart System[/bold]", border_style="yellow")
+        return Panel(table, title="[bold]🎯  Smart System • AdGuard DNS[/bold]", border_style="yellow")
     
     def _make_bar(self, value, max_value, color):
         """Cria uma barra de progresso visual"""
@@ -442,7 +466,33 @@ class Dashboard:
         if 'profiles' in services:
             profile = services['profiles'].get_current_profile()
             self.stats['active_profile'] = profile.value.title() if profile else 'Balanced'
-
+        
+        # V3.0: Real-time Ping (every 10 updates to avoid overhead)
+        ping_counter = self.stats_tracker.get('ping_counter', 0) + 1
+        self.stats_tracker['ping_counter'] = ping_counter
+        
+        if ping_counter % 10 == 1:  # Measure every ~20 seconds
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ['ping', '-n', '1', '-w', '1000', '8.8.8.8'],
+                    capture_output=True, text=True, timeout=2,
+                    encoding='utf-8', errors='ignore'
+                )
+                if 'tempo=' in result.stdout.lower() or 'time=' in result.stdout.lower():
+                    # Extract ping time
+                    output = result.stdout.lower()
+                    if 'tempo=' in output:
+                        ping_str = output.split('tempo=')[1].split('ms')[0]
+                    else:
+                        ping_str = output.split('time=')[1].split('ms')[0]
+                    self.stats['ping_ms'] = int(ping_str.strip().replace('<', ''))
+                    
+                    # Set baseline on first measurement
+                    if self.stats['ping_baseline'] == 0:
+                        self.stats['ping_baseline'] = self.stats['ping_ms']
+            except:
+                pass
     
     def render(self, services):
         """Renderiza o dashboard"""

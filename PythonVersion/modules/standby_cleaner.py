@@ -26,6 +26,7 @@ class StandbyMemoryCleaner:
         self.thread = None
         self.last_cleaned_mb = 0
         self.clean_count = 0
+        self.total_cleaned_mb = 0  # Total acumulado na sessão
         
     def start(self):
         """Inicia monitoramento automático"""
@@ -55,6 +56,7 @@ class StandbyMemoryCleaner:
                     freed_mb = self.clean_standby_memory()
                     self.last_cleaned_mb = freed_mb
                     self.clean_count += 1
+                    self.total_cleaned_mb += freed_mb
                     print(f"[CLEAN] Memória limpa: {freed_mb}MB liberados | "
                           f"Disponível: {available_mb}MB → {(mem.available + freed_mb * 1024 * 1024) // (1024 * 1024)}MB")
                 

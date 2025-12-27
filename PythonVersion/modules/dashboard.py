@@ -1,6 +1,6 @@
 """
-Dashboard visual em tempo real para o Windows Optimizer
-Mostra CPU, GPU, RAM, Temperatura e status de otimizações
+Real-time visual dashboard for Windows Optimizer
+Displays system stats, optimizations, and statistics
 """
 import psutil
 import time
@@ -8,17 +8,25 @@ from rich.console import Console
 from rich.layout import Layout
 from rich.panel import Panel
 from rich.table import Table
-from rich.progress import Progress, BarColumn, TextColumn
 from rich.live import Live
+from rich.align import Align
 from datetime import datetime
 
 class Dashboard:
     def __init__(self):
         self.console = Console()
-        self.layout = Layout()
         self.running = False
         
-        # Configuração do layout
+        # Statistics tracking
+        self.stats_tracker = {
+            'total_ram_cleaned_mb': 0,
+            'total_cleanups': 0,
+            'uptime_seconds': 0,
+            'start_time': time.time()
+        }
+        
+        # Layout configuration
+        self.layout = Layout()
         self.layout.split(
             Layout(name="header", size=3),
             Layout(name="body"),
@@ -92,13 +100,18 @@ class Dashboard:
             print(f"[GPU] Intel não detectada: {e}")
     
     def make_header(self):
-        """Cria header com título e status"""
+        """Creates header with title and status"""
         current_time = datetime.now().strftime("%H:%M:%S")
-        header_text = f"[bold cyan]⚡ WINDOWS OPTIMIZER DASHBOARD[/bold cyan] | [yellow]{current_time}[/yellow] | [green]●[/green] ATIVO"
-        return Panel(header_text, style="bold white on blue")
+        status = "[green]● ACTIVE[/green]"
+        
+        header_text = f"[bold cyan]⚡ WINDOWS OPTIMIZER DASHBOARD[/bold cyan] | {current_time} | {status}"
+        return Panel(
+            Align.center(header_text),
+            border_style="bold blue"
+        )
     
     def make_cpu_gpu_panel(self):
-        """Painel de CPU e GPU"""
+        """CPU and GPU Panel"""
         table = Table(show_header=False, box=None, padding=(0, 1))
         table.add_column("Metric", style="cyan", width=18)
         table.add_column("Value", justify="right")
@@ -114,13 +127,13 @@ class Dashboard:
         freq_pct = (self.stats['cpu_freq'] / 4.4) * 100 if self.stats['cpu_freq'] > 0 else 0
         
         table.add_row("[bold white]CPU[/bold white]", "")
-        table.add_row("  Uso", f"[{cpu_color}]{self.stats['cpu_percent']:.1f}%[/{cpu_color}] {cpu_bar}")
-        table.add_row("  Temperatura", f"[{temp_color}]{temp_display}[/{temp_color}]")
-        table.add_row("  Frequência", f"[{freq_color}]{self.stats['cpu_freq']:.2f} GHz[/{freq_color}]")
-        table.add_row("  Limite", f"[yellow]{self.stats['cpu_limit']}%[/yellow] (otimizado)")
+        table.add_row("  Usage", f"[{cpu_color}]{self.stats['cpu_percent']:.1f}%[/{cpu_color}] {cpu_bar}")
+        table.add_row("  Temperature", f"[{temp_color}]{temp_display}[/{temp_color}]")
+        table.add_row("  Frequency", f"[{freq_color}]{self.stats['cpu_freq']:.2f} GHz[/{freq_color}]")
+        table.add_row("  Limit", f"[yellow]{self.stats['cpu_limit']}%[/yellow] (enabled)")
         table.add_row("", "")
         
-        # GPU NVIDIA (dedicada)
+        # GPU NVIDIA (Dedicated)
         if self.has_nvidia:
             gpu_color = "green" if self.stats['gpu_nvidia_percent'] < 70 else "yellow" if self.stats['gpu_nvidia_percent'] < 90 else "red"
             gpu_bar = self._make_bar(self.stats['gpu_nvidia_percent'], 100, gpu_color)
@@ -128,15 +141,15 @@ class Dashboard:
             gpu_temp_color = "green" if self.stats['gpu_nvidia_temp'] < 70 else "yellow" if self.stats['gpu_nvidia_temp'] < 85 else "red"
             
             table.add_row("[bold white]GPU NVIDIA[/bold white]", f"[dim]{self.stats['gpu_nvidia_name'][:20]}[/dim]")
-            table.add_row("  Uso", f"[{gpu_color}]{self.stats['gpu_nvidia_percent']:.1f}%[/{gpu_color}] {gpu_bar}")
-            table.add_row("  Temperatura", f"[{gpu_temp_color}]{self.stats['gpu_nvidia_temp']:.0f}°C[/{gpu_temp_color}]")
+            table.add_row("  Usage", f"[{gpu_color}]{self.stats['gpu_nvidia_percent']:.1f}%[/{gpu_color}] {gpu_bar}")
+            table.add_row("  Temperature", f"[{gpu_temp_color}]{self.stats['gpu_nvidia_temp']:.0f}°C[/{gpu_temp_color}]")
             table.add_row("  VRAM", f"{self.stats['gpu_nvidia_mem_used']:.0f} / {self.stats['gpu_nvidia_mem_total']:.0f} MB")
         
-        # GPU Intel (integrada)
+        # GPU Intel (Integrated)
         if self.has_intel:
             table.add_row("", "")
             table.add_row("[bold white]GPU Intel[/bold white]", f"[dim]{self.stats['gpu_intel_name'][:20]}[/dim]")
-            table.add_row("  Status", "[green]Ativa[/green] (integrada)")
+            table.add_row("  Status", "[green]Active[/green] (Integrated)")
         
         # Se nenhuma GPU detectada
         if not self.has_nvidia and not self.has_intel:
@@ -145,7 +158,7 @@ class Dashboard:
         return Panel(table, title="[bold]🖥️  CPU & GPU[/bold]", border_style="cyan")
     
     def make_memory_panel(self):
-        """Painel de Memória"""
+        """Memory and Status Panel"""
         table = Table(show_header=False, box=None, padding=(0, 1))
         table.add_column("Metric", style="cyan", width=18)
         table.add_column("Value", justify="right")
@@ -157,40 +170,50 @@ class Dashboard:
         ram_free_gb = (self.stats['ram_total'] - self.stats['ram_used']) / 1024
         ram_total_gb = self.stats['ram_total'] / 1024
         
-        table.add_row("[bold white]MEMÓRIA RAM[/bold white]", "")
-        table.add_row("  Uso", f"[{ram_color}]{self.stats['ram_percent']:.1f}%[/{ram_color}] {ram_bar}")
-        table.add_row("  Livre", f"[green]{ram_free_gb:.1f} GB[/green] / {ram_total_gb:.1f} GB")
-        table.add_row("  Limpezas", f"[yellow]{self.stats['ram_cleanups']}[/yellow] automáticas")
+        table.add_row("[bold white]RAM MEMORY[/bold white]", "")
+        table.add_row("  Usage", f"[{ram_color}]{self.stats['ram_percent']:.1f}%[/{ram_color}] {ram_bar}")
+        table.add_row("  Free", f"[green]{ram_free_gb:.1f} GB[/green] / {ram_total_gb:.1f} GB")
+        table.add_row("  Cleanups", f"[yellow]{self.stats_tracker.get('total_cleanups', 0)}[/yellow] auto")
         table.add_row("", "")
         
-        # Otimizações
-        table.add_row("[bold white]OTIMIZAÇÕES[/bold white]", "")
-        table.add_row("  Standby Cleaner", "[green]●[/green] Ativo")
-        table.add_row("  Smart Priority", "[green]●[/green] Ativo")
+        # Optimizations
+        table.add_row("[bold white]OPTIMIZATIONS[/bold white]", "")
+        table.add_row("  Standby Cleaner", "[green]●[/green] Active")
+        table.add_row("  Smart Priority", "[green]●[/green] Active")
         table.add_row("  CPU Limit", f"[yellow]●[/yellow] {self.stats['cpu_limit']}%")
         
-        # GPU Power Limit (se aplicado)
+        # GPU Power Limit
         if self.stats['gpu_nvidia_power_limit'] > 0:
             table.add_row("  GPU Power Limit", f"[yellow]●[/yellow] {self.stats['gpu_nvidia_power_limit']}%")
         
-        table.add_row("  SysMain", "[red]●[/red] Desabilitado")
+        table.add_row("  SysMain", "[red]●[/red] Disabled")
         
-        return Panel(table, title="[bold]💾  Memória & Status[/bold]", border_style="green")
+        return Panel(table, title="[bold]💾  Memory & Status[/bold]", border_style="green")
     
     def make_footer(self):
-        """Rodapé com prioridades"""
+        """Footer with Smart System Metrics"""
+        # Calculate uptime
+        uptime = self.stats_tracker.get('uptime_seconds', 0)
+        h, rem = divmod(uptime, 3600)
+        m, s = divmod(rem, 60)
+        time_str = f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
+        
+        # Cleaned RAM
+        cleaned_mb = self.stats_tracker.get('total_ram_cleaned_mb', 0)
+        cleaned_gb = cleaned_mb / 1024
+        
         table = Table(show_header=True, box=None, expand=True)
-        table.add_column("Priorização Inteligente", style="bold cyan")
-        table.add_column("Apps Alta Prioridade", justify="center", style="green")
-        table.add_column("Apps Baixa Prioridade", justify="center", style="yellow")
+        table.add_column("System Intelligence", style="bold cyan")
+        table.add_column("Live Statistics", justify="center", style="green")
+        table.add_column("Process Management", justify="center", style="yellow")
         
         table.add_row(
-            "Processos do usuário são priorizados automaticamente",
-            f"⭐ {self.stats['priority_high']} processos",
-            f"🔽 {self.stats['priority_low']} processos"
+            "[white]AI-based optimization running in background[/white]",
+            f"RAM Liberated: [bold]{cleaned_gb:.1f} GB[/bold] | Uptime: {time_str}",
+            f"High Priority: {self.stats['priority_high']} | Low Priority: {self.stats['priority_low']}"
         )
         
-        return Panel(table, title="[bold]🎯  Sistema Inteligente[/bold]", border_style="yellow")
+        return Panel(table, title="[bold]🎯  Smart System[/bold]", border_style="yellow")
     
     def _make_bar(self, value, max_value, color):
         """Cria uma barra de progresso visual"""
@@ -284,13 +307,18 @@ class Dashboard:
         self.stats['ram_percent'] = mem.percent
         
         # Limpezas de RAM
+        # RAM Cleaning Stats
         if 'cleaner' in services:
-            # Compatibilidade com diferentes estruturas
-            if hasattr(services['cleaner'], 'clean_count'):
-                self.stats['ram_cleanups'] = services['cleaner'].clean_count
-            elif hasattr(services['cleaner'], 'CleanCount'):
-                self.stats['ram_cleanups'] = services['cleaner'].CleanCount
+            # Stats tracking
+            if hasattr(services['cleaner'], 'total_cleaned_mb'):
+                self.stats_tracker['total_ram_cleaned_mb'] = services['cleaner'].total_cleaned_mb
+                self.stats_tracker['total_cleanups'] = services['cleaner'].clean_count
+            elif hasattr(services['cleaner'], 'clean_count'):
+                 self.stats_tracker['total_cleanups'] = services['cleaner'].clean_count
         
+        # Uptime
+        self.stats_tracker['uptime_seconds'] = int(time.time() - self.stats_tracker['start_time'])
+
         # Prioridades
         try:
             procs = list(psutil.process_iter(['name', 'nice']))

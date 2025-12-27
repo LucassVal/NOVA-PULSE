@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """
-Windows NVMe RAM Optimizer - Versão Python
-Sistema automatizado de otimização RAM/SSD
+Windows NVMe RAM Optimizer - V3.0
+Sistema automatizado de otimização RAM/SSD/Gaming
 """
 import sys
 import time
 import yaml
 import ctypes
 from colorama import init, Fore, Style
+
+# Core Modules
 from modules.standby_cleaner import StandbyMemoryCleaner
 from modules.cpu_power import CPUPowerManager
 from modules.stress_test import CPUStressTest
@@ -16,6 +18,13 @@ from modules.fan_controller import FanController
 from modules.dashboard import Dashboard
 from modules.gpu_controller import GPUController
 from modules.nvme_manager import NVMeManager
+
+# V3.0 New Modules
+from modules.network_qos import NetworkQoSManager
+from modules.game_detector import GameModeDetector
+from modules.history_logger import get_logger as get_history_logger
+from modules.profiles import get_manager as get_profile_manager, OptimizationProfile
+from modules.tray_icon import SystemTrayIcon
 
 # Inicializa colorama para cores no terminal
 init()
@@ -52,6 +61,12 @@ def get_default_config():
             'enabled': False,
             'target_load_percent': 70,
             'thread_count': 0
+        },
+        'network_qos': {
+            'enabled': True
+        },
+        'game_detector': {
+            'enabled': True
         }
     }
 
@@ -60,9 +75,9 @@ def print_header():
     print(f"""
 {Fore.CYAN}╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║     {Fore.YELLOW}⚡ Windows NVMe RAM Optimizer v1.0 ⚡{Fore.CYAN}             ║
+║     {Fore.YELLOW}⚡ Windows NVMe RAM Optimizer v3.0 ⚡{Fore.CYAN}             ║
 ║                                                           ║
-║     {Fore.GREEN}Otimização automática de RAM/SSD{Fore.CYAN}                  ║
+║     {Fore.GREEN}Gaming • Produtividade • Performance{Fore.CYAN}               ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝{Style.RESET_ALL}
 """)
@@ -171,11 +186,49 @@ def main():
             nvme_mgr.start_periodic_trim()
             services['nvme'] = nvme_mgr
 
-    print(f"\n{Fore.GREEN}✓ Todos os serviços iniciados{Style.RESET_ALL}")
+    # === V3.0: NETWORK QoS (PING BOOSTER) ===
+    qos_config = config.get('network_qos', {'enabled': True})
+    if qos_config.get('enabled', True):
+        print(f"\n{Fore.CYAN}[NET] Configurando Network QoS...{Style.RESET_ALL}")
+        qos_mgr = NetworkQoSManager(qos_config)
+        if qos_mgr.apply_qos_rules():
+            services['network_qos'] = qos_mgr
+    
+    # === V3.0: GAME MODE DETECTOR ===
+    game_config = config.get('game_detector', {'enabled': True})
+    if game_config.get('enabled', True):
+        game_detector = GameModeDetector(optimizer_services=services, config=game_config)
+        game_detector.start()
+        services['game_detector'] = game_detector
+        print(f"{Fore.GREEN}✓ Game Mode Detector ativado (Auto-Boost){Style.RESET_ALL}")
+    
+    # === V3.0: HISTORY LOGGER ===
+    history = get_history_logger()
+    history.log_event("optimizer_start", "V3.0 Initialized")
+    services['history'] = history
+    print(f"{Fore.GREEN}✓ History Logger ativado (CSV){Style.RESET_ALL}")
+    
+    # === V3.0: PROFILE MANAGER ===
+    profile_mgr = get_profile_manager()
+    profile_mgr.set_services(services)
+    services['profiles'] = profile_mgr
+    # Aplica perfil padrão (Balanced)
+    profile_mgr.apply_profile(OptimizationProfile.BALANCED)
+
+    print(f"\n{Fore.GREEN}✓ Todos os serviços V3.0 iniciados{Style.RESET_ALL}")
     
     time.sleep(1)
     
-    # Loop principal - Modo Dashboard (Padrão Direto)
+    # === V3.0: SYSTEM TRAY (Background) ===
+    tray = None
+    try:
+        tray = SystemTrayIcon(optimizer_services=services)
+        if tray.start():
+            services['tray'] = tray
+    except:
+        pass  # Tray is optional - may fail without pystray
+
+    # Loop principal - Modo Dashboard
     try:
         print(f"\n{Fore.CYAN}Iniciando Dashboard Console...{Style.RESET_ALL}\n")
         dashboard = Dashboard()

@@ -54,10 +54,11 @@ class NVMeManager:
         print("[NVMe] 🧹 Iniciando TRIM inteligente...")
         try:
             # ReTrim é rápido e seguro. Defrag é bloqueado pelo Windows em SSDs automaticamente.
-            cmd = "Optimize-Volume -DriveLetter C -ReTrim -Verbose"
+            # Removed -Verbose to prevent dashboard glitches
+            cmd = "Optimize-Volume -DriveLetter C -ReTrim"
             subprocess.run(["powershell", "-Command", cmd], capture_output=True)
             print("[NVMe] ✓ TRIM executado com sucesso")
-            return true
+            return True
         except Exception as e:
             print(f"[NVMe] Erro ao executar TRIM: {e}")
             return False

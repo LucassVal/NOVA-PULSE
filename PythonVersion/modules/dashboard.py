@@ -150,77 +150,105 @@ class Dashboard:
 
         freq_color = "cyan"
         
-        table.add_row("[bold white]CPU[/bold white]", "")
-        table.add_row("  Load", f"[{cpu_color}]{cpu_usage:.1f}% {cpu_desc}[/{cpu_color}]")
-        table.add_row("  Visual", f"{cpu_bar}")
-        
-        # Per-Core Visualization (Active Monitoring)
-        cores = psutil.cpu_percent(percpu=True)
-        # Create 2 rows of 4-8 cores (mini bars)
-        core_visual = ""
-        for i, c in enumerate(cores):
-            c_color = "green" if c < 50 else "yellow" if c < 80 else "red"
-            # Mini bar using braille or blocks
-            chars = "  ▂▃▄▅▆▇█"
-            idx = int((c / 100) * (len(chars) - 1))
-            core_visual += f"[{c_color}]{chars[idx]}[/{c_color}]"
-            if (i + 1) % 8 == 0: core_visual += "\n    "
-        
-        table.add_row("  Cores", f"[bold]{core_visual}[/bold]")
-
-        table.add_row("  Thermal", f"[{cpu_t_color}]{temp_display} {cpu_t_desc}[/{cpu_t_color}]")
-        table.add_row("  Frequency", f"[{freq_color}]{self.stats['cpu_freq']:.2f} GHz[/{freq_color}]")
-        table.add_row("  Target", f"[yellow]{self.stats['cpu_limit']}%[/yellow] (Smart Governor)")
+        table.add_row("[bold white]CPU Package[/bold white]", "")
+        table.add_row("  Total Load", f"[{cpu_color}]{cpu_usage:.1f}% {cpu_desc}[/{cpu_color}] {cpu_bar}")
+        table.add_row("  Package Temp", f"[{cpu_t_color}]{temp_display} {cpu_t_desc}[/{cpu_t_color}]")
+        table.add_row("  Governor Cap", f"[yellow]{self.stats['cpu_limit']}%[/yellow] (Smart Limit)")
         table.add_row("", "")
         
-        # GPU NVIDIA (Dedicated)
+        # === ACTIVE PER-CORE MONITORING (COMPACT) ===
+        cores_usage = psutil.cpu_percent(percpu=True)
+        try:
+            cores_freq = psutil.cpu_freq(percpu=True)
+        except:
+            cores_freq = []
+            
+        table.add_row("[bold white]Active Cores[/bold white]", "[dim]Real-Time Utilization[/dim]")
+        
+        # Grid Display: 4 Cores per row (Compact)
+        row_str = ""
+        for i, u in enumerate(cores_usage):
+            # Color logic
+            c_color = "green" if u < 50 else "yellow" if u < 80 else "red"
+            
+            # Turbo Logic
+            turbo = "⚡" if u > 20 else " "
+            
+            # Format: C0: 12%⚡   (No bars)
+            core_str = f"C{i}:[{c_color}]{u:3.0f}%{turbo}[/{c_color}]  "
+            
+            row_str += core_str
+            
+            # Break line every 4 cores
+            if (i + 1) % 4 == 0:
+                table.add_row("", row_str)
+                row_str = ""
+        
+        # Add remaining cores if any
+        if row_str:
+             table.add_row("", row_str)
+
+        table.add_row("", "")
+        
+        # === GPU SECTION (MULTI-GPU SUPPORT) ===
+        # Getting Intel GPU info via WMI for basic display
+        intel_name = "Intel Integrated Graphics"
+        intel_active = False
+        if self.has_intel:
+            try:
+                import wmi
+                w = wmi.WMI(namespace="root\\cimv2")
+                for gpu in w.Win32_VideoController():
+                    if "Intel" in gpu.Name:
+                        intel_name = gpu.Name
+                        intel_active = True
+                        break
+            except:
+                pass
+
+        table.add_row("", "")
+        table.add_row("[bold white]GPU ADAPTERS[/bold white]", "")
+
+        # 1. NVIDIA (Dedicated)
         if self.has_nvidia:
-            # Usage Colors: Green (Safe), Yellow (Mod), Red (Heavy)
+            # Usage
             usage = self.stats['gpu_nvidia_percent']
             if usage < 60:
                 gpu_color = "green"
-                usage_desc = "[IDLE/LIGHT]"
+                usage_desc = "[IDLE]"
             elif usage < 90:
                 gpu_color = "yellow"
-                usage_desc = "[GAMING]"
+                usage_desc = "[GAME]"
             else:
                 gpu_color = "red"
-                usage_desc = "[FULL LOAD]"
+                usage_desc = "[MAX]"
             
-            gpu_bar = self._make_bar(usage, 100, gpu_color)
+            gpu_bar = self._make_bar(usage, 15, gpu_color) # Smaller bar
             
-            # Temp Colors: Green (Cool), Yellow (Warm), Orange (Hot), Red (Critical)
+            # Temp
             temp = self.stats['gpu_nvidia_temp']
-            if temp < 60:
-                gpu_temp_color = "cyan"
-                temp_desc = "❄️ COOL"
-            elif temp < 75:
-                gpu_temp_color = "green"
-                temp_desc = "✅ GOOD"
-            elif temp < 85:
-                gpu_temp_color = "yellow"
-                temp_desc = "⚠️ WARM"
-            else:
-                gpu_temp_color = "red"
-                temp_desc = "🔥 CRITICAL"
+            temp_desc = "NORMAL"
+            if temp > 80: temp_desc = "HOT"
             
-            table.add_row("[bold white]GPU NVIDIA[/bold white]", f"[dim]{self.stats['gpu_nvidia_name'][:20]}[/dim]")
-            table.add_row("  Load", f"[{gpu_color}]{usage:.1f}% {usage_desc}[/{gpu_color}]")
-            table.add_row("  Visual", f"{gpu_bar}")
-            table.add_row("  Thermal", f"[{gpu_temp_color}]{temp:.0f}°C {temp_desc}[/{gpu_temp_color}]")
-            table.add_row("  VRAM", f"{self.stats['gpu_nvidia_mem_used']:.0f} / {self.stats['gpu_nvidia_mem_total']:.0f} MB")
+            # Limpa o nome redundante (remove 'NVIDIA ' se já tiver no inicio)
+            gpu_name = self.stats['gpu_nvidia_name'].replace("NVIDIA ", "")
+            
+            table.add_row(f"[cyan]NVIDIA[/cyan] {gpu_name[:20]}", "")
+            table.add_row(f"  Load: [{gpu_color}]{usage:3.0f}%{usage_desc}[/{gpu_color}]", f"Temp: [{gpu_color}]{temp:.0f}°C[/]")
+            table.add_row(f"  VRAM: {self.stats['gpu_nvidia_mem_used']:.0f} MB", f"Limit: {self.stats['gpu_nvidia_power_limit']}%")
         
-        # GPU Intel (Integrated)
-        if self.has_intel:
-            table.add_row("", "")
-            table.add_row("[bold white]GPU Intel[/bold white]", f"[dim]{self.stats['gpu_intel_name'][:20]}[/dim]")
-            table.add_row("  Status", "[green]Active[/green] (Integrated)")
-        
-        # Se nenhuma GPU detectada
-        if not self.has_nvidia and not self.has_intel:
-            table.add_row("[bold white]GPU[/bold white]", "[dim]Não detectada[/dim]")
-        
-        return Panel(table, title="[bold]🖥️  CPU & GPU[/bold]", border_style="cyan")
+        # 2. Intel (Integrated)
+        if intel_active:
+             intel_clean = intel_name.replace("Intel(R) ", "").replace("Graphics", "")
+             table.add_row("", "")
+             table.add_row(f"[blue]INTEL [/blue] {intel_clean[:20]}", "")
+             table.add_row("  Status: [green]● Active[/green]", "Type: iGPU")
+             
+        # Fallback
+        if not self.has_nvidia and not intel_active:
+             table.add_row("[bold white]GPU[/bold white]", "[dim]No dedicated GPU detected[/dim]")
+             
+        return Panel(table, title="[bold]🖥️  HARDWARE MONITOR[/bold]", border_style="cyan")
     
     def make_memory_panel(self):
         """Memory and Status Panel"""
@@ -428,10 +456,10 @@ class Dashboard:
         """Executa o dashboard em loop"""
         self.running = True
         
-        # refresh_per_second=0.2 = atualiza a cada 5 segundos (SEM flickering!)
-        with Live(self.render(services), refresh_per_second=0.2, console=self.console, screen=True) as live:
+        # refresh_per_second=1 = atualiza a cada 1 segundo (REAL TIME)
+        with Live(self.render(services), refresh_per_second=1, console=self.console, screen=True) as live:
             while self.running:
-                time.sleep(5)  # Aguarda 5 segundos entre atualizações
+                time.sleep(1)  # Aguarda 1 segundo entre atualizações
                 live.update(self.render(services))
 
 

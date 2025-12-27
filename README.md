@@ -61,15 +61,13 @@ This optimizer **solves all of these** automatically!
 - Monitors: CPU, GPU, RAM, Temperatures
 - Update interval: 5 seconds (no flickering!)
 
-### 🌬️ Fan Control Integration
-- Auto-detects NBFC (NoteBook FanControl)
-- Configures 100% fan speed for maximum cooling
-- Provides manual setup instructions if needed
-
 ### 🎮 Dual GPU Support
 - NVIDIA GPU: Full stats (usage, temp, VRAM)
 - Intel iGPU: Detection and status
 - Automatic temperature monitoring
+
+> **Note**: Fan control via software is limited on Windows. NBFC project was discontinued.  
+> **Alternatives**: Use manufacturer software (ASUS Armoury Crate, MSI Dragon Center) or BIOS settings.
 
 ---
 
@@ -134,13 +132,12 @@ cpu_control:
 smart_process_manager:
   enabled: true
 
-# Fan Control (NBFC auto-detection)
-fan_control:
-  try_auto_detect: true
-
 # SysMain (disable for NVMe)
 sysmain:
   disabled: true
+
+# Fan Control (manual alternatives recommended)
+# Use manufacturer software or BIOS for fan control
 ```
 
 ---

@@ -12,12 +12,12 @@ cpu_control:
   max_frequency_percent: 85   # RECOMENDADO: 92% performance, -8°C temp
   min_frequency_percent: 5    # Baixo quando ocioso (CPU "acorda" rápido)
 
-# === Controle de Ventoinhas ===
-# NOTA: Windows não permite controle direto
-# Configuração manual necessária (veja GUIA_VENTOINHAS.md)
+# === Fan Control ===
+# NOTE: Direct fan control via software is limited on Windows
+# NBFC project was discontinued. Use manufacturer software or BIOS instead.
 fan_control:
-  try_auto_detect: true        # Tenta detectar e configurar automaticamente
-  show_instructions: true      # Mostra instruções se não conseguir
+  try_auto_detect: false       # Disabled (NBFC discontinued)
+  show_instructions: true      # Shows manual alternatives
 
 # === Controle de GPU (Power Limit) ===
 # ⚠️ BLOQUEADO PELA ASUS - Use MSI Afterburner manualmente

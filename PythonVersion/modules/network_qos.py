@@ -31,35 +31,23 @@ class NetworkQoSManager:
         ]
     
     def apply_qos_rules(self):
-        """Aplica regras de QoS via netsh"""
+        """Aplica regras de QoS via netsh (versão rápida)"""
         if not self.enabled:
             return False
             
-        print("[NET] Aplicando regras de QoS para gaming...")
+        print("[NET] Aplicando otimizações de rede para gaming...")
         
         try:
-            # 1. Criar política de QoS para jogos (DSCP 46 = Expedited Forwarding)
-            # Prioridade máxima para tráfego real-time
-            
-            # Remove política anterior se existir
-            subprocess.run(
-                ['netsh', 'advfirewall', 'firewall', 'delete', 'rule', 
-                 'name=GameBoost_UDP'],
-                capture_output=True, text=True
-            )
-            
-            # Cria política no registro do Windows (requer admin)
-            # QoS Policy: Prioriza UDP para portas de jogos
-            for port in self.game_ports['udp_high']:
-                self._create_qos_policy(f"GameBoost_Port_{port}", port, 'UDP', 46)
-            
-            # 2. Desabilitar algoritmo de Nagle (reduz micro-lag)
+            # 1. Desabilita algoritmo de Nagle (reduz micro-lag) - RÁPIDO
             self._disable_nagle()
             
-            # 3. Otimizar buffer de rede
+            # 2. Otimiza buffers TCP - RÁPIDO
             self._optimize_network_buffer()
             
-            print("[NET] ✓ QoS aplicado - Latência de jogos otimizada")
+            # NOTE: QoS Policies via PowerShell são lentas e requerem restart
+            # Desabilitado para evitar travamento. Usar GPO manualmente se necessário.
+            
+            print("[NET] ✓ Otimizações de rede aplicadas")
             return True
             
         except Exception as e:
@@ -67,17 +55,9 @@ class NetworkQoSManager:
             return False
     
     def _create_qos_policy(self, name, port, protocol, dscp):
-        """Cria política QoS via PowerShell"""
-        try:
-            # PowerShell: New-NetQosPolicy
-            cmd = f'''
-            $policy = Get-NetQosPolicy -Name "{name}" -ErrorAction SilentlyContinue
-            if ($policy) {{ Remove-NetQosPolicy -Name "{name}" -Confirm:$false }}
-            New-NetQosPolicy -Name "{name}" -IPDstPortStart {port} -IPDstPortEnd {port} -IPProtocol {protocol} -DSCPAction {dscp} -NetworkProfile All
-            '''
-            subprocess.run(['powershell', '-Command', cmd], capture_output=True)
-        except:
-            pass  # QoS policy creation may fail without proper permissions
+        """Cria política QoS - DESABILITADO (muito lento)"""
+        # Comentado para evitar travamento
+        pass
     
     def _disable_nagle(self):
         """Desabilita algoritmo de Nagle para reduzir latência"""

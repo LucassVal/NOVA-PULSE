@@ -65,10 +65,23 @@ This optimizer **solves all of these** automatically!
 
 ---
 
-### 🧹 Automatic RAM Cleaning
+### 🧹 Surgical RAM Cleaning
+Naive RAM cleaners purge *everything*, forcing your PC to reload frequent files from disk (causing lag).
+- **The Engine:** Only cleans when **strictly necessary**.
+- **Logic:** `IF (Free RAM < 4GB) AND (Standby Cache > 1GB) -> CLEAN`
+- **Zero-Stutter:** Avoids aggressive commands like `EmptyWorkingSets` that page active apps to disk.
 
-> **Note**: Fan control via software is limited on Windows. NBFC project was discontinued.  
-> **Alternatives**: Use manufacturer software (ASUS Armoury Crate, MSI Dragon Center) or BIOS settings.
+### 🎮 Intelligent Process Scheduler
+- **Auto-Detection:** Automatically identifies which app you are actively using.
+- **Prioritization:** Assigns **High CPU Priority** to your active window.
+- **Deprioritization:** Assigns **Low CPU Priority** to web browsers (Chrome, Edge), Discord, and Spotify automatically.
+
+### ❄️ Fan Control Note
+> **Note**: Direct software fan control is restricted on modern windows laptops.
+> **Recommendation**: Use your manufacturer's official software (Armoury Crate, Dragon Center) or BIOS performance profiles for fan curves. This optimizer focuses on what Windows *doesn't* do: **Process, Memory, and I/O scheduling**.
+
+### 📊 Pedagogical Dashboard
+A beautiful, real-time console dashboard that doesn't just show numbers, but **teaches** you the state of your PC.
 
 ---
 

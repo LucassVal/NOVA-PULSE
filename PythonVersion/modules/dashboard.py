@@ -116,33 +116,83 @@ class Dashboard:
         table.add_column("Metric", style="cyan", width=18)
         table.add_column("Value", justify="right")
         
-        # CPU
-        cpu_color = "green" if self.stats['cpu_percent'] < 70 else "yellow" if self.stats['cpu_percent'] < 90 else "red"
-        cpu_bar = self._make_bar(self.stats['cpu_percent'], 100, cpu_color)
+        # CPU - Pedagogical Colors
+        # Usage
+        cpu_usage = self.stats['cpu_percent']
+        if cpu_usage < 50:
+            cpu_color = "green"
+            cpu_desc = "[LIGHT]"
+        elif cpu_usage < 80:
+            cpu_color = "yellow"
+            cpu_desc = "[MODERATE]"
+        else:
+            cpu_color = "red"
+            cpu_desc = "[HEAVY]"
         
-        temp_color = "green" if self.stats['cpu_temp'] < 70 else "yellow" if self.stats['cpu_temp'] < 85 else "red"
-        temp_display = f"{self.stats['cpu_temp']:.0f}°C" if self.stats['cpu_temp'] > 0 else "N/A"
+        cpu_bar = self._make_bar(cpu_usage, 100, cpu_color)
         
+        # Temp
+        cpu_temp = self.stats['cpu_temp']
+        temp_display = f"{cpu_temp:.0f}°C" if cpu_temp > 0 else "N/A"
+        
+        if cpu_temp < 60:
+            cpu_t_color = "cyan"
+            cpu_t_desc = "❄️ COOL"
+        elif cpu_temp < 75:
+            cpu_t_color = "green"
+            cpu_t_desc = "✅ GOOD"
+        elif cpu_temp < 85:
+            cpu_t_color = "yellow"
+            cpu_t_desc = "⚠️ WARM" 
+        else:
+            cpu_t_color = "red"
+            cpu_t_desc = "🔥 HOT"
+
         freq_color = "cyan"
-        freq_pct = (self.stats['cpu_freq'] / 4.4) * 100 if self.stats['cpu_freq'] > 0 else 0
         
         table.add_row("[bold white]CPU[/bold white]", "")
-        table.add_row("  Usage", f"[{cpu_color}]{self.stats['cpu_percent']:.1f}%[/{cpu_color}] {cpu_bar}")
-        table.add_row("  Temperature", f"[{temp_color}]{temp_display}[/{temp_color}]")
+        table.add_row("  Load", f"[{cpu_color}]{cpu_usage:.1f}% {cpu_desc}[/{cpu_color}]")
+        table.add_row("  Visual", f"{cpu_bar}")
+        table.add_row("  Thermal", f"[{cpu_t_color}]{temp_display} {cpu_t_desc}[/{cpu_t_color}]")
         table.add_row("  Frequency", f"[{freq_color}]{self.stats['cpu_freq']:.2f} GHz[/{freq_color}]")
-        table.add_row("  Limit", f"[yellow]{self.stats['cpu_limit']}%[/yellow] (enabled)")
+        table.add_row("  Target", f"[yellow]{self.stats['cpu_limit']}%[/yellow] (Smart Governor)")
         table.add_row("", "")
         
         # GPU NVIDIA (Dedicated)
         if self.has_nvidia:
-            gpu_color = "green" if self.stats['gpu_nvidia_percent'] < 70 else "yellow" if self.stats['gpu_nvidia_percent'] < 90 else "red"
-            gpu_bar = self._make_bar(self.stats['gpu_nvidia_percent'], 100, gpu_color)
+            # Usage Colors: Green (Safe), Yellow (Mod), Red (Heavy)
+            usage = self.stats['gpu_nvidia_percent']
+            if usage < 60:
+                gpu_color = "green"
+                usage_desc = "[IDLE/LIGHT]"
+            elif usage < 90:
+                gpu_color = "yellow"
+                usage_desc = "[GAMING]"
+            else:
+                gpu_color = "red"
+                usage_desc = "[FULL LOAD]"
             
-            gpu_temp_color = "green" if self.stats['gpu_nvidia_temp'] < 70 else "yellow" if self.stats['gpu_nvidia_temp'] < 85 else "red"
+            gpu_bar = self._make_bar(usage, 100, gpu_color)
+            
+            # Temp Colors: Green (Cool), Yellow (Warm), Orange (Hot), Red (Critical)
+            temp = self.stats['gpu_nvidia_temp']
+            if temp < 60:
+                gpu_temp_color = "cyan"
+                temp_desc = "❄️ COOL"
+            elif temp < 75:
+                gpu_temp_color = "green"
+                temp_desc = "✅ GOOD"
+            elif temp < 85:
+                gpu_temp_color = "yellow"
+                temp_desc = "⚠️ WARM"
+            else:
+                gpu_temp_color = "red"
+                temp_desc = "🔥 CRITICAL"
             
             table.add_row("[bold white]GPU NVIDIA[/bold white]", f"[dim]{self.stats['gpu_nvidia_name'][:20]}[/dim]")
-            table.add_row("  Usage", f"[{gpu_color}]{self.stats['gpu_nvidia_percent']:.1f}%[/{gpu_color}] {gpu_bar}")
-            table.add_row("  Temperature", f"[{gpu_temp_color}]{self.stats['gpu_nvidia_temp']:.0f}°C[/{gpu_temp_color}]")
+            table.add_row("  Load", f"[{gpu_color}]{usage:.1f}% {usage_desc}[/{gpu_color}]")
+            table.add_row("  Visual", f"{gpu_bar}")
+            table.add_row("  Thermal", f"[{gpu_temp_color}]{temp:.0f}°C {temp_desc}[/{gpu_temp_color}]")
             table.add_row("  VRAM", f"{self.stats['gpu_nvidia_mem_used']:.0f} / {self.stats['gpu_nvidia_mem_total']:.0f} MB")
         
         # GPU Intel (Integrated)

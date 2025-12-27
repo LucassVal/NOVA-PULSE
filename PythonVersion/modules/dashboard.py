@@ -275,6 +275,25 @@ class Dashboard:
             table.add_row("  GPU Power Limit", f"[yellow]●[/yellow] {self.stats['gpu_nvidia_power_limit']}%")
         
         table.add_row("  SysMain", "[red]●[/red] Disabled")
+        table.add_row("", "")
+        
+        # V3.0 Features
+        table.add_row("[bold white]V3.0 FEATURES[/bold white]", "")
+        
+        # Game Mode Status
+        game_active = self.stats.get('game_active', False)
+        game_name = self.stats.get('game_name', '')
+        if game_active:
+            table.add_row("  🎮 Game Mode", f"[green]●[/green] {game_name[:15]}")
+        else:
+            table.add_row("  🎮 Game Mode", "[dim]○ Waiting[/dim]")
+        
+        # Network QoS
+        table.add_row("  📡 Network QoS", "[green]●[/green] Active")
+        
+        # Profile
+        profile = self.stats.get('active_profile', 'Balanced')
+        table.add_row("  ⚡ Profile", f"[cyan]{profile}[/cyan]")
         
         return Panel(table, title="[bold]💾  Memory & Status[/bold]", border_style="green")
     
@@ -390,6 +409,17 @@ class Dashboard:
             self.stats['priority_low'] = low_count
         except:
             pass
+        
+        # V3.0: Game Detector Status
+        if 'game_detector' in services:
+            self.stats['game_active'] = services['game_detector'].is_game_active()
+            self.stats['game_name'] = services['game_detector'].get_current_game() or ''
+        
+        # V3.0: Profile Status
+        if 'profiles' in services:
+            profile = services['profiles'].get_current_profile()
+            self.stats['active_profile'] = profile.value.title() if profile else 'Balanced'
+
     
     def render(self, services):
         """Renderiza o dashboard"""

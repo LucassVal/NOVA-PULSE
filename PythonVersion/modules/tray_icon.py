@@ -118,7 +118,7 @@ class SystemTrayIcon:
         return image
     
     def _get_mini_dashboard(self):
-        """Gera texto do mini-dashboard para tooltip"""
+        """Gera texto do mini-dashboard para tooltip (max 128 chars)"""
         try:
             import psutil
             
@@ -127,56 +127,39 @@ class SystemTrayIcon:
             
             # RAM
             mem = psutil.virtual_memory()
-            ram_used_gb = mem.used / (1024**3)
-            ram_total_gb = mem.total / (1024**3)
-            ram_percent = mem.percent
+            ram_pct = mem.percent
             
             # GPU NVIDIA
-            gpu_percent = 0
+            gpu_pct = 0
             gpu_temp = 0
-            gpu_name = ""
             try:
                 import pynvml
                 pynvml.nvmlInit()
                 if pynvml.nvmlDeviceGetCount() > 0:
                     handle = pynvml.nvmlDeviceGetHandleByIndex(0)
                     util = pynvml.nvmlDeviceGetUtilizationRates(handle)
-                    gpu_percent = util.gpu
+                    gpu_pct = util.gpu
                     gpu_temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
-                    name = pynvml.nvmlDeviceGetName(handle)
-                    if isinstance(name, bytes):
-                        name = name.decode('utf-8')
-                    gpu_name = name.replace("NVIDIA ", "").replace(" Laptop GPU", "")[:15]
             except:
                 pass
             
             # Modo atual
             mode = "NORMAL"
-            mode_icon = "🔄"
             if 'auto_profiler' in self.services:
-                profiler = self.services['auto_profiler']
-                mode = profiler.get_current_mode().value.upper()
-                if mode == "BOOST":
-                    mode_icon = "⚡"
-                elif mode == "ECO":
-                    mode_icon = "🌿"
+                try:
+                    mode = self.services['auto_profiler'].get_current_mode().value.upper()
+                except:
+                    pass
             
-            # Monta tooltip
-            tooltip = f"⚡ NovaPulse 2.0\n"
-            tooltip += f"━━━━━━━━━━━━━\n"
-            tooltip += f"{mode_icon} Modo: {mode}\n"
-            tooltip += f"🖥️ CPU: {cpu_percent:.0f}%\n"
-            tooltip += f"💾 RAM: {ram_used_gb:.1f}/{ram_total_gb:.1f}GB ({ram_percent:.0f}%)\n"
-            
-            # GPU info
-            if gpu_name:
-                tooltip += f"🎮 GPU: {gpu_name}\n"
-                tooltip += f"   Load: {gpu_percent}% | Temp: {gpu_temp}°C"
+            # Tooltip compacto (max 128 chars)
+            tooltip = f"NovaPulse 2.0 | {mode}\n"
+            tooltip += f"CPU:{cpu_percent:.0f}% RAM:{ram_pct:.0f}%\n"
+            tooltip += f"GPU:{gpu_pct}% {gpu_temp}C"
             
             return tooltip, mode.lower()
             
         except Exception as e:
-            return f"⚡ NovaPulse 2.0\n[Erro: {e}]", "normal"
+            return "NovaPulse 2.0", "normal"
     
     def _tooltip_update_loop(self):
         """Atualiza tooltip a cada 2 segundos"""

@@ -1,56 +1,133 @@
-# Windows NVMe RAM Optimizer - Configuração
+# ═══════════════════════════════════════════════════════════════════════
+#                        ⚡ NOVAPULSE 2.0 ⚡
+#                Intelligent System Optimization
+#                    Advanced Hardware Control
+# ═══════════════════════════════════════════════════════════════════════
+
+# === OPTIMIZATION LEVEL ===
+# Níveis: safe, balanced, gaming, aggressive
+optimization_level: gaming
 
 # === Limpeza de Memória Standby ===
 standby_cleaner:
   enabled: true
-  threshold_mb: 4096            # Limpa quando tiver MENOS de 4GB livre (modo agressivo)
+  threshold_mb: 4096            # Limpa quando tiver MENOS de 4GB livre
   check_interval_seconds: 5
 
-# === Otimização de NVMe/SSD (Novo!) ===
+# === Otimização de NVMe/SSD ===
 nvme:
   enabled: true
-  disable_last_access: true     # Ganho performance IOPS
-  prevent_disk_sleep: true      # Evita lag de retorno de suspensão
+  disable_last_access: true
+  prevent_disk_sleep: true
   periodic_trim: true
-  trim_interval_hours: 24       # Executa TRIM uma vez por dia (ou ao iniciar)
+  trim_interval_hours: 24
 
 # === Controle de CPU ===
-# Configurado para MÁXIMO EQUILÍBRIO (equivalente a -70mV undervolt)
 cpu_control:
-  max_frequency_percent: 85   # RECOMENDADO: 92% performance, -8°C temp
-  min_frequency_percent: 5    # Baixo quando ocioso (CPU "acorda" rápido)
+  max_frequency_percent: 85     # Auto-Profiler ajusta dinamicamente
+  min_frequency_percent: 5
 
-# === Fan Control ===
-# NOTE: Direct fan control via software is limited on Windows
-# NBFC project was discontinued. Use manufacturer software or BIOS instead.
-fan_control:
-  try_auto_detect: false       # Disabled (NBFC discontinued)
-  show_instructions: true      # Shows manual alternatives
+# === AUTO-PROFILER (Núcleo do NovaPulse) ===
+# Totalmente automatizado - reações rápidas
+auto_profiler:
+  enabled: true
+  check_interval: 1             # Verifica a cada 1 segundo (mais rápido)
+  boost_threshold: 85
+  eco_threshold: 30
+  boost_hold_time: 2            # 2 segundos para ativar BOOST (mais rápido)
+  eco_hold_time: 3              # 3 segundos para ECO
+  eco_progressive: true
+  min_cpu_percent: 10
+  # Thermal Throttle - proteção automática
+  thermal_throttle_enabled: true
+  thermal_threshold: 90          # Se CPU >= 90°C
+  thermal_throttle_percent: 80   # Reduz para 80%
 
-# === Controle de GPU (Power Limit) ===
-# ⚠️ BLOQUEADO PELA ASUS - Use MSI Afterburner manualmente
-gpu_control:
-  enabled: false                # Desabilitado (ASUS bloqueia via BIOS)
-  power_limit_percent: 90       # Se seu modelo suportar, mude para true
+# === Network QoS (Ping Booster) ===
+network_qos:
+  enabled: true
+  dns_provider: adguard
+
+# ═══════════════════════════════════════════════════════════════════════
+#                    OTIMIZAÇÕES AVANÇADAS 2.0
+# ═══════════════════════════════════════════════════════════════════════
+
+# === CORE PARKING ===
+core_parking:
+  enabled: true
+  disable_parking: true         # Todos os cores sempre ativos
+  use_ultimate_performance: true # Plano Ultimate Performance
+
+# === MEMORY OPTIMIZER PRO ===
+memory_optimizer:
+  enabled: true
+  disable_compression: true     # Desativa compressão de RAM
+  disable_superfetch: true      # Desativa SysMain/Superfetch
+  disable_prefetch: true        # Desativa Prefetch
+  keep_kernel_in_ram: true      # Mantém kernel na RAM
+
+# === NTFS OPTIMIZER ===
+ntfs_optimizer:
+  enabled: true
+  disable_8dot3: true           # Desativa nomes curtos DOS
+  disable_last_access: true     # Desativa Last Access Time
+  gaming_mode: true             # Prioriza apps sobre cache
+
+# === GPU SCHEDULER ===
+gpu_scheduler:
+  enabled: true
+  enable_hags: true             # Hardware-Accelerated GPU Scheduling
+  gpu_priority: 8               # Prioridade máxima
+  enable_game_mode: true
+
+# === MMCSS (Multimedia) ===
+mmcss_optimizer:
+  enabled: true
+  system_responsiveness: 0      # 0 = Máxima prioridade para mídia
+  disable_network_throttling: true
+  optimize_gaming_task: true
+  optimize_audio_task: true
+
+# === HPET CONTROLLER ===
+hpet_controller:
+  enabled: true
+  disable_hpet: true            # Desativa HPET (reduz input lag)
+  disable_dynamic_tick: true    # Tick constante
+  tscsync_policy: enhanced      # Melhor precisão de timer
+
+# === USB OPTIMIZER ===
+usb_optimizer:
+  enabled: true
+  disable_selective_suspend: true
+  optimize_buffers: true
+
+# === IRQ AFFINITY ===
+irq_optimizer:
+  enabled: true
+  enable_msi_mode: true         # Message Signaled Interrupts
+  optimize_gpu_irq: true
+  optimize_network_irq: true
+
+# === NETWORK STACK ===
+network_stack:
+  enabled: true
+  congestion_control: ctcp      # Compound TCP
+  enable_ecn: true              # Explicit Congestion Notification
+  enable_rss: true              # Receive Side Scaling
+  auto_tuning: normal
+
+# === PROCESS CONTROLLER ===
+process_controller:
+  enabled: true
+  apply_gaming_preset: true
+  throttle_background: true
   
-# === Stress Test ===
-stress_test:
-  enabled: false
-  target_load_percent: 70     # Carga desejada (20-95%)
-  thread_count: 0             # 0 = auto (usa todos os cores)
+# === Game Mode Detector ===
+game_detector:
+  enabled: true
+  extra_game_exes: []
 
-# === Gerenciamento de SysMain ===
-sysmain:
-  disabled: true  # DESABILITADO - libera recursos para responsividade
-
-# === PRIORIZAÇÃO AUTOMÁTICA INTELIGENTE ===
-# O sistema detecta AUTOMATICAMENTE processos iniciados pelo usuário
-# e dá prioridade ALTA sem você precisar configurar nada!
-#
-# PRIORIDADE ALTA automática: Jogos, apps, programas que VOCÊ abre
-# PRIORIDADE BAIXA automática: Navegadores e apps de background
-#
-# Lista de apps que SEMPRE terão prioridade baixa (mesmo sendo do usuário):
+# === Priorização Automática ===
 auto_low_priority_apps:
   - "chrome.exe"
   - "msedge.exe"
@@ -58,30 +135,6 @@ auto_low_priority_apps:
   - "discord.exe"
   - "spotify.exe"
   - "steam.exe"
-  
-# NOTA: Você NÃO precisa mais configurar process_rules!
-# O sistema inteligente cuida de tudo automaticamente!
-
-# === V3.0: Network QoS (Ping Booster) ===
-network_qos:
-  enabled: true
-  # DNS Provider: adguard, google, cloudflare, adguard_family, cloudflare_malware
-  # adguard = Bloqueia ads, trackers e malware
-  # google = Rápido e confiável
-  # cloudflare = DNS mais rápido do mundo
-  dns_provider: adguard
-
-# === V3.0: Game Mode Detector ===
-game_detector:
-  enabled: true
-  # Adicione jogos extras que não estão na lista padrão:
-  extra_game_exes: []
-    # - "myjogo.exe"
-    # - "outrogame.exe"
-
-# === V3.0: Profiles ===
-# Profile padrão: balanced (outros: gaming, productivity, battery_saver)
-# Pode trocar via System Tray ou editando aqui
-profile:
-  default: balanced
-
+  - "epicgameslauncher.exe"
+  - "onedrive.exe"
+  - "dropbox.exe"

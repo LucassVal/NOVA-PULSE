@@ -1,6 +1,7 @@
 """
-Real-time visual dashboard for Windows Optimizer
-Displays system stats, optimizations, and statistics
+NovaPulse Dashboard
+Real-time visual dashboard for system optimization
+Displays system stats, Auto-Profiler mode, and statistics
 """
 import psutil
 import time
@@ -112,7 +113,12 @@ class Dashboard:
         current_time = datetime.now().strftime("%H:%M:%S")
         status = "[green]● ACTIVE[/green]"
         
-        header_text = f"[bold cyan]⚡ WINDOWS OPTIMIZER DASHBOARD[/bold cyan] | {current_time} | {status}"
+        # Get current mode from auto_profiler
+        mode_text = self.stats.get('auto_mode', 'NORMAL')
+        mode_colors = {'BOOST': 'red', 'NORMAL': 'cyan', 'ECO': 'green'}
+        mode_color = mode_colors.get(mode_text, 'cyan')
+        
+        header_text = f"[bold cyan]⚡ NOVAPULSE[/bold cyan] | {current_time} | [{mode_color}]{mode_text}[/{mode_color}] | {status}"
         return Panel(
             Align.center(header_text),
             border_style="bold blue"
@@ -279,8 +285,17 @@ class Dashboard:
         table.add_row("  SysMain", "[red]●[/red] Disabled")
         table.add_row("", "")
         
-        # V3.0 Features
-        table.add_row("[bold white]V3.0 FEATURES[/bold white]", "")
+        # NovaPulse Features
+        table.add_row("[bold white]NOVAPULSE[/bold white]", "")
+        
+        # Auto-Profiler Mode
+        auto_mode = self.stats.get('auto_mode', 'NORMAL')
+        avg_cpu = self.stats.get('auto_avg_cpu', 0)
+        mode_icons = {'BOOST': '⚡', 'NORMAL': '🔄', 'ECO': '🌿'}
+        mode_colors = {'BOOST': 'red', 'NORMAL': 'cyan', 'ECO': 'green'}
+        mode_icon = mode_icons.get(auto_mode, '🔄')
+        mode_color = mode_colors.get(auto_mode, 'cyan')
+        table.add_row(f"  {mode_icon} Auto Mode", f"[{mode_color}]{auto_mode}[/{mode_color}] (CPU: {avg_cpu:.0f}%)")
         
         # Game Mode Status
         game_active = self.stats.get('game_active', False)
@@ -292,10 +307,6 @@ class Dashboard:
         
         # Network QoS
         table.add_row("  📡 Network QoS", "[green]●[/green] Active")
-        
-        # Profile
-        profile = self.stats.get('active_profile', 'Balanced')
-        table.add_row("  ⚡ Profile", f"[cyan]{profile}[/cyan]")
         
         return Panel(table, title="[bold]💾  Memory & Status[/bold]", border_style="green")
     
@@ -487,10 +498,11 @@ class Dashboard:
             self.stats['game_active'] = services['game_detector'].is_game_active()
             self.stats['game_name'] = services['game_detector'].get_current_game() or ''
         
-        # V3.0: Profile Status
-        if 'profiles' in services:
-            profile = services['profiles'].get_current_profile()
-            self.stats['active_profile'] = profile.value.title() if profile else 'Balanced'
+        # NovaPulse: Auto-Profiler Status
+        if 'auto_profiler' in services:
+            profiler = services['auto_profiler']
+            self.stats['auto_mode'] = profiler.get_current_mode().value.upper()
+            self.stats['auto_avg_cpu'] = profiler.get_avg_cpu()
         
         # V3.0: Real-time Ping (every 10 updates to avoid overhead)
         ping_counter = self.stats_tracker.get('ping_counter', 0) + 1

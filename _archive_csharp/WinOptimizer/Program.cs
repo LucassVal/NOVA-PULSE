@@ -15,10 +15,12 @@ namespace WinOptimizer
         private ProcessPriorityManager? _priorityManager;
         private SystemServiceController? _serviceController;
         private CPUPowerManager? _cpuPowerManager;
+        private AutoProfiler? _autoProfiler;
         private CPUStressTest? _stressTest;
         private OptimizerConfig? _config;
 
         private Label? _statusLabel;
+        private Label? _modeLabel;
         private Label? _memoryLabel;
         private Label? _cpuLabel;
         private Button? _cleanNowButton;
@@ -33,7 +35,7 @@ namespace WinOptimizer
             if (!IsAdministrator())
             {
                 MessageBox.Show(
-                    "Este aplicativo requer privilégios de Administrador.\n\n" +
+                    "NovaPulse requer privilégios de Administrador.\n\n" +
                     "Por favor, execute como administrador.",
                     "Privilégios Insuficientes",
                     MessageBoxButtons.OK,
@@ -58,8 +60,8 @@ namespace WinOptimizer
         private void InitializeUI()
         {
             // Configurações da janela
-            Text = "Windows NVMe RAM Optimizer";
-            Size = new Size(700, 550);
+            Text = "⚡ NovaPulse - Intelligent System Optimization";
+            Size = new Size(700, 580);
             StartPosition = FormStartPosition.CenterScreen;
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
@@ -67,19 +69,30 @@ namespace WinOptimizer
             // Status label
             _statusLabel = new Label
             {
-                Text = "🟢 Otimizador Ativo",
+                Text = "🟢 NovaPulse Ativo",
                 Font = new Font("Segoe UI", 12, FontStyle.Bold),
                 Location = new Point(20, 20),
                 AutoSize = true
             };
             Controls.Add(_statusLabel);
+            
+            // Mode label (Auto-Profiler)
+            _modeLabel = new Label
+            {
+                Text = "Modo: 🔄 NORMAL",
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                ForeColor = Color.DodgerBlue,
+                Location = new Point(20, 45),
+                AutoSize = true
+            };
+            Controls.Add(_modeLabel);
 
             // Memory label
             _memoryLabel = new Label
             {
                 Text = "RAM Livre: Carregando...",
                 Font = new Font("Segoe UI", 10),
-                Location = new Point(20, 60),
+                Location = new Point(20, 75),
                 AutoSize = true
             };
             Controls.Add(_memoryLabel);
@@ -89,7 +102,7 @@ namespace WinOptimizer
             {
                 Text = "CPU: Carregando...",
                 Font = new Font("Segoe UI", 10),
-                Location = new Point(20, 85),
+                Location = new Point(20, 100),
                 AutoSize = true
             };
             Controls.Add(_cpuLabel);
@@ -98,7 +111,7 @@ namespace WinOptimizer
             _cleanNowButton = new Button
             {
                 Text = "Limpar Memória Agora",
-                Location = new Point(20, 120),
+                Location = new Point(20, 135),
                 Size = new Size(200, 35),
                 Font = new Font("Segoe UI", 10)
             };
@@ -144,15 +157,20 @@ namespace WinOptimizer
             {
                 Icon = SystemIcons.Application,
                 Visible = true,
-                Text = "Windows Optimizer"
+                Text = "NovaPulse"
             };
             _trayIcon.DoubleClick += TrayIcon_DoubleClick;
 
             var trayMenu = new ContextMenuStrip();
-            trayMenu.Items.Add("Mostrar", null, (s, e) => ShowWindow());
-            trayMenu.Items.Add("Limpar RAM", null, (s, e) => CleanMemoryNow());
-            trayMenu.Items.Add("-");
-            trayMenu.Items.Add("Sair", null, (s, e) => ExitApplication());
+            trayMenu.Items.Add("⚡ NovaPulse", null, (s, e) => ShowWindow());
+            trayMenu.Items.Add(new ToolStripSeparator());
+            trayMenu.Items.Add("🚀 Forçar BOOST", null, (s, e) => _autoProfiler?.ForceMode(SystemMode.Boost));
+            trayMenu.Items.Add("🌿 Forçar ECO", null, (s, e) => _autoProfiler?.ForceMode(SystemMode.Eco));
+            trayMenu.Items.Add("🔄 Modo AUTO", null, (s, e) => _autoProfiler?.ForceMode(SystemMode.Normal));
+            trayMenu.Items.Add(new ToolStripSeparator());
+            trayMenu.Items.Add("🧹 Limpar RAM", null, (s, e) => CleanMemoryNow());
+            trayMenu.Items.Add(new ToolStripSeparator());
+            trayMenu.Items.Add("❌ Sair", null, (s, e) => ExitApplication());
             _trayIcon.ContextMenuStrip = trayMenu;
 
             // Timer para atualizar UI
@@ -167,8 +185,8 @@ namespace WinOptimizer
                 {
                     e.Cancel = true;
                     Hide();
-                    _trayIcon!.ShowBalloonTip(2000, "Windows Optimizer", 
-                        "O otimizador continua rodando em segundo plano", 
+                    _trayIcon!.ShowBalloonTip(2000, "NovaPulse", 
+                        "NovaPulse continua otimizando em segundo plano", 
                         ToolTipIcon.Info);
                 }
             };
@@ -215,16 +233,17 @@ namespace WinOptimizer
         private void InitializeServices()
         {
             _memoryCleaner = new StandbyMemoryCleaner(
-                _config?.StandbyThresholdMB ?? 1024,
+                _config?.StandbyThresholdMB ?? 4096,
                 _config?.StandbyCheckIntervalSeconds ?? 5
             );
 
             _priorityManager = new ProcessPriorityManager();
             _serviceController = new SystemServiceController();
             _cpuPowerManager = new CPUPowerManager();
+            _autoProfiler = new AutoProfiler(_cpuPowerManager, _memoryCleaner);
             _stressTest = new CPUStressTest();
 
-            Logger.Log("Serviços inicializados", "INFO");
+            Logger.Log("⚡ NovaPulse serviços inicializados", "INFO");
         }
 
         private void StartServices()
@@ -257,12 +276,16 @@ namespace WinOptimizer
             }
 
             // Controla SysMain
-            if (_config?.SysMainDisabled ?? false)
+            if (_config?.SysMainDisabled ?? true)
             {
                 _serviceController?.DisableSysMain();
             }
+            
+            // Inicia Auto-Profiler
+            _autoProfiler?.Start();
+            _autoProfiler!.ModeChanged += (s, mode) => UpdateModeLabel(mode);
 
-            Logger.Log("✓ Todos os serviços iniciados", "SUCCESS");
+            Logger.Log("✓ NovaPulse iniciado com sucesso", "SUCCESS");
         }
 
         private void UpdateTimer_Tick(object? sender, EventArgs e)
@@ -287,6 +310,30 @@ namespace WinOptimizer
                 }
             }
             catch { }
+        }
+
+        private void UpdateModeLabel(SystemMode mode)
+        {
+            if (_modeLabel == null || _modeLabel.IsDisposed) return;
+            
+            _modeLabel.Invoke((MethodInvoker)delegate
+            {
+                switch (mode)
+                {
+                    case SystemMode.Boost:
+                        _modeLabel.Text = "Modo: ⚡ BOOST";
+                        _modeLabel.ForeColor = Color.OrangeRed;
+                        break;
+                    case SystemMode.Eco:
+                        _modeLabel.Text = "Modo: 🌿 ECO";
+                        _modeLabel.ForeColor = Color.ForestGreen;
+                        break;
+                    default:
+                        _modeLabel.Text = "Modo: 🔄 NORMAL";
+                        _modeLabel.ForeColor = Color.DodgerBlue;
+                        break;
+                }
+            });
         }
 
         private void CleanNowButton_Click(object? sender, EventArgs e)

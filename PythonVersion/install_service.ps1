@@ -1,8 +1,16 @@
-# Script PowerShell para instalação do auto-start (versão Python)
+# NovaPulse - Script de Instalação do Serviço
 # Execute como Administrador
+# ============================================
 
-$scriptPath = Join-Path $PSScriptRoot "win_optimizer.py"
+$scriptPath = Join-Path $PSScriptRoot "novapulse.py"
 $pythonExe = "python"  # ou "python3" ou caminho completo
+
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  NovaPulse 1.0 - Instalador de Serviço" -ForegroundColor Cyan
+Write-Host "  Intelligent System Optimization" -ForegroundColor DarkCyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
 
 # Testa se Python está instalado
 try {
@@ -20,10 +28,10 @@ Write-Host "`nInstalando dependências..." -ForegroundColor Cyan
 & $pythonExe -m pip install -r requirements.txt
 
 # Cria Task Scheduler task
-Write-Host "`nConfigurando auto-start..." -ForegroundColor Cyan
+Write-Host "`nConfigurando auto-start do NovaPulse..." -ForegroundColor Cyan
 
-$taskName = "WinOptimizerPython"
-$taskDescription = "Windows NVMe RAM Optimizer (Python)"
+$taskName = "NovaPulse"
+$taskDescription = "NovaPulse - Intelligent System Optimization"
 
 # Remove task existente
 Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
@@ -43,9 +51,15 @@ Register-ScheduledTask `
     -Principal $principal `
     -Force
 
-Write-Host "`n✓ Auto-start instalado com sucesso!" -ForegroundColor Green
-Write-Host "`nO otimizador será iniciado automaticamente ao ligar o PC" -ForegroundColor Yellow
-Write-Host "`nPara testar agora, execute:" -ForegroundColor Cyan
-Write-Host "    python win_optimizer.py" -ForegroundColor White
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Green
+Write-Host "✓ NovaPulse instalado com sucesso!" -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "O NovaPulse será iniciado automaticamente ao ligar o PC" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Para testar agora, execute:" -ForegroundColor Cyan
+Write-Host "    python novapulse.py" -ForegroundColor White
+Write-Host ""
 
 pause

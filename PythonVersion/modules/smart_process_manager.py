@@ -60,10 +60,10 @@ class SmartProcessManager:
         while self.running:
             try:
                 self._scan_and_prioritize()
-                time.sleep(10)
+                time.sleep(2)  # Scan every 2 seconds for fast reaction
             except Exception as e:
                 print(f"[ERROR] Erro no monitoramento: {e}")
-                time.sleep(30)
+                time.sleep(10)
     
     def _scan_and_prioritize(self):
         try:

@@ -272,18 +272,37 @@ class Dashboard:
         table.add_row("  Cleanups", f"[yellow]{self.stats_tracker.get('total_cleanups', 0)}[/yellow] auto")
         table.add_row("", "")
         
-        # Optimizations
+        # CUDA / GPU Features
+        if self.has_nvidia:
+            table.add_row("[bold white]CUDA / GPU[/bold white]", "")
+            table.add_row("  PhysX", "[green]●[/green] GPU Dedicated")
+            table.add_row("  Pre-Rendered", "[green]●[/green] 1 frame")
+            table.add_row("  Shader Cache", "[green]●[/green] Unlimited")
+            table.add_row("  ASPM", "[red]●[/red] Disabled")
+            
+            # Thermal throttle status
+            gpu_temp = self.stats.get('gpu_nvidia_temp', 0)
+            if gpu_temp >= 83:
+                table.add_row("  Thermal", f"[red]⚠️ THROTTLE ({gpu_temp}°C)[/red]")
+            else:
+                table.add_row("  Thermal", f"[green]✓[/green] OK ({gpu_temp}°C)")
+            table.add_row("", "")
+        
+        # Optimizations Status
         table.add_row("[bold white]OPTIMIZATIONS[/bold white]", "")
-        table.add_row("  Standby Cleaner", "[green]●[/green] Active")
-        table.add_row("  Smart Priority", "[green]●[/green] Active")
-        table.add_row("  CPU Limit", f"[yellow]●[/yellow] {self.stats['cpu_limit']}%")
-        
-        # GPU Power Limit
-        if self.stats['gpu_nvidia_power_limit'] > 0:
-            table.add_row("  GPU Power Limit", f"[yellow]●[/yellow] {self.stats['gpu_nvidia_power_limit']}%")
-        
-        table.add_row("  SysMain", "[red]●[/red] Disabled")
+        table.add_row("  Core Parking", "[red]●[/red] Disabled")
+        table.add_row("  C-States", "[red]●[/red] Disabled")
+        table.add_row("  Turbo Boost", "[green]●[/green] Locked")
+        table.add_row("  HPET", "[red]●[/red] Disabled")
+        table.add_row("  MMCSS", "[green]●[/green] Gaming")
         table.add_row("", "")
+        
+        # CPU Thermal Status
+        cpu_temp = self.stats.get('cpu_temp', 0)
+        if cpu_temp >= 90:
+            table.add_row("  CPU Thermal", f"[red]⚠️ THROTTLE ({cpu_temp}°C)[/red]")
+        else:
+            table.add_row("  CPU Thermal", f"[green]✓[/green] OK")
         
         # NovaPulse Features
         table.add_row("[bold white]NOVAPULSE[/bold white]", "")

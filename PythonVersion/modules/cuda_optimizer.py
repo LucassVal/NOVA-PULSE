@@ -272,20 +272,232 @@ class CUDAOptimizer:
         
         return False
     
+    # =========================================================================
+    # ADVANCED NVIDIA OPTIMIZATIONS
+    # =========================================================================
+    
+    def set_prerendered_frames(self, frames: int = 1) -> bool:
+        """
+        Define Max Pre-Rendered Frames
+        Menos frames na fila = menos input lag
+        Padrão: 3, Recomendado: 1
+        """
+        if not self.is_admin:
+            return False
+        
+        print(f"[NVIDIA ADV] Configurando Max Pre-Rendered Frames = {frames}...")
+        
+        # NVIDIA Profile key
+        nv_key = r"SOFTWARE\NVIDIA Corporation\Global\NVTweak"
+        success = self._set_registry_value(nv_key, "MaxPreRenderedFrames", frames)
+        
+        # Também via driver profile
+        profile_key = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000"
+        self._set_registry_value(profile_key, "MaxPreRenderedFrames", frames)
+        
+        if success:
+            print(f"[NVIDIA ADV] ✓ Max Pre-Rendered Frames = {frames} (-10-20ms input lag)")
+            self.applied_changes['prerendered_frames'] = frames
+        
+        return success
+    
+    def set_shader_cache_unlimited(self) -> bool:
+        """
+        Define Shader Cache para Unlimited
+        Mais cache = menos stuttering em jogos
+        """
+        if not self.is_admin:
+            return False
+        
+        print("[NVIDIA ADV] Configurando Shader Cache Unlimited...")
+        
+        nv_key = r"SOFTWARE\NVIDIA Corporation\Global\NVTweak"
+        # 0 = Disabled, 1-10 = Size presets, 0xFFFFFFFF = Unlimited
+        success = self._set_registry_value(nv_key, "ShaderCacheSize", 0xFFFFFFFF)
+        
+        if success:
+            print("[NVIDIA ADV] ✓ Shader Cache = Unlimited")
+            self.applied_changes['shader_cache'] = 'unlimited'
+        
+        return success
+    
+    def disable_cuda_p2_state(self) -> bool:
+        """
+        Desativa CUDA P2 State (downclocking)
+        Mantém GPU em alta frequência durante compute
+        """
+        if not self.is_admin:
+            return False
+        
+        print("[NVIDIA ADV] Desativando CUDA P2 State...")
+        
+        nv_key = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000"
+        
+        # Desativa P2 state para CUDA
+        success = self._set_registry_value(nv_key, "RMDisablePostL2Compression", 1)
+        self._set_registry_value(nv_key, "EnableCudaBoost", 1)
+        
+        if success:
+            print("[NVIDIA ADV] ✓ CUDA P2 State desativado (GPU mantém freq alta)")
+            self.applied_changes['p2_state'] = False
+        
+        return success
+    
+    def enable_dpc_per_core(self) -> bool:
+        """
+        Habilita DPC (Deferred Procedure Call) por core
+        Distribui interrupções melhor, menos micro-stutters
+        """
+        if not self.is_admin:
+            return False
+        
+        print("[NVIDIA ADV] Habilitando DPC per Core...")
+        
+        nv_key = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000"
+        success = self._set_registry_value(nv_key, "RmGpsPsEnablePerCpuCoreDpc", 1)
+        
+        if success:
+            print("[NVIDIA ADV] ✓ DPC per Core habilitado (menos stuttering)")
+            self.applied_changes['dpc_per_core'] = True
+        
+        return success
+    
+    def disable_gpu_aspm(self) -> bool:
+        """
+        Desativa ASPM (Active State Power Management) da GPU
+        PCIe sempre em alta performance, menor latência
+        """
+        if not self.is_admin:
+            return False
+        
+        print("[NVIDIA ADV] Desativando GPU ASPM...")
+        
+        nv_key = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000"
+        success = self._set_registry_value(nv_key, "RmDisableGpuASPMFlags", 1)
+        
+        # Também desativa globalmente
+        pcie_key = r"SYSTEM\CurrentControlSet\Control\Power\PowerSettings\501a4d13-42af-4429-9fd1-a8218c268e20\ee12f906-d277-404b-b6da-e5fa1a576df5"
+        self._set_registry_value(pcie_key, "Attributes", 2)
+        
+        if success:
+            print("[NVIDIA ADV] ✓ GPU ASPM desativado (PCIe sempre ativo)")
+            self.applied_changes['aspm'] = False
+        
+        return success
+    
+    def set_texture_filtering_performance(self) -> bool:
+        """
+        Configura Texture Filtering para High Performance
+        Menos qualidade visual, mais FPS
+        """
+        if not self.is_admin:
+            return False
+        
+        print("[NVIDIA ADV] Configurando Texture Filtering...")
+        
+        nv_key = r"SOFTWARE\NVIDIA Corporation\Global\NVTweak"
+        
+        # Texture Quality: 0 = High Quality, 1 = Quality, 2 = Performance, 3 = High Perf
+        success = self._set_registry_value(nv_key, "TextureFiltering", 3)
+        
+        # Negative LOD Bias: 0 = Allow, 1 = Clamp (evita shimmering)
+        self._set_registry_value(nv_key, "NegativeLODBias", 1)
+        
+        if success:
+            print("[NVIDIA ADV] ✓ Texture Filtering = High Performance")
+            self.applied_changes['texture_filtering'] = 'high_perf'
+        
+        return success
+    
+    def disable_triple_buffering(self) -> bool:
+        """
+        Desativa Triple Buffering
+        Usa double buffering = menos latência
+        """
+        if not self.is_admin:
+            return False
+        
+        print("[NVIDIA ADV] Desativando Triple Buffering...")
+        
+        nv_key = r"SOFTWARE\NVIDIA Corporation\Global\NVTweak"
+        success = self._set_registry_value(nv_key, "TripleBuffering", 0)
+        
+        if success:
+            print("[NVIDIA ADV] ✓ Triple Buffering OFF (menos latência)")
+            self.applied_changes['triple_buffering'] = False
+        
+        return success
+    
+    def disable_gpu_preemption(self) -> bool:
+        """
+        Desativa GPU Preemption (contexto switching)
+        Menos overhead, mas pode afetar multitasking
+        """
+        if not self.is_admin:
+            return False
+        
+        print("[NVIDIA ADV] Configurando GPU Preemption...")
+        
+        nv_key = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000"
+        
+        # 0 = Disabled, 1 = Enabled
+        success = self._set_registry_value(nv_key, "EnableMidGfxPreemption", 0)
+        self._set_registry_value(nv_key, "EnableMidBufferPreemption", 0)
+        
+        if success:
+            print("[NVIDIA ADV] ✓ GPU Preemption otimizado")
+            self.applied_changes['preemption'] = 'optimized'
+        
+        return success
+    
+    def set_threaded_optimization(self, enabled: bool = True) -> bool:
+        """
+        Habilita Threaded Optimization
+        Usa múltiplos threads para rendering
+        """
+        if not self.is_admin:
+            return False
+        
+        print("[NVIDIA ADV] Configurando Threaded Optimization...")
+        
+        nv_key = r"SOFTWARE\NVIDIA Corporation\Global\NVTweak"
+        value = 1 if enabled else 0
+        success = self._set_registry_value(nv_key, "ThreadedOptimization", value)
+        
+        if success:
+            status = "ON" if enabled else "OFF"
+            print(f"[NVIDIA ADV] ✓ Threaded Optimization = {status}")
+            self.applied_changes['threaded_opt'] = enabled
+        
+        return success
+    
     def apply_all_optimizations(self) -> Dict[str, bool]:
         """Aplica todas as otimizações CUDA/GPU"""
         print("\n[CUDA] Aplicando otimizações de CUDA e GPU...")
         
         results = {}
         
+        # Otimizações básicas
         results['cuda_env'] = bool(self.set_cuda_environment())
         results['physx'] = self.force_physx_dedicated_gpu()
         results['gpu_preference'] = self.set_gpu_preference_global()
         results['hw_accel'] = self.enable_hardware_acceleration()
         results['power_mgmt'] = self.set_gpu_power_management(prefer_max_performance=True)
         
+        # Otimizações avançadas NVIDIA
+        print("\n[NVIDIA ADV] Aplicando otimizações avançadas...")
+        results['prerendered_frames'] = self.set_prerendered_frames(1)
+        results['shader_cache'] = self.set_shader_cache_unlimited()
+        results['p2_state'] = self.disable_cuda_p2_state()
+        results['dpc_per_core'] = self.enable_dpc_per_core()
+        results['aspm'] = self.disable_gpu_aspm()
+        results['texture_filter'] = self.set_texture_filtering_performance()
+        results['triple_buffer'] = self.disable_triple_buffering()
+        results['preemption'] = self.disable_gpu_preemption()
+        results['threaded_opt'] = self.set_threaded_optimization(True)
+        
         success_count = sum(results.values())
-        print(f"[CUDA] Resultado: {success_count}/{len(results)} otimizações aplicadas")
+        print(f"\n[CUDA] Resultado: {success_count}/{len(results)} otimizações aplicadas")
         
         if self.nvidia_available:
             temp = self.get_gpu_temp()

@@ -299,7 +299,7 @@ class Dashboard:
         
         # CPU Thermal Status
         cpu_temp = self.stats.get('cpu_temp', 0)
-        if cpu_temp >= 90:
+        if cpu_temp >= 85:
             table.add_row("  CPU Thermal", f"[red]⚠️ THROTTLE ({cpu_temp}°C)[/red]")
         else:
             table.add_row("  CPU Thermal", f"[green]✓[/green] OK")

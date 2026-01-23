@@ -40,7 +40,7 @@ auto_profiler:
   min_cpu_percent: 10
   # Thermal Throttle - proteção automática
   thermal_throttle_enabled: true
-  thermal_threshold: 90          # Se CPU >= 90°C
+  thermal_threshold: 85           # Se CPU >= 85°C
   thermal_throttle_percent: 80   # Reduz para 80%
 
 # === Network QoS (Ping Booster) ===

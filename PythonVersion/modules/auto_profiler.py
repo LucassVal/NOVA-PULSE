@@ -46,7 +46,7 @@ class AutoProfiler:
         
         # Thermal Throttle - reduz CPU quando temperatura alta
         self.thermal_throttle_enabled = self.config.get('thermal_throttle_enabled', True)
-        self.thermal_threshold = self.config.get('thermal_threshold', 90)  # 90°C
+        self.thermal_threshold = self.config.get('thermal_threshold', 85)  # 85°C
         self.thermal_throttle_percent = self.config.get('thermal_throttle_percent', 80)  # Reduz para 80%
         self.thermal_throttle_active = False
         

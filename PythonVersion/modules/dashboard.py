@@ -562,28 +562,35 @@ class Dashboard:
         return self.layout
     
     def run(self, services):
-        """Executa o dashboard em loop (Stable Mode)"""
+        """Executa o dashboard em loop (Ultra Stable Mode)"""
         self.running = True
         
-        # Simple, stable configuration:
-        # - refresh_per_second=0.5 (update every 2 seconds - very stable)
-        # - screen=False (no full screen takeover - prevents jumping)
-        # - Uses auto_refresh=True (Rich handles timing)
+        # Ultra stable mode: clear screen + print (no Rich Live)
+        # Isso evita todo flickering possível
+        import os
         
-        # Initial render
-        self.update_stats(services)
-        
-        with Live(
-            self.layout,
-            refresh_per_second=0.5,
-            console=self.console,
-            screen=False,
-            auto_refresh=True
-        ) as live:
+        try:
             while self.running:
-                time.sleep(2)  # Update every 2 seconds
+                # Clear screen
+                os.system('cls' if os.name == 'nt' else 'clear')
+                
+                # Update stats
                 self.update_stats(services)
-                self.render(services)
+                
+                # Render layout
+                self.layout["header"].update(self.make_header())
+                self.layout["cpu_gpu"].update(self.make_cpu_gpu_panel())
+                self.layout["memory"].update(self.make_memory_panel())
+                self.layout["footer"].update(self.make_footer())
+                
+                # Print once
+                self.console.print(self.layout)
+                
+                # Wait before next update
+                time.sleep(2)
+                
+        except KeyboardInterrupt:
+            self.running = False
 
 
 if __name__ == "__main__":

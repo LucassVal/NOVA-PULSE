@@ -131,6 +131,25 @@ class SystemTrayIcon:
             ram_total_gb = mem.total / (1024**3)
             ram_percent = mem.percent
             
+            # GPU NVIDIA
+            gpu_percent = 0
+            gpu_temp = 0
+            gpu_name = ""
+            try:
+                import pynvml
+                pynvml.nvmlInit()
+                if pynvml.nvmlDeviceGetCount() > 0:
+                    handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                    util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                    gpu_percent = util.gpu
+                    gpu_temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
+                    name = pynvml.nvmlDeviceGetName(handle)
+                    if isinstance(name, bytes):
+                        name = name.decode('utf-8')
+                    gpu_name = name.replace("NVIDIA ", "").replace(" Laptop GPU", "")[:15]
+            except:
+                pass
+            
             # Modo atual
             mode = "NORMAL"
             mode_icon = "🔄"
@@ -143,16 +162,21 @@ class SystemTrayIcon:
                     mode_icon = "🌿"
             
             # Monta tooltip
-            tooltip = f"⚡ NovaPulse 1.0\n"
+            tooltip = f"⚡ NovaPulse 2.0\n"
             tooltip += f"━━━━━━━━━━━━━\n"
             tooltip += f"{mode_icon} Modo: {mode}\n"
             tooltip += f"🖥️ CPU: {cpu_percent:.0f}%\n"
-            tooltip += f"💾 RAM: {ram_used_gb:.1f}/{ram_total_gb:.1f}GB ({ram_percent:.0f}%)"
+            tooltip += f"💾 RAM: {ram_used_gb:.1f}/{ram_total_gb:.1f}GB ({ram_percent:.0f}%)\n"
+            
+            # GPU info
+            if gpu_name:
+                tooltip += f"🎮 GPU: {gpu_name}\n"
+                tooltip += f"   Load: {gpu_percent}% | Temp: {gpu_temp}°C"
             
             return tooltip, mode.lower()
             
         except Exception as e:
-            return f"⚡ NovaPulse 1.0\n[Erro: {e}]", "normal"
+            return f"⚡ NovaPulse 2.0\n[Erro: {e}]", "normal"
     
     def _tooltip_update_loop(self):
         """Atualiza tooltip a cada 2 segundos"""

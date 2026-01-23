@@ -377,48 +377,19 @@ def main():
         pass
     
     # === DASHBOARD ===
-    # HTML dashboard tem problemas de compatibilidade - usar console por padrão
-    use_html_dashboard = False  # Desativado até resolver flickering
-    
-    if use_html_dashboard:
-        try:
-            from modules.dashboard_webview import DashboardWebView
-            import webview
-            
-            print(f"\n{Fore.CYAN}Iniciando Dashboard HTML...{Style.RESET_ALL}\n")
-            
-            dashboard = DashboardWebView(services)
-            if dashboard.start():
-                # WebView deve rodar na thread principal
-                def on_closing():
-                    print(f"\n{Fore.YELLOW}[INFO] Parando serviços...{Style.RESET_ALL}")
-                    stop_all_services(services)
-                    print(f"{Fore.GREEN}✓ NovaPulse finalizado{Style.RESET_ALL}\n")
-                
-                webview.start()
-                on_closing()
-                return
-            else:
-                print(f"{Fore.YELLOW}[WARN] Dashboard HTML não disponível, usando console{Style.RESET_ALL}")
-                use_html_dashboard = False
-                
-        except ImportError as e:
-            print(f"{Fore.YELLOW}[WARN] PyWebView não instalado: {e}{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}       Execute: pip install pywebview{Style.RESET_ALL}")
-            use_html_dashboard = False
-        except Exception as e:
-            print(f"{Fore.YELLOW}[WARN] Erro ao iniciar dashboard HTML: {e}{Style.RESET_ALL}")
-            use_html_dashboard = False
-    
-    # Fallback para dashboard de console
-    if not use_html_dashboard:
-        try:
-            print(f"\n{Fore.CYAN}Iniciando Dashboard Console...{Style.RESET_ALL}\n")
-            dashboard = Dashboard()
-            dashboard.run(services)
+    # Dashboard de console simples e estável
+    try:
+        from modules.simple_dashboard import get_dashboard
         
-        except KeyboardInterrupt:
-            pass
+        print(f"\n{Fore.CYAN}Iniciando Dashboard Console...{Style.RESET_ALL}\n")
+        
+        dashboard = get_dashboard()
+        dashboard.run(services)
+            
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:
+        print(f"{Fore.RED}[ERROR] Dashboard: {e}{Style.RESET_ALL}")
     
     # Cleanup
     print(f"\n{Fore.YELLOW}[INFO] Parando serviços...{Style.RESET_ALL}")

@@ -70,16 +70,8 @@ class TemperatureService:
         
         temp = 0.0
         
-        # Method 1: WMI ACPI Thermal Zone
-        if self._wmi_thermal:
-            try:
-                t_info = self._wmi_thermal.MSAcpi_ThermalZoneTemperature()[0]
-                temp = (t_info.CurrentTemperature / 10.0) - 273.15
-            except:
-                pass
-        
-        # Method 2: OpenHardwareMonitor
-        if temp == 0 and self._wmi_ohw:
+        # Method 1: OpenHardwareMonitor / LibreHardwareMonitor (mais preciso)
+        if self._wmi_ohw:
             try:
                 for sensor in self._wmi_ohw.Sensor():
                     if sensor.SensorType == 'Temperature' and 'CPU' in sensor.Name:
@@ -88,11 +80,25 @@ class TemperatureService:
             except:
                 pass
         
-        # Method 3: Use GPU Temp as approximation
-        if temp == 0:
+        # Method 2: WMI ACPI Thermal Zone (menos preciso)
+        if temp == 0 and self._wmi_thermal:
+            try:
+                t_info = self._wmi_thermal.MSAcpi_ThermalZoneTemperature()[0]
+                acpi_temp = (t_info.CurrentTemperature / 10.0) - 273.15
+                # ACPI é temperatura da zona térmica, não do die do CPU
+                # Em laptops, o die é ~15-20°C mais quente que a zona
+                temp = acpi_temp + 20
+            except:
+                pass
+        
+        # Method 3: Estimar baseado na GPU (laptop compartilha cooler)
+        if temp == 0 or temp < 40:  # Se temp ainda parece baixa demais
             gpu_temp = self.get_gpu_temp()
             if gpu_temp > 0:
-                temp = gpu_temp + 7  # CPU usually ~7°C hotter
+                # Em laptops com cooling compartilhado, CPU ~10°C mais quente que GPU
+                estimated = gpu_temp + 10
+                # Usa o maior valor entre ACPI corrigido e estimativa GPU
+                temp = max(temp, estimated)
         
         self._set_cached('cpu_temp', temp)
         return temp

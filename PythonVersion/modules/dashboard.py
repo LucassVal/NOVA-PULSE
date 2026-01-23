@@ -562,17 +562,23 @@ class Dashboard:
         return self.layout
     
     def run(self, services):
-        """Executa o dashboard em loop (Ultra Stable Mode)"""
+        """Executa o dashboard em loop (Zero Flicker Mode)"""
         self.running = True
         
-        # Ultra stable mode: clear screen + print (no Rich Live)
-        # Isso evita todo flickering possível
-        import os
+        # Zero Flicker: usa ANSI escape para mover cursor sem limpar tela
+        # \033[H = move cursor para home (0,0)
+        # \033[J = clear from cursor to end of screen
+        
+        import sys
+        
+        # Limpa tela uma vez no início
+        print('\033[2J\033[H', end='')
+        sys.stdout.flush()
         
         try:
             while self.running:
-                # Clear screen
-                os.system('cls' if os.name == 'nt' else 'clear')
+                # Move cursor para home (sem limpar)
+                print('\033[H', end='')
                 
                 # Update stats
                 self.update_stats(services)
@@ -583,8 +589,12 @@ class Dashboard:
                 self.layout["memory"].update(self.make_memory_panel())
                 self.layout["footer"].update(self.make_footer())
                 
-                # Print once
+                # Print layout
                 self.console.print(self.layout)
+                
+                # Clear any leftover content
+                print('\033[J', end='')
+                sys.stdout.flush()
                 
                 # Wait before next update
                 time.sleep(2)

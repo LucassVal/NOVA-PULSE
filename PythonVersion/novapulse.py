@@ -73,11 +73,23 @@ def is_admin():
 
 def load_config():
     """Carrega configuração do arquivo YAML"""
+    import os
+    
+    # Determina o caminho base (funciona com PyInstaller)
+    if getattr(sys, 'frozen', False):
+        # Rodando como EXE empacotado
+        base_path = sys._MEIPASS
+    else:
+        # Rodando como script Python
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    config_path = os.path.join(base_path, 'config.yaml')
+    
     try:
-        with open('config.yaml', 'r', encoding='utf-8') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
     except Exception as e:
-        print(f"{Fore.YELLOW}[WARN] Erro ao carregar config: {e}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}[WARN] Config não encontrado, usando padrões{Style.RESET_ALL}")
         return get_default_config()
 
 
@@ -377,13 +389,11 @@ def main():
         pass
     
     # === DASHBOARD ===
-    # Dashboard de console simples e estável
+    # Dashboard Rich original (console colorido)
     try:
-        from modules.simple_dashboard import get_dashboard
-        
         print(f"\n{Fore.CYAN}Iniciando Dashboard Console...{Style.RESET_ALL}\n")
         
-        dashboard = get_dashboard()
+        dashboard = Dashboard()
         dashboard.run(services)
             
     except KeyboardInterrupt:

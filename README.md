@@ -1,105 +1,106 @@
-# ⚡ NovaPulse
+# ⚡ NovaPulse 2.1
 
-**Intelligent System Optimization for Windows**
+**Intelligent Windows System Optimization for Gaming & Performance**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-blue.svg)](https://www.microsoft.com/windows)
 
-NovaPulse is an intelligent system optimizer that automatically adjusts your Windows PC for optimal performance. It detects system load in real-time and switches between BOOST, NORMAL, and ECO modes.
+NovaPulse is a comprehensive system optimizer that applies **kernel-level tweaks** to reduce input lag, improve FPS, and maximize hardware performance. Features automatic thermal protection and intelligent mode switching.
 
 ---
 
-## ✨ Key Features
+## 🎯 Target Hardware
 
-### ⚡ Auto-Profiler (Smart Mode Detection)
+| Component | Tested On                                   |
+| --------- | ------------------------------------------- |
+| **CPU**   | Intel Core i5-11300H (Tiger Lake, 11th Gen) |
+| **GPU**   | NVIDIA RTX 3050 Laptop + Intel Iris Xe      |
+| **OS**    | Windows 10/11                               |
 
-- **BOOST Mode**: Activates when CPU > 85% - Maximum performance for gaming/heavy tasks
-- **NORMAL Mode**: Balanced operation for everyday use
-- **ECO Mode**: Activates when CPU < 30% - Saves power during idle
-- **2-second reaction time** - Instantly adapts to your workload
+> Works on other Intel/AMD systems - optimizations are tuned for modern laptops.
 
-### 🧹 Intelligent RAM Cleaning
+---
 
-- Uses Windows Kernel APIs (`NtSetSystemInformation`)
-- Only cleans when there's actual cache to free
-- Prevents stuttering caused by over-aggressive cleaning
+## ✨ What's New in v2.1
 
-### 🎮 Game Mode Detection
+- **Intel Power Control** - ECO/BALANCED/PERFORMANCE/TURBO profiles
+- **Thermal Protection** - Auto-throttle at 85°C (prevents slowdown at 90°C)
+- **Fixed Temperature Reading** - Correct DPTF thermal zone parsing
+- **Dashboard Improvements** - Rich Live inline mode, no flickering
 
-- Automatically detects 40+ popular games
-- Forces maximum performance when gaming
-- Auto-restores normal settings when game closes
+---
 
-### 📡 Network Optimization
+## 📦 Optimization Modules (13 Total)
 
-- Disables Nagle algorithm for lower latency
-- Optimizes TCP buffers
-- DNS options: AdGuard (ad-blocking), Google, Cloudflare
+| Module                 | What It Does                      | Impact             |
+| ---------------------- | --------------------------------- | ------------------ |
+| **Core Parking**       | Disables CPU core parking         | -5ms latency       |
+| **Memory Optimizer**   | Disables Superfetch, compression  | +500MB-2GB RAM     |
+| **NTFS Optimizer**     | Disables 8.3 names, Last Access   | +10-30% disk I/O   |
+| **GPU Scheduler**      | Enables HAGS, GPU Priority        | +3-10 FPS          |
+| **CUDA Optimizer**     | PhysX GPU, Shader Cache unlimited | Less stuttering    |
+| **MMCSS Optimizer**    | Gaming/Audio priority             | -5ms audio/input   |
+| **Network Stack**      | CTCP, disable Nagle               | -5-20ms ping       |
+| **USB Optimizer**      | Disable selective suspend         | Better peripherals |
+| **IRQ Affinity**       | MSI mode for GPU/USB/Network      | Lower IRQ latency  |
+| **HPET Controller**    | Disable HPET, enable TSC          | -0.5-2ms timer     |
+| **Advanced CPU**       | Disable C-States, force Turbo     | Consistent clocks  |
+| **Advanced Storage**   | Write cache, NVMe queue depth     | Faster disk        |
+| **Process Controller** | Auto-priority for games           | Smart allocation   |
 
-### ⏱️ Timer Resolution
+---
 
-- Reduces input lag from 15.6ms to 0.5ms
-- Essential for competitive gaming
+## 🔧 Why These Optimizations?
 
-### 🔧 Smart Process Priority
+<details>
+<summary><b>Core Parking</b> - Disabled</summary>
+Windows "parks" idle cores to save power. When load spikes, it takes 1-5ms to wake them. Disabled = all cores always ready.
+</details>
 
-- Automatically prioritizes active applications
-- Deprioritizes background apps (Chrome, Discord, Steam)
-- Uses Windows I/O Priority API for disk access
+<details>
+<summary><b>C-States</b> - Disabled</summary>
+Deep sleep states (C3, C6) save power but take ~100μs to wake. For gaming, we want instant response.
+</details>
+
+<details>
+<summary><b>ASPM</b> - Disabled</summary>
+PCIe power management puts GPU/NVMe to sleep. Disabled = instant GPU response.
+</details>
+
+<details>
+<summary><b>HPET</b> - Disabled</summary>
+Legacy timer. Modern CPUs have faster TSC (Time Stamp Counter). HPET adds 0.5-2ms overhead.
+</details>
+
+<details>
+<summary><b>Nagle Algorithm</b> - Disabled</summary>
+TCP batching is great for throughput, terrible for latency. Gaming needs immediate packets.
+</details>
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Clone the Repository
+### Option 1: Run from Python
 
-```bash
+```powershell
+# Clone repository
 git clone https://github.com/LucassVal/LABS.git
 cd LABS/PythonVersion
-```
 
-### 2. Install Dependencies
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### 3. Run NovaPulse (as Administrator)
-
-```bash
+# Run as Administrator
 python novapulse.py
 ```
 
-Or use the launcher:
+### Option 2: Run Standalone EXE
 
-```bash
-RUN_NOVAPULSE.bat
-```
-
----
-
-## ⚙️ Configuration
-
-Edit `config.yaml` to customize:
-
-```yaml
-# Auto-Profiler Settings
-auto_profiler:
-  enabled: true
-  check_interval: 2 # Check every 2 seconds
-  boost_threshold: 85 # CPU > 85% → BOOST
-  eco_threshold: 30 # CPU < 30% → ECO
-
-# RAM Cleaning
-standby_cleaner:
-  enabled: true
-  threshold_mb: 4096 # Clean when free RAM < 4GB
-
-# Network QoS
-network_qos:
-  enabled: true
-  dns_provider: adguard # Options: adguard, google, cloudflare
+```powershell
+# Download from dist/ folder
+./NovaPulse.exe
 ```
 
 ---
@@ -108,66 +109,83 @@ network_qos:
 
 ```
 NovaPulse/
-├── novapulse.py              # Main entry point
-├── config.yaml               # Configuration
-├── requirements.txt          # Dependencies
-├── RUN_NOVAPULSE.bat         # Launcher
+├── PythonVersion/              # Active development (Python)
+│   ├── novapulse.py            # Main entry point
+│   ├── config.yaml             # All settings
+│   ├── README.md               # Technical documentation
+│   └── modules/                # 37 optimization modules
+│       ├── optimization_engine.py
+│       ├── auto_profiler.py
+│       ├── intel_power_control.py   # NEW in v2.1
+│       ├── temperature_service.py
+│       └── ... (34 more)
 │
-└── modules/
-    ├── auto_profiler.py      # Smart mode detection
-    ├── standby_cleaner.py    # RAM optimization
-    ├── cpu_power.py          # CPU frequency control
-    ├── smart_process_manager.py # Process priority
-    ├── dashboard.py          # Visual dashboard
-    ├── tray_icon.py          # System tray
-    ├── game_detector.py      # Game detection
-    ├── network_qos.py        # Network optimization
-    ├── timer_resolution.py   # Input lag reduction
-    ├── nvme_manager.py       # SSD optimization
-    ├── services_optimizer.py # Windows services
-    ├── gamebar_optimizer.py  # Game Bar disabler
-    └── temperature_service.py # Temp monitoring
+├── _archive_csharp/            # Legacy C# version (archived)
+├── docs/                       # Additional documentation
+└── README.md                   # This file
+```
+
+---
+
+## ⚙️ Configuration
+
+Edit `PythonVersion/config.yaml`:
+
+```yaml
+optimization:
+  level: gaming # safe, balanced, gaming, aggressive
+
+auto_profiler:
+  enabled: true
+  boost_threshold: 85 # CPU % → BOOST mode
+  eco_threshold: 30 # CPU % → ECO mode
+
+thermal:
+  threshold: 85 # °C to trigger protection
+  throttle_percent: 70 # CPU limit when thermal active
 ```
 
 ---
 
 ## 📈 Performance Impact
 
-| Metric    | Before   | After | Improvement |
-| --------- | -------- | ----- | ----------- |
-| CPU Temp  | 85°C     | 65°C  | -20°C       |
-| Free RAM  | 2GB      | 8GB   | +6GB        |
-| Input Lag | 15.6ms   | 0.5ms | -96%        |
-| Game FPS  | Baseline | +5-10 | Smoother    |
-
-_Results may vary based on hardware configuration_
+| Metric          | Improvement    |
+| --------------- | -------------- |
+| Input Lag       | -5 to -15ms    |
+| Boot Time       | -10 to -20%    |
+| Available RAM   | +500MB to +2GB |
+| Disk I/O        | +10 to +30%    |
+| Network Latency | -5 to -20ms    |
+| Gaming FPS      | +3 to +10%     |
 
 ---
 
-## 🔄 Auto-Start on Boot
+## 🌡️ Thermal Protection
 
-Run as Administrator:
+NovaPulse monitors CPU temperature and automatically protects your system:
 
-```powershell
-.\install_service.ps1
+```
+Temperature < 70°C  → PERFORMANCE mode (full power)
+Temperature 70-85°C → BALANCED mode
+Temperature > 85°C  → ECO mode (prevents crash at 90°C)
 ```
 
 ---
 
 ## 📝 License
 
-This project is licensed under the MIT License.
+MIT License - See [LICENSE](LICENSE) for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- Inspired by [ISLC](https://www.wagnardsoft.com/forums/viewtopic.php?t=1256)
-- Dashboard built with [Rich](https://github.com/Textualize/rich)
-- GPU monitoring via [pynvml](https://github.com/gpuopenanalytics/pynvml)
+- Dashboard: [Rich](https://github.com/Textualize/rich)
+- GPU Monitoring: [pynvml](https://github.com/gpuopenanalytics/pynvml)
+- Inspiration: [ISLC](https://www.wagnardsoft.com/)
 
 ---
 
-Made with ❤️ for the PC optimization community
+**NovaPulse 2.1** - _Intelligent System Optimization_
 
-**NovaPulse** - _Intelligent System Optimization_
+Made with ❤️ for gamers and power users

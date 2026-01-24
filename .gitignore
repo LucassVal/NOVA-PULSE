@@ -8,6 +8,10 @@ __pycache__/
 dist/
 build/
 *.egg
+*.spec
+
+# Large binary files
+novapulse_logo.png
 
 # IDE
 .vscode/

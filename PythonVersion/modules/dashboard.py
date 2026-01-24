@@ -433,8 +433,8 @@ class Dashboard:
     
     def update_stats(self, services):
         """Atualiza estatísticas do sistema"""
-        # CPU
-        self.stats['cpu_percent'] = psutil.cpu_percent(interval=0.1)
+        # CPU (non-blocking, usa valor cached do psutil)
+        self.stats['cpu_percent'] = psutil.cpu_percent(interval=0)
         
         # Temperatura da CPU (usando serviço centralizado com cache)
         self.stats['cpu_temp'] = self._temp_service.get_cpu_temp()
@@ -562,45 +562,30 @@ class Dashboard:
         return self.layout
     
     def run(self, services):
-        """Executa o dashboard em loop (Zero Flicker Mode)"""
+        """Executa o dashboard em loop (usando Rich Live para zero flicker)"""
         self.running = True
         
-        # Zero Flicker: usa ANSI escape para mover cursor sem limpar tela
-        # \033[H = move cursor para home (0,0)
-        # \033[J = clear from cursor to end of screen
-        
-        import sys
-        
-        # Limpa tela uma vez no início
-        print('\033[2J\033[H', end='')
-        sys.stdout.flush()
-        
-        try:
-            while self.running:
-                # Move cursor para home (sem limpar)
-                print('\033[H', end='')
-                
-                # Update stats
-                self.update_stats(services)
-                
-                # Render layout
-                self.layout["header"].update(self.make_header())
-                self.layout["cpu_gpu"].update(self.make_cpu_gpu_panel())
-                self.layout["memory"].update(self.make_memory_panel())
-                self.layout["footer"].update(self.make_footer())
-                
-                # Print layout
-                self.console.print(self.layout)
-                
-                # Clear any leftover content
-                print('\033[J', end='')
-                sys.stdout.flush()
-                
-                # Wait before next update
-                time.sleep(2)
-                
-        except KeyboardInterrupt:
-            self.running = False
+        # Usa Rich Live para atualizações sem flicker (inline mode)
+        with Live(self.layout, refresh_per_second=0.33, console=self.console) as live:
+            try:
+                while self.running:
+                    # Update stats
+                    self.update_stats(services)
+                    
+                    # Render layout
+                    self.layout["header"].update(self.make_header())
+                    self.layout["cpu_gpu"].update(self.make_cpu_gpu_panel())
+                    self.layout["memory"].update(self.make_memory_panel())
+                    self.layout["footer"].update(self.make_footer())
+                    
+                    # Live atualiza automaticamente
+                    live.update(self.layout)
+                    
+                    # Wait 3 seconds before next update (mais estável)
+                    time.sleep(3)
+                    
+            except KeyboardInterrupt:
+                self.running = False
 
 
 if __name__ == "__main__":

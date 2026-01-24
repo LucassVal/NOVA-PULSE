@@ -184,8 +184,22 @@ class AutoProfiler:
     def _apply_thermal_limit(self, percent: int):
         """Aplica limite de CPU para thermal throttle"""
         try:
+            # 1. Limite via CPU Power (frequência)
             if 'cpu_power' in self.services:
                 self.services['cpu_power'].set_max_frequency(percent)
+            
+            # 2. Intel Power Control (power profiles do Windows)
+            try:
+                from modules import intel_power_control
+                if percent <= 50:
+                    intel_power_control.apply_eco_mode()
+                elif percent <= 85:
+                    intel_power_control.apply_balanced_mode()
+                else:
+                    intel_power_control.apply_performance_mode()
+            except ImportError:
+                pass  # Intel Power Control não disponível
+                
         except Exception as e:
             print(f"[THERMAL] Erro ao aplicar limite: {e}")
     

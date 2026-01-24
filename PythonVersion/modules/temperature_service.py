@@ -102,7 +102,9 @@ class TemperatureService:
             except:
                 pass
         
-        # Method 3: ACPI Thermal Zone
+        # Method 3: ACPI Thermal Zone (MSAcpi_ThermalZoneTemperature)
+        # Note: On Intel systems with DPTF, THRM zones often report actual CPU die temp
+        # Intel ESIF classes (EsifDeviceInformation) also available but WMI queries are slow
         if temp == 0 and self._wmi_thermal:
             try:
                 zones = self._wmi_thermal.MSAcpi_ThermalZoneTemperature()
@@ -111,11 +113,12 @@ class TemperatureService:
                     max_temp = 0
                     for zone in zones:
                         zone_temp = (zone.CurrentTemperature / 10.0) - 273.15
-                        if zone_temp > max_temp:
+                        # Validate: typical CPU temps are 30-100°C
+                        if 25 < zone_temp < 110 and zone_temp > max_temp:
                             max_temp = zone_temp
                     if max_temp > 0:
-                        # ACPI zone is chassis temp, CPU die ~15-25°C higher
-                        temp = max_temp + 20
+                        # Use directly - DPTF zones typically report die temperature
+                        temp = max_temp
             except:
                 pass
         

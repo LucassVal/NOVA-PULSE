@@ -196,6 +196,28 @@ class GPUSchedulerController:
             preference_key = r"SOFTWARE\Microsoft\DirectX\UserGpuPreferences"
             applied = 0
             
+            # === GLOBAL: Force ALL graphical apps to NVIDIA ===
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, preference_key, 0,
+                                   winreg.KEY_READ | winreg.KEY_SET_VALUE) as key:
+                    # Read existing global settings to preserve them
+                    try:
+                        current, _ = winreg.QueryValueEx(key, "DirectXUserGlobalSettings")
+                    except:
+                        current = ""
+                    
+                    # Add GpuPreference=2 if not already present
+                    if "GpuPreference=2" not in current:
+                        # Preserve existing flags, add GPU preference
+                        new_value = "GpuPreference=2;" + current if current else "GpuPreference=2;"
+                        winreg.SetValueEx(key, "DirectXUserGlobalSettings", 0, winreg.REG_SZ, new_value)
+                        print("[GPU] ✓ GLOBAL: Todos os apps gráficos → NVIDIA")
+                    else:
+                        print("[GPU] ✓ GLOBAL: Já configurado para NVIDIA")
+            except Exception as e:
+                print(f"[GPU] ✗ Global preference: {e}")
+            
+            # === PER-APP: Ensure specific critical apps ===
             for app_path in target_apps:
                 try:
                     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, preference_key, 0, 
@@ -207,8 +229,8 @@ class GPUSchedulerController:
                 except Exception as e:
                     print(f"[GPU] ✗ Falha: {os.path.basename(app_path)} - {e}")
             
-            print(f"[GPU] GPU Preference: {applied}/{len(target_apps)} apps → NVIDIA High Performance")
-            return applied > 0
+            print(f"[GPU] GPU Preference: GLOBAL + {applied} apps → NVIDIA High Performance")
+            return True
         except Exception as e:
             print(f"[GPU] ✗ Erro GPU preference: {e}")
             return False

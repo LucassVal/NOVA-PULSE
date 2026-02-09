@@ -866,13 +866,14 @@ pyinstaller novapulse.spec
 ### File Structure
 
 ```
-PythonVersion/
+NOVA-PULSE/
 ├── novapulse.py              # Main entry point
 ├── diagnostic.py             # Health check tool
 ├── config.yaml               # All configuration
-├── novapulse.spec            # PyInstaller build spec
 ├── requirements.txt          # pip dependencies
 ├── README.md                 # This file
+├── LICENSE                   # MIT License
+├── .gitignore
 └── modules/
     ├── dashboard.py           # Rich console UI
     ├── optimization_engine.py # Central orchestrator
@@ -887,6 +888,7 @@ PythonVersion/
     ├── gamebar_optimizer.py   # Xbox/Game Bar disabler
     ├── memory_optimizer.py    # RAM optimization
     ├── smart_process_manager.py # Auto priority manager
+    ├── standby_cleaner.py     # Standby RAM cleaner
     ├── advanced_storage_optimizer.py # Storage tweaks
     ├── ntfs_optimizer.py      # NTFS filesystem tweaks
     ├── nvme_manager.py        # NVMe/SSD + TRIM
@@ -901,6 +903,9 @@ PythonVersion/
     ├── startup_manager.py     # Task Scheduler auto-start
     ├── history_logger.py      # CSV operation logs
     ├── temperature_service.py # Multi-method temp reading
+    ├── hpet_controller.py     # HPET timer control
+    ├── usb_optimizer.py       # USB latency optimizer
+    ├── tray_icon.py           # System tray integration
     ├── irq_optimizer.py       # IRQ/MSI optimization
     └── mmcss_optimizer.py     # Multimedia scheduler tweaks
 ```

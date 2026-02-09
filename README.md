@@ -212,6 +212,57 @@ CPU < 15% for 5 min → IDLE (20% cap, power saving)
 
 ---
 
+## 🛡️ Security & Privacy Shield (NEW in v2.2)
+
+### 🔷 Security Scanner
+
+| Scan Type           | What it Does                                            |
+| ------------------- | ------------------------------------------------------- |
+| **Process Scan**    | Flags unsigned/suspicious executables running on system |
+| **Network Monitor** | Lists outbound connections, flags unknown IPs/ports     |
+| **Startup Auditor** | Checks Run/RunOnce registry + Startup folder            |
+| **Port Scanner**    | Shows open listening ports, flags unusual ones          |
+
+---
+
+### 🔷 Telemetry Blocker
+
+| Feature                | Details                                                  |
+| ---------------------- | -------------------------------------------------------- |
+| **DNS-Level Blocking** | 21+ Microsoft telemetry domains blocked via hosts file   |
+| **Registry Hardening** | Disables Advertising ID, Activity History, App Telemetry |
+| **Defender Privacy**   | Blocks SpyNet/MAPS data sharing (keeps protection ON)    |
+| **Scheduled Tasks**    | Disables 8+ telemetry-related Windows tasks              |
+| **Privacy Score**      | 0-100% based on how many data leaks are blocked          |
+
+---
+
+### 🔷 Windows Defender Hardener
+
+| Feature                   | What it Enables                                   |
+| ------------------------- | ------------------------------------------------- |
+| **ASR Rules**             | Blocks Office macros, credential theft from LSASS |
+| **Ransomware Protection** | Controlled Folder Access for user documents       |
+| **Network Protection**    | Blocks malicious URLs and IPs                     |
+| **Exploit Protection**    | DEP, ASLR, CFG system-wide                        |
+| **Firewall Hardening**    | Block inbound / allow outbound on all profiles    |
+| **Scheduled Scans**       | Daily quick scan + weekly full scan               |
+
+> Replaces the need for third-party antivirus (Kaspersky, Norton, etc.)
+
+---
+
+### 🔷 Auto-Start Manager
+
+| Setting        | Value                                   |
+| -------------- | --------------------------------------- |
+| **Trigger**    | `ONSTART` — runs before user login      |
+| **Privileges** | Highest (Administrator)                 |
+| **Delay**      | 30 seconds (waits for Windows services) |
+| **Commands**   | `register` / `unregister` / `status`    |
+
+---
+
 ## 🚀 Quick Start
 
 ```bash

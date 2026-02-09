@@ -34,6 +34,7 @@
 6. [Dependencies](#dependencies)
 7. [Build & Distribution](#build--distribution)
 8. [Hardware Rationale](#hardware-rationale)
+9. [Safety & Risks](#safety--risks)
 
 ---
 
@@ -1002,6 +1003,72 @@ NOVA-PULSE/               ← repo root (clean)
 | AdGuard DNS      | Blocks ads at DNS level, reducing background network load                                                                                |
 | SysMain OFF      | System has NVMe SSD — Superfetch adds no benefit, wastes RAM                                                                             |
 | NTFS tweaks      | NVMe benefits from disabling last-access writes (reduces write amplification)                                                            |
+
+---
+
+## Safety & Risks
+
+> **NovaPulse modifies kernel-level settings, registry keys, and boot configuration.**
+> This section explains the risks, safeguards, and recommended usage.
+
+### ⚠️ What NovaPulse Touches
+
+| Layer                    | Examples                                         | Risk Level                                                    |
+| ------------------------ | ------------------------------------------------ | ------------------------------------------------------------- |
+| Windows Registry         | Power plans, GPU settings, NTFS behavior         | 🟡 Medium — reversible via `restore_defaults()`               |
+| Boot Configuration (BCD) | HPET, Dynamic Tick, TSC sync                     | 🟠 High — requires reboot to revert                           |
+| System Services          | DiagTrack, SysMain, Xbox services                | 🟡 Medium — re-enabled via `services_optimizer.restore_all()` |
+| Hosts File               | Telemetry domains blocked                        | 🟢 Low — `telemetry_blocker.restore_hosts()`                  |
+| Kernel APIs              | Timer resolution, memory purge, process priority | 🟢 Low — session-only, resets on reboot                       |
+
+### 🛡️ Every Optimization is Reversible
+
+All modules implement restore/undo methods:
+
+| Module                  | Restore Method                                           |
+| ----------------------- | -------------------------------------------------------- |
+| `cpu_power.py`          | `restore_defaults()` → resets to 100%/5%                 |
+| `core_parking.py`       | `enable_core_parking()` → re-enables parking             |
+| `hpet_controller.py`    | `restore_defaults()` → reverts all BCD timer changes     |
+| `services_optimizer.py` | `restore_all()` → re-enables all disabled services       |
+| `telemetry_blocker.py`  | `restore_hosts()` → removes NovaPulse entries from hosts |
+| `timer_resolution.py`   | `restore()` → returns to 15.625ms default                |
+
+> **Worst-case recovery:** Boot into Safe Mode → run `bcdedit /deletevalue useplatformclock` → reboot.
+
+### 🎯 Recommended Usage Flow
+
+```
+1. Run diagnostic.py         ← Verify system compatibility
+2. Start with SAFE level     ← Network + memory tweaks only
+3. Monitor for 24-48h        ← Check stability, temps, performance
+4. Upgrade to BALANCED       ← Adds CPU + GPU optimizations
+5. Upgrade to GAMING         ← Full suite (timer, core parking, HPET)
+6. AGGRESSIVE (optional)     ← Services, advanced storage, deep tweaks
+```
+
+**Never jump straight to AGGRESSIVE.** Each level builds on the previous, and the `optimization_engine.py` enforces dependency order.
+
+### 🖥️ Hardware Compatibility
+
+NovaPulse is **optimized for Intel Tiger Lake + NVIDIA**, but most modules work across all Windows 10/11 systems:
+
+| Compatibility                   | Modules                                                                                      | Notes                            |
+| ------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------- |
+| ✅ **Universal** (any Win10/11) | NTFS, network stack, services, telemetry, memory, security, standby cleaner, USB, IRQ, MMCSS | ~75% of all modules              |
+| ✅ **Any NVIDIA GPU**           | CUDA optimizer, GPU scheduler, gamebar                                                       | Requires NVIDIA driver           |
+| ⚡ **Intel-optimized**          | `intel_power_control`, `auto_profiler`                                                       | Works on Intel; no effect on AMD |
+| ⚙️ **Tiger Lake tuned**         | `cpu_power` (80% cap rationale)                                                              | Cap values are hardware-specific |
+
+> **AMD users:** NovaPulse will not break your system. Intel-specific modules simply skip when Intel hardware is not detected. All universal modules provide full benefit.
+
+### 🧪 Before You Start
+
+1. **Create a System Restore Point** — `PowerShell: Checkpoint-Computer -Description "Before NovaPulse"`
+2. **Run diagnostics** — `python diagnostic.py` generates a full compatibility report
+3. **Read the README** — Every module documents exactly what it changes and why
+4. **Start with SAFE** — Graduate to higher levels only after confirmed stability
+5. **Keep NovaPulse running** — Background services (auto-profiler, standby cleaner) need to stay active to maintain optimizations
 
 ---
 

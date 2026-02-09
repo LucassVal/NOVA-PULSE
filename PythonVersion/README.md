@@ -20,8 +20,8 @@ A comprehensive system optimization tool with built-in security scanner and tele
 | **Core Parking**       | Disables CPU core parking, forces High Performance plan | -5ms latency                |
 | **Memory Optimizer**   | Disables compression, Superfetch, optimizes paging      | +500MB-2GB free RAM         |
 | **NTFS Optimizer**     | Disables 8.3 names, Last Access Time                    | +10-30% disk I/O            |
-| **GPU Scheduler**      | Enables HAGS, GPU Priority, TDR optimization            | +3-10 FPS                   |
-| **CUDA Optimizer**     | PhysX GPU, Shader Cache, NVIDIA tweaks                  | Reduced stuttering          |
+| **GPU Scheduler**      | HAGS, GPU Priority, TDR, PhysX→NVIDIA, Global GPU Pref  | +3-10 FPS, -1GB iGPU RAM    |
+| **CUDA Optimizer**     | Shader Cache unlimited, Pre-rendered frames, ASPM off   | Reduced stuttering          |
 | **MMCSS Optimizer**    | Gaming/Audio task priority, SystemResponsiveness=0      | -5ms audio/input            |
 | **Network Stack**      | CTCP, disable Nagle, optimize AFD buffers               | -5-20ms ping                |
 | **USB Optimizer**      | Disable selective suspend, optimize buffers             | Better mouse/keyboard       |
@@ -29,7 +29,7 @@ A comprehensive system optimization tool with built-in security scanner and tele
 | **HPET Controller**    | Disables HPET, enables TSC sync                         | -0.5-2ms timer              |
 | **Advanced CPU**       | Disable C-States, force Turbo Boost                     | Consistent clock speeds     |
 | **Advanced Storage**   | Write caching, NVMe queue depth, Large Pages            | Faster disk access          |
-| **Process Controller** | Auto priority for games, low priority for browsers      | Smarter resource allocation |
+| **Process Controller** | Allowlist-only HIGH priority, bloatware→LOW, stats      | Smarter resource allocation |
 
 ### 🛡️ Security Shield (NEW in v2.2)
 
@@ -46,7 +46,9 @@ A comprehensive system optimization tool with built-in security scanner and tele
 
 ### Monitoring & Control
 
-- **Rich Console Dashboard**: Real-time CPU/GPU/RAM + Security Shield status
+- **Rich Console Dashboard**: 3-panel layout (Hardware + Memory & Status + Security Shield)
+- **CPU GHz/Turbo Display**: Shows current vs max frequency in real-time
+- **Dynamic Infographic Footer**: Shows what NovaPulse applied at boot + live stats
 - **System Tray Icon**: Quick access, minimize to tray, compact tooltip
 - **Auto-Profiler (2-Stage)**: ACTIVE (80% CPU) / IDLE (20% CPU after 5 min inactivity)
 - **Windows Defender Hardening**: Enables ASR rules, ransomware protection, exploit mitigations
@@ -63,6 +65,13 @@ Priority 5: Intel iGPU reference (+5°C offset)
 ```
 
 **Design Decision**: On Intel DPTF systems (like i5-11300H), the ACPI thermal zone reports actual CPU die temperature, NOT chassis temperature. No offset is applied.
+
+### GPU → NVIDIA Enforcement
+
+- **Global GPU Preference**: Forces all graphical apps to NVIDIA RTX via `DirectXUserGlobalSettings`
+- **Per-App Override**: Critical apps (IDE, NovaPulse, Node.js) explicitly set to High Performance
+- **PhysX → RTX 3050**: Prevents CPU from calculating physics geometry
+- **Effect**: Frees Intel Iris Xe shared RAM back to system (~1GB+)
 
 ### Intel Power Control
 
@@ -111,7 +120,7 @@ novapulse.py (main v2.2.1)
 ├── modules/
 │   ├── Core: auto_profiler, standby_cleaner, cpu_power
 │   ├── Hardware: core_parking, memory_optimizer, hpet_controller
-│   ├── GPU: gpu_scheduler, cuda_optimizer
+│   ├── GPU: gpu_scheduler (7 opts), cuda_optimizer
 │   ├── Network: network_qos, network_stack_optimizer
 │   ├── Input: usb_optimizer, irq_optimizer
 │   ├── System: ntfs_optimizer, mmcss_optimizer, services_optimizer

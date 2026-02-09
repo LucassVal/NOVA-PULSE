@@ -161,10 +161,11 @@ class GPUSchedulerController:
         Força GPU NVIDIA como padrão para apps-chave via registro do Windows.
         Equivale a: Configurações > Sistema > Tela > Elementos Gráficos > Alto Desempenho
         
-        Registry: HKCU\Software\Microsoft\DirectX\UserGpuPreferences
+        Registry: HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences
         Value: GpuPreference=2  (0=Auto, 1=Power Saving, 2=High Performance)
         """
         import os, glob
+        import sys
         
         # Apps to force NVIDIA (expand as needed)
         target_apps = []
@@ -187,6 +188,20 @@ class GPUSchedulerController:
         # 4. Node.js (for dev work)
         node_paths = glob.glob(os.path.expandvars(r"%PROGRAMFILES%\nodejs\node.exe"))
         target_apps.extend(node_paths)
+        
+        # 5. Python (agents/AI acceleration)
+        python_path = sys.executable
+        if python_path and os.path.exists(python_path):
+            target_apps.append(python_path)
+        
+        # 6. Chrome (heavy RAM/GPU user)
+        chrome = os.path.expandvars(r"%PROGRAMFILES%\Google\Chrome\Application\chrome.exe")
+        if os.path.exists(chrome):
+            target_apps.append(chrome)
+        # Chrome x86
+        chrome_x86 = os.path.expandvars(r"%PROGRAMFILES(X86)%\Google\Chrome\Application\chrome.exe")
+        if os.path.exists(chrome_x86):
+            target_apps.append(chrome_x86)
         
         if not target_apps:
             print("[GPU] ⚠ Nenhum app encontrado para forçar NVIDIA")
@@ -235,6 +250,37 @@ class GPUSchedulerController:
             print(f"[GPU] ✗ Erro GPU preference: {e}")
             return False
     
+    def set_physx_gpu(self) -> bool:
+        """
+        Forca RTX 3050 como processador PhysX (em vez de Auto/CPU).
+        Libera o i5 de calcular fisica quando apps pedem.
+        Registry: HKLM\\SOFTWARE\\NVIDIA Corporation\\Global\\PhysX\\PhysxGpu = 1
+        """
+        if not self.is_admin:
+            print("[GPU] ✗ PhysX: precisa de admin")
+            return False
+        
+        try:
+            physx_key = r"SOFTWARE\NVIDIA Corporation\Global\PhysX"
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, physx_key, 0,
+                               winreg.KEY_READ | winreg.KEY_SET_VALUE) as key:
+                try:
+                    current, _ = winreg.QueryValueEx(key, "PhysxGpu")
+                except:
+                    current = 0
+                
+                if current != 1:
+                    winreg.SetValueEx(key, "PhysxGpu", 0, winreg.REG_DWORD, 1)
+                    print("[GPU] ✓ PhysX → RTX 3050 (dedicada)")
+                else:
+                    print("[GPU] ✓ PhysX já configurado para RTX 3050")
+                
+                self.applied_changes['physx'] = True
+                return True
+        except Exception as e:
+            print(f"[GPU] ✗ PhysX: {e}")
+            return False
+    
     def apply_all_optimizations(self) -> Dict[str, bool]:
         """
         Aplica todas as otimizações de GPU
@@ -247,6 +293,7 @@ class GPUSchedulerController:
         results['dxgi'] = self.optimize_dxgi()
         results['game_mode'] = self.enable_game_mode()
         results['gpu_preference'] = self.set_preferred_gpu_high_performance()
+        results['physx'] = self.set_physx_gpu()
         
         success_count = sum(results.values())
         print(f"[GPU] Resultado: {success_count}/{len(results)} otimizações aplicadas")

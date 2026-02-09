@@ -128,7 +128,7 @@ novapulse.py (main v2.2.1)
 │   ├── Monitoring: temperature_service, intel_power_control
 │   ├── Security: security_scanner, telemetry_blocker, defender_hardener
 │   ├── Startup: startup_manager
-│   └── UI: dashboard (with security panel), tray_icon, dashboard_webview
+│   └── UI: dashboard (3-panel + security), tray_icon
 ├── config.yaml               ← All module settings
 └── diagnostic.py             ← System diagnostics
 ```

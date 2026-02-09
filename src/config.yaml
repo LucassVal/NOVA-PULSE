@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════
-#                        ⚡ NOVAPULSE 2.2.1 ⚡
+#                        ⚡ NOVAPULSE 2.3 ⚡
 #                Intelligent System Optimization
 #                    Advanced Hardware Control
 # ═══════════════════════════════════════════════════════════════════════
@@ -24,17 +24,17 @@ nvme:
 
 # === Controle de CPU ===
 cpu_control:
-  max_frequency_percent: 80     # Auto-Profiler ajusta dinamicamente
+  max_frequency_percent: 85     # Auto-Profiler ajusta dinamicamente
   min_frequency_percent: 5
 
-# === AUTO-PROFILER v2.2 (2 Stages) ===
-# ACTIVE: 80% CPU cap (always on, ~2.9GHz on i5-11300H)
-# IDLE: 20% CPU cap (after 5 min of inactivity)
+# === AUTO-PROFILER v2.3 (2 Stages) ===
+# ACTIVE: 85% CPU cap + BALANCED Intel profile (efficient boost on demand)
+# IDLE: 30% CPU cap + ECO Intel profile (after 5 min of inactivity)
 auto_profiler:
   enabled: true
   check_interval: 2             # Verifica a cada 2 segundos
-  active_cpu_cap: 80            # ACTIVE mode: 80% CPU
-  idle_cpu_cap: 20              # IDLE mode: 20% CPU
+  active_cpu_cap: 85            # ACTIVE mode: 85% CPU
+  idle_cpu_cap: 30              # IDLE mode: 30% CPU
   idle_timeout: 300             # 5 minutos para entrar em IDLE
   wake_threshold: 15            # CPU >15% = volta para ACTIVE
 

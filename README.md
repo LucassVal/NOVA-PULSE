@@ -109,7 +109,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value                                                              |
 | ------ | ------------------------------------------------------------------ |
-| Lines  | ~400                                                               |
+| Lines  | 418                                                                |
 | Role   | CLI entry, config loader, service bootstrapper, dashboard launcher |
 
 **Key Responsibilities:**
@@ -117,7 +117,7 @@ pyinstaller novapulse.spec
 - Parses `config.yaml` using PyYAML
 - Instantiates all optimization modules into `services={}` dict
 - Calls `optimization_engine.apply_optimizations(level)` with configured level
-- Applies CPU control via `CPUPowerManager.set_max_cpu_frequency(80)` and `set_min_cpu_frequency(5)`
+- Applies CPU control via `CPUPowerManager.set_max_cpu_frequency(85)` and `set_min_cpu_frequency(5)`
 - Starts background services: auto-profiler, game detector, security scanner, NVMe TRIM
 - Launches `Dashboard.run(services)` as the main UI loop
 - Sets process priority to HIGH for itself
@@ -125,7 +125,7 @@ pyinstaller novapulse.spec
 **Configuration Loaded:**
 
 - `optimization_level` → passed to engine
-- `cpu_control.max_frequency_percent` → CPU cap (default 80)
+- `cpu_control.max_frequency_percent` → CPU cap (default 85)
 - `nvme.enabled` → NVMe optimizations
 - `auto_profiler.enabled` → 2-stage profiler
 - `network_qos` → DNS & QoS settings
@@ -137,7 +137,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                        |
 | ------- | ---------------------------- |
-| Lines   | 383                          |
+| Lines   | 371                          |
 | Class   | `OptimizationEngine`         |
 | Pattern | Singleton via `get_engine()` |
 
@@ -162,7 +162,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value                                             |
 | ------ | ------------------------------------------------- |
-| Lines  | 251                                               |
+| Lines  | 477                                               |
 | Role   | Standalone diagnostic tool, generates text report |
 
 **Checks Performed:**
@@ -196,13 +196,13 @@ pyinstaller novapulse.spec
 |--------|-------------|
 | `set_max_cpu_frequency(percent)` | Sets max CPU state (0-100%) via powercfg |
 | `set_min_cpu_frequency(percent)` | Sets min CPU state (0-100%) |
-| `start_adaptive_governor(base_cap=80)` | Thermal-aware throttle loop; respects profiler cap as ceiling |
+| `start_adaptive_governor(base_cap=85)` | Thermal-aware throttle loop; respects profiler cap as ceiling |
 | `restore_defaults()` | Resets to 100%/5% |
 
 **Design Notes:**
 
 - `start_adaptive_governor` accepts `base_cap` parameter and NEVER exceeds this ceiling
-- This prevents thermal governor from overriding auto_profiler's 80% cap
+- This prevents thermal governor from overriding auto_profiler's 85% cap
 - The `start_adaptive_governor` function was identified as unused dead code in current flow
 
 ---
@@ -211,7 +211,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                                   |
 | ------- | --------------------------------------- |
-| Lines   | ~267                                    |
+| Lines   | 215                                     |
 | Class   | `AutoProfiler`                          |
 | Pattern | Background thread with `start()/stop()` |
 
@@ -242,7 +242,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                           |
 | ------- | ------------------------------- |
-| Lines   | 244                             |
+| Lines   | 236                             |
 | Class   | `AdvancedCPUOptimizer`          |
 | Pattern | Singleton via `get_optimizer()` |
 
@@ -295,7 +295,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                         |
 | ------- | ----------------------------- |
-| Lines   | 258                           |
+| Lines   | 250                           |
 | Class   | `CoreParkingManager`          |
 | Pattern | Singleton via `get_manager()` |
 
@@ -315,7 +315,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                                                                        |
 | ------- | ---------------------------------------------------------------------------- |
-| Lines   | 105                                                                          |
+| Lines   | 101                                                                          |
 | Class   | `TimerResolutionOptimizer`                                                   |
 | Backend | `ntdll.NtSetTimerResolution` / `NtQueryTimerResolution` (direct kernel call) |
 
@@ -336,7 +336,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                                   |
 | ------- | --------------------------------------- |
-| Lines   | 536                                     |
+| Lines   | 373                                     |
 | Class   | `CUDAOptimizer`                         |
 | Pattern | Singleton via `get_optimizer()`         |
 | Backend | Registry, pynvml, environment variables |
@@ -370,7 +370,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                            |
 | ------- | -------------------------------- |
-| Lines   | 362                              |
+| Lines   | 354                              |
 | Class   | `GPUSchedulerController`         |
 | Pattern | Singleton via `get_controller()` |
 
@@ -392,7 +392,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value              |
 | ------ | ------------------ |
-| Lines  | 153                |
+| Lines  | 149                |
 | Class  | `GameBarOptimizer` |
 
 **Disables:**
@@ -415,7 +415,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                           |
 | ------- | ------------------------------- |
-| Lines   | ~470                            |
+| Lines   | ~496                            |
 | Class   | `MemoryOptimizerPro`            |
 | Pattern | Singleton via `get_optimizer()` |
 | Version | V4.0 Endgame                    |
@@ -448,7 +448,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value                                                           |
 | ------ | --------------------------------------------------------------- |
-| Lines  | ~195                                                            |
+| Lines  | 191                                                             |
 | Role   | Background thread that auto-deprioritizes heavy background apps |
 
 **Known Apps Auto-Lowered:**
@@ -460,7 +460,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                                               |
 | ------- | --------------------------------------------------- |
-| Lines   | 231                                                 |
+| Lines   | 186                                                 |
 | Class   | `StandbyMemoryCleaner`                              |
 | Backend | `ntdll.NtSetSystemInformation` (direct kernel call) |
 | Pattern | Background thread with cooldown                     |
@@ -488,7 +488,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value                      |
 | ------ | -------------------------- |
-| Lines  | 248                        |
+| Lines  | 227                        |
 | Class  | `AdvancedStorageOptimizer` |
 
 **Optimizations:**
@@ -507,7 +507,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                 |
 | ------- | --------------------- |
-| Lines   | 186                   |
+| Lines   | 178                   |
 | Class   | `NTFSOptimizer`       |
 | Backend | `fsutil behavior set` |
 
@@ -526,7 +526,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value         |
 | ------ | ------------- |
-| Lines  | 94            |
+| Lines  | 87            |
 | Class  | `NVMeManager` |
 
 **Key Methods:**
@@ -545,7 +545,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value               |
 | ------ | ------------------- |
-| Lines  | 184                 |
+| Lines  | 180                 |
 | Class  | `NetworkQoSManager` |
 
 **DNS Providers:**
@@ -569,7 +569,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value                                                  |
 | ------ | ------------------------------------------------------ |
-| Lines  | 325                                                    |
+| Lines  | 299                                                    |
 | Class  | `NetworkStackOptimizer`                                |
 | Role   | Complements `network_qos.py` with deeper TCP/IP tweaks |
 
@@ -595,7 +595,7 @@ pyinstaller novapulse.spec
 
 | Detail       | Value                                        |
 | ------------ | -------------------------------------------- |
-| Lines        | 353                                          |
+| Lines        | 307                                          |
 | Class        | `ProcessController`                          |
 | Data Classes | `ProcessRule`, `PriorityClass`, `IOPriority` |
 
@@ -623,7 +623,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                                      |
 | ------- | ------------------------------------------ |
-| Lines   | 568                                        |
+| Lines   | 557                                        |
 | Class   | `SecurityScanner`                          |
 | Pattern | Background thread (5-minute scan interval) |
 
@@ -643,7 +643,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value              |
 | ------ | ------------------ |
-| Lines  | 484                |
+| Lines  | 473                |
 | Class  | `TelemetryBlocker` |
 
 **Methods:**
@@ -662,7 +662,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value              |
 | ------ | ------------------ |
-| Lines  | 417                |
+| Lines  | 352                |
 | Class  | `DefenderHardener` |
 
 **10-Step Hardening Process:**
@@ -686,7 +686,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                                                       |
 | ------- | ----------------------------------------------------------- |
-| Lines   | ~730                                                        |
+| Lines   | ~803                                                        |
 | Class   | `Dashboard`                                                 |
 | Backend | `rich.live.Live`, `rich.table`, `rich.panel`, `rich.layout` |
 
@@ -722,7 +722,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                                     |
 | ------- | ----------------------------------------- |
-| Lines   | 221                                       |
+| Lines   | 216                                       |
 | Class   | `TemperatureService`                      |
 | Pattern | Thread-safe singleton with TTL cache (2s) |
 
@@ -740,7 +740,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                                  |
 | ------- | -------------------------------------- |
-| Lines   | 113                                    |
+| Lines   | 106                                    |
 | Class   | `HistoryLogger`                        |
 | Storage | CSV files in `~/.nvme_optimizer/logs/` |
 
@@ -758,7 +758,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value                      |
 | ------ | -------------------------- |
-| Lines  | 166                        |
+| Lines  | 162                        |
 | Class  | `WindowsServicesOptimizer` |
 
 **Safe-to-Disable Services:**
@@ -782,7 +782,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value            |
 | ------ | ---------------- |
-| Lines  | 244              |
+| Lines  | 202              |
 | Class  | `StartupManager` |
 
 **Registration Method:** Windows Task Scheduler (preferred over Registry Run key)
@@ -799,7 +799,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value                  |
 | ------ | ---------------------- |
-| Lines  | 317                    |
+| Lines  | 250                    |
 | Class  | `IRQAffinityOptimizer` |
 
 **Optimizations:**
@@ -817,7 +817,7 @@ pyinstaller novapulse.spec
 
 | Detail | Value            |
 | ------ | ---------------- |
-| Lines  | 221              |
+| Lines  | 164              |
 | Class  | `MMCSSOptimizer` |
 
 **Tweaks:**
@@ -835,7 +835,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                               |
 | ------- | ----------------------------------- |
-| Lines   | 316                                 |
+| Lines   | 308                                 |
 | Class   | `HPETController`                    |
 | Backend | `bcdedit` (Boot Configuration Data) |
 
@@ -856,7 +856,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                 |
 | ------- | --------------------- |
-| Lines   | 266                   |
+| Lines   | 226                   |
 | Class   | `USBPollingOptimizer` |
 | Backend | Registry, `powercfg`  |
 
@@ -876,7 +876,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                                     |
 | ------- | ----------------------------------------- |
-| Lines   | 305                                       |
+| Lines   | 254                                       |
 | Class   | `SystemTrayIcon`                          |
 | Backend | `pystray`, `pillow`, Windows API (ctypes) |
 
@@ -892,7 +892,7 @@ pyinstaller novapulse.spec
 
 ## Configuration Reference
 
-**File:** `config.yaml` (v2.2.1)
+**File:** `config.yaml` (v2.3)
 
 ```yaml
 # Top-level
@@ -905,13 +905,13 @@ standby_cleaner:
 
 # CPU Control
 cpu_control:
-  max_frequency_percent: 80 # Auto-Profiler adjusts dynamically
+  max_frequency_percent: 85 # Auto-Profiler adjusts dynamically
   min_frequency_percent: 5
 
-# Auto-Profiler (2 Stages)
+# Auto-Profiler v2.3 (2 Stages)
 auto_profiler:
-  active_cpu_cap: 80 # ACTIVE mode cap
-  idle_cpu_cap: 20 # IDLE mode cap
+  active_cpu_cap: 85 # ACTIVE mode: 85% CPU, BALANCED Intel profile
+  idle_cpu_cap: 30 # IDLE mode: 30% CPU, ECO Intel profile
   idle_timeout: 300 # 5 min to IDLE
   wake_threshold: 15 # CPU >15% = ACTIVE
 
@@ -967,13 +967,19 @@ NOVA-PULSE/               ← repo root (clean)
 ├── LICENSE                # MIT License
 ├── .gitignore
 └── src/                   ← all source code
-    ├── novapulse.py        # Main entry point
-    ├── diagnostic.py       # Health check tool
+    ├── novapulse.py        # Main entry point (418 lines)
+    ├── diagnostic.py       # Health check tool (477 lines)
     ├── config.yaml         # All configuration
     ├── requirements.txt    # pip dependencies
     ├── novapulse.ico       # App icon
-    └── modules/            # 32 optimization modules
+    ├── BUILD_EXE.bat       # PyInstaller build script
+    ├── RUN_NOVAPULSE.bat   # Quick launcher (admin)
+    ├── create_desktop_shortcut.ps1 # Desktop shortcut creator
+    ├── NovaPulse.spec      # PyInstaller spec file
+    └── modules/            # 33 optimization modules
         ├── dashboard.py           # Rich console UI
+        ├── html_dashboard.py      # Glass-morphism web dashboard
+        ├── dashboard.html         # Web dashboard frontend
         ├── optimization_engine.py # Central orchestrator
         ├── auto_profiler.py       # 2-stage CPU profiler
         ├── cpu_power.py           # CPU frequency control
@@ -1014,15 +1020,15 @@ NOVA-PULSE/               ← repo root (clean)
 
 **Target System:** Intel Core i5-11300H (Tiger Lake, 4C/8T, locked) + NVIDIA MX450/GTX 1650
 
-| Optimization     | Why (for this hardware)                                                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| 80% CPU cap      | i5-11300H thermal throttles at 95°C in sustained loads; 80% (~2.9GHz) keeps temps ~75°C while Turbo Boost handles short bursts to 4.4GHz |
-| Core Parking OFF | Only 4 cores — sleeping any causes stuttering in multi-threaded games                                                                    |
-| Timer 0.5ms      | Tiger Lake supports sub-1ms; reduces input lag from default 15.625ms                                                                     |
-| CTCP congestion  | Best for Windows-to-Windows game server connections                                                                                      |
-| AdGuard DNS      | Blocks ads at DNS level, reducing background network load                                                                                |
-| SysMain OFF      | System has NVMe SSD — Superfetch adds no benefit, wastes RAM                                                                             |
-| NTFS tweaks      | NVMe benefits from disabling last-access writes (reduces write amplification)                                                            |
+| Optimization     | Why (for this hardware)                                                                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 85% CPU cap      | i5-11300H thermal throttles at 95°C in sustained loads; 85% (~3.1GHz) keeps temps ~75°C with BALANCED profile for efficient Turbo Boost to 4.4GHz on demand |
+| Core Parking OFF | Only 4 cores — sleeping any causes stuttering in multi-threaded games                                                                                       |
+| Timer 0.5ms      | Tiger Lake supports sub-1ms; reduces input lag from default 15.625ms                                                                                        |
+| CTCP congestion  | Best for Windows-to-Windows game server connections                                                                                                         |
+| AdGuard DNS      | Blocks ads at DNS level, reducing background network load                                                                                                   |
+| SysMain OFF      | System has NVMe SSD — Superfetch adds no benefit, wastes RAM                                                                                                |
+| NTFS tweaks      | NVMe benefits from disabling last-access writes (reduces write amplification)                                                                               |
 
 ---
 
@@ -1094,7 +1100,7 @@ NovaPulse is **optimized for Intel Tiger Lake + NVIDIA**, but most modules work 
 | ✅ **Universal** (any Win10/11) | NTFS, network stack, services, telemetry, memory, security, standby cleaner, USB, IRQ, MMCSS | ~75% of all modules              |
 | ✅ **Any NVIDIA GPU**           | CUDA optimizer, GPU scheduler, gamebar                                                       | Requires NVIDIA driver           |
 | ⚡ **Intel-optimized**          | `intel_power_control`, `auto_profiler`                                                       | Works on Intel; no effect on AMD |
-| ⚙️ **Tiger Lake tuned**         | `cpu_power` (80% cap rationale)                                                              | Cap values are hardware-specific |
+| ⚙️ **Tiger Lake tuned**         | `cpu_power` (85% cap rationale)                                                              | Cap values are hardware-specific |
 
 > **AMD users:** NovaPulse will not break your system. Intel-specific modules simply skip when Intel hardware is not detected. All universal modules provide full benefit.
 
@@ -1118,7 +1124,7 @@ Windows updates may reset some optimizations. After major updates (Feature Updat
 A: Yes — all universal modules (~75%) work fully. Intel-specific modules skip themselves. NVIDIA modules work normally.
 
 **Q: Can I use NovaPulse on a laptop?**
-A: Yes, but monitor temperatures closely. The 80% CPU cap is specifically designed for laptop thermal constraints.
+A: Yes, but monitor temperatures closely. The 85% CPU cap with BALANCED Intel profile is specifically designed for laptop thermal constraints.
 
 **Q: What if I want to uninstall NovaPulse?**
 A: Run each module's restore method before removing. All changes are reversible — nothing is permanent.
@@ -1141,5 +1147,5 @@ A: No. NovaPulse only changes software settings (registry, services, power plans
 
 ---
 
-> **NovaPulse v2.2.1 GOLD** — Built for Intel Tiger Lake + NVIDIA mobile systems.
+> **NovaPulse v2.3 GOLD** — Built for Intel Tiger Lake + NVIDIA mobile systems.
 > All optimizations are reversible. Run `diagnostic.py` before reporting issues.

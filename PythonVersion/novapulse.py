@@ -2,7 +2,7 @@
 """
 ╔═══════════════════════════════════════════════════════════════════════╗
 ║                                                                       ║
-║                    ⚡ NOVAPULSE 2.2 ⚡                                 ║
+║                   ⚡ NOVAPULSE 2.2.1 ⚡                                ║
 ║              Intelligent System Optimization                          ║
 ║                 Advanced Hardware Control                             ║
 ║                                                                       ║
@@ -11,14 +11,9 @@
 Sistema automatizado de otimização com detecção inteligente de carga.
 Auto-ajusta CPU, RAM, I/O, GPU e rede baseado no uso real do sistema.
 
-Novidades 2.0:
-- Core Parking Control
-- Memory Optimization Pro
-- HPET/Timer Control
-- GPU Scheduler (HAGS)
-- IRQ Affinity Optimizer
-- Network Stack Optimizer
-- Process Controller (Process Lasso Style)
+v2.2.1: Codebase audit, 2-stage profiler, security shield
+v2.2:   Security Scanner + Telemetry Blocker + Defender Hardener
+v2.0:   Optimization Engine with 13 kernel-level modules
 """
 import sys
 import time
@@ -48,7 +43,7 @@ from modules.auto_profiler import AutoProfiler, get_profiler, SystemMode
 from modules.history_logger import get_logger as get_history_logger
 from modules.tray_icon import SystemTrayIcon
 
-# NovaPulse 2.0 - Advanced Optimizations
+# NovaPulse 2.2.1 - Optimization Engine
 try:
     from modules.optimization_engine import get_engine, OptimizationLevel
     OPTIMIZATION_ENGINE_AVAILABLE = True
@@ -267,7 +262,7 @@ def main():
     print(f"{Fore.CYAN}[INFO] Carregando configuração...{Style.RESET_ALL}")
     config = load_config()
     
-    # === NOVAPULSE 2.0: OPTIMIZATION ENGINE ===
+    # === NOVAPULSE 2.2.1: OPTIMIZATION ENGINE ===
     if OPTIMIZATION_ENGINE_AVAILABLE:
         opt_level_str = config.get('optimization_level', 'gaming')
         level_map = {
@@ -279,7 +274,7 @@ def main():
         opt_level = level_map.get(opt_level_str, OptimizationLevel.GAMING)
         
         print(f"\n{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
-        print(f"{Fore.MAGENTA}⚡ NovaPulse 2.0 - Advanced Optimizations{Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA}⚡ NovaPulse 2.2.1 - Advanced Optimizations{Style.RESET_ALL}")
         print(f"{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}\n")
         
         try:

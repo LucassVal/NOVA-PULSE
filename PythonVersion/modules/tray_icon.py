@@ -152,14 +152,14 @@ class SystemTrayIcon:
                     pass
             
             # Tooltip compacto (max 128 chars)
-            tooltip = f"NovaPulse 2.0 | {mode}\n"
+            tooltip = f"NovaPulse 2.2.1 | {mode}\n"
             tooltip += f"CPU:{cpu_percent:.0f}% RAM:{ram_pct:.0f}%\n"
             tooltip += f"GPU:{gpu_pct}% {gpu_temp}C"
             
             return tooltip, mode.lower()
             
         except Exception as e:
-            return "NovaPulse 2.0", "normal"
+            return "NovaPulse 2.2.1", "normal"
     
     def _tooltip_update_loop(self):
         """Atualiza tooltip a cada 2 segundos"""

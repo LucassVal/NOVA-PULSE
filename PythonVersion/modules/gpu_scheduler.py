@@ -158,20 +158,59 @@ class GPUSchedulerController:
     
     def set_preferred_gpu_high_performance(self) -> bool:
         """
-        Define GPU preferida para alto desempenho (para laptops com GPU integrada + dedicada)
+        Força GPU NVIDIA como padrão para apps-chave via registro do Windows.
+        Equivale a: Configurações > Sistema > Tela > Elementos Gráficos > Alto Desempenho
+        
+        Registry: HKCU\Software\Microsoft\DirectX\UserGpuPreferences
+        Value: GpuPreference=2  (0=Auto, 1=Power Saving, 2=High Performance)
         """
-        if not self.is_admin:
+        import os, glob
+        
+        # Apps to force NVIDIA (expand as needed)
+        target_apps = []
+        
+        # 1. Antigravity IDE
+        antigravity = os.path.expandvars(r"%LOCALAPPDATA%\Programs\antigravity\Antigravity.exe")
+        if os.path.exists(antigravity):
+            target_apps.append(antigravity)
+        
+        # 2. VS Code
+        vscode = os.path.expandvars(r"%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe")
+        if os.path.exists(vscode):
+            target_apps.append(vscode)
+        
+        # 3. NovaPulse itself
+        novapulse_desktop = os.path.expandvars(r"%USERPROFILE%\Desktop\NovaPulse.exe")
+        if os.path.exists(novapulse_desktop):
+            target_apps.append(novapulse_desktop)
+        
+        # 4. Node.js (for dev work)
+        node_paths = glob.glob(os.path.expandvars(r"%PROGRAMFILES%\nodejs\node.exe"))
+        target_apps.extend(node_paths)
+        
+        if not target_apps:
+            print("[GPU] ⚠ Nenhum app encontrado para forçar NVIDIA")
             return False
         
         try:
-            # GpuPreference: 0 = Auto, 1 = Power Saving, 2 = High Performance
             preference_key = r"SOFTWARE\Microsoft\DirectX\UserGpuPreferences"
+            applied = 0
             
-            # Define globalmente que apps devem usar GPU de alta performance
-            print("[GPU] ℹ GPU preference deve ser definida em Configurações > Sistema > Tela")
-            print("[GPU] ℹ Ou por aplicativo nas Configurações de Gráficos")
-            return True
-        except:
+            for app_path in target_apps:
+                try:
+                    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, preference_key, 0, 
+                                       winreg.KEY_SET_VALUE) as key:
+                        winreg.SetValueEx(key, app_path, 0, winreg.REG_SZ, "GpuPreference=2")
+                        applied += 1
+                        app_name = os.path.basename(app_path)
+                        print(f"[GPU] ✓ NVIDIA forçada: {app_name}")
+                except Exception as e:
+                    print(f"[GPU] ✗ Falha: {os.path.basename(app_path)} - {e}")
+            
+            print(f"[GPU] GPU Preference: {applied}/{len(target_apps)} apps → NVIDIA High Performance")
+            return applied > 0
+        except Exception as e:
+            print(f"[GPU] ✗ Erro GPU preference: {e}")
             return False
     
     def apply_all_optimizations(self) -> Dict[str, bool]:
@@ -185,6 +224,7 @@ class GPUSchedulerController:
         results['priority'] = self.set_gpu_priority(8)
         results['dxgi'] = self.optimize_dxgi()
         results['game_mode'] = self.enable_game_mode()
+        results['gpu_preference'] = self.set_preferred_gpu_high_performance()
         
         success_count = sum(results.values())
         print(f"[GPU] Resultado: {success_count}/{len(results)} otimizações aplicadas")

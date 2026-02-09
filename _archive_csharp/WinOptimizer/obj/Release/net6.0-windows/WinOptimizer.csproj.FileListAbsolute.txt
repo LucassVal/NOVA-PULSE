@@ -1,5 +1,0 @@
-C:\Users\Lucas Valério\.gemini\antigravity\scratch\WindowsNVMeOptimizer\WinOptimizer\obj\Release\net6.0-windows\WinOptimizer.csproj.AssemblyReference.cache
-C:\Users\Lucas Valério\.gemini\antigravity\scratch\WindowsNVMeOptimizer\WinOptimizer\obj\Release\net6.0-windows\WinOptimizer.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\Lucas Valério\.gemini\antigravity\scratch\WindowsNVMeOptimizer\WinOptimizer\obj\Release\net6.0-windows\WinOptimizer.AssemblyInfoInputs.cache
-C:\Users\Lucas Valério\.gemini\antigravity\scratch\WindowsNVMeOptimizer\WinOptimizer\obj\Release\net6.0-windows\WinOptimizer.AssemblyInfo.cs
-C:\Users\Lucas Valério\.gemini\antigravity\scratch\WindowsNVMeOptimizer\WinOptimizer\obj\Release\net6.0-windows\WinOptimizer.csproj.CoreCompileInputs.cache

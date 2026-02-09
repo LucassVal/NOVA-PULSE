@@ -219,8 +219,8 @@ pyinstaller novapulse.spec
 
 | Mode   | CPU Cap | Trigger                      | Behavior                              |
 | ------ | ------- | ---------------------------- | ------------------------------------- |
-| ACTIVE | 80%     | CPU > 15% or recent activity | Normal operation, Turbo Boost allowed |
-| IDLE   | 20%     | 5 min inactivity (cpu < 15%) | Maximum power saving                  |
+| ACTIVE | 85%     | CPU > 15% or recent activity | BALANCED profile, boost on peaks only |
+| IDLE   | 30%     | 5 min inactivity (cpu < 10%) | ECO profile, maximum power saving     |
 
 **Key Methods:**
 | Method | Description |
@@ -228,13 +228,13 @@ pyinstaller novapulse.spec
 | `start(services)` | Begins monitoring loop (2s interval) |
 | `get_current_mode()` | Returns `ACTIVE` or `IDLE` |
 | `get_avg_cpu()` | Returns smoothed CPU usage average |
-| `active_cpu_cap` | Property returning current cap (80 or 20) |
+| `active_cpu_cap` | Property returning current cap (85 or 30) |
 
 **Design Notes:**
 
 - Uses `cpu_power` service to apply limits
-- Uses `intel_power_control` for Intel-specific profiles
-- Adjusts memory cleaner threshold based on mode (3GB active, 1.5GB idle)
+- Uses `intel_power_control` BALANCED profile (ACTIVE) and ECO profile (IDLE)
+- Adjusts memory cleaner threshold based on mode (3GB active, 8GB idle)
 
 ---
 

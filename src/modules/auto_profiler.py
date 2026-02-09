@@ -1,6 +1,6 @@
 """
-NovaPulse Auto-Profiler v2.2
-Simplified 2-stage system: ACTIVE (80% CPU) / IDLE (20% CPU after 5 min inactivity)
+NovaPulse Auto-Profiler v2.3
+Simplified 2-stage system: ACTIVE (85% CPU) / IDLE (30% CPU after 5 min inactivity)
 
 Design Decision — Why 2 stages instead of 3:
   The previous 3-mode system (BOOST/NORMAL/ECO) depended on physical temperature
@@ -8,18 +8,16 @@ Design Decision — Why 2 stages instead of 3:
   the system reacted too late to thermal events, causing stutters.
 
   The new 2-stage system eliminates sensor dependency:
-    ACTIVE = 80% CPU cap always. On the i5-11300H this means ~2.9GHz on all
-             cores, which is plenty for gaming. The CPU's hardware Turbo Boost
-             still kicks in for short bursts when needed.
-    IDLE   = 20% CPU cap after 5 minutes of <10% CPU usage. This saves power
+    ACTIVE = 85% CPU cap. On the i5-11300H this means ~3.1GHz all-core sustained.
+              Uses BALANCED Intel profile so Turbo Boost activates on demand peaks.
+    IDLE   = 30% CPU cap after 5 minutes of <10% CPU usage. This saves power
              and reduces fan noise when the PC is truly idle.
 
-Why 80% instead of 90%:
-  On the i5-11300H, 80% = ~2.9GHz all-core. 90% = ~3.5GHz all-core.
-  The performance difference is ~3-5%, but the thermal difference is
-  significant: 80% keeps the CPU at ~65-70°C steady state vs 75-82°C at 90%.
-  This means quieter fans and longer sustained performance (no thermal
-  throttling from Intel's PL2 power limit).
+Why 85% instead of 100%:
+  On the i5-11300H, 85% = ~3.1GHz all-core. 100% = ~4.4GHz.
+  The sustained thermal difference is significant: 85% keeps the CPU at
+  ~65-72°C steady state vs 80-90°C at 100%. Uses BALANCED profile with
+  efficient boost — activates only on demand peaks, not constantly.
 
 Target Hardware: Intel Core i5-11300H (Tiger Lake)
 """
@@ -32,8 +30,8 @@ from collections import deque
 
 class SystemMode(Enum):
     """System operation modes — simplified to 2 stages."""
-    ACTIVE = "active"    # 80% CPU — always ready, gaming/work
-    IDLE = "idle"        # 20% CPU — after 5 min of inactivity
+    ACTIVE = "active"    # 85% CPU — always ready, gaming/work
+    IDLE = "idle"        # 30% CPU — after 5 min of inactivity
 
 
 class AutoProfiler:
@@ -41,8 +39,8 @@ class AutoProfiler:
     2-stage auto-profiler that adjusts CPU power based on activity.
 
     Logic:
-      - Default: ACTIVE mode (80% CPU cap)
-      - If CPU < 10% for 5 continuous minutes → IDLE mode (20% CPU cap)
+      - Default: ACTIVE mode (85% CPU cap, BALANCED profile, boost on peaks)
+      - If CPU < 10% for 5 continuous minutes → IDLE mode (30% CPU cap, ECO profile)
       - Any CPU spike > 15% → immediately back to ACTIVE
 
     No temperature sensor dependency. Simple, predictable, reliable.
@@ -58,8 +56,8 @@ class AutoProfiler:
         self.idle_timeout = self.config.get('idle_timeout', 300)     # 5 minutes (300s)
         self.idle_threshold = self.config.get('idle_threshold', 10)  # CPU < 10% = idle
         self.wake_threshold = self.config.get('wake_threshold', 15)  # CPU > 15% = wake up
-        self.active_cpu_cap = self.config.get('active_cpu_cap', 80)  # ACTIVE mode CPU %
-        self.idle_cpu_cap = self.config.get('idle_cpu_cap', 20)      # IDLE mode CPU %
+        self.active_cpu_cap = self.config.get('active_cpu_cap', 85)  # ACTIVE mode CPU %
+        self.idle_cpu_cap = self.config.get('idle_cpu_cap', 30)      # IDLE mode CPU %
 
         # State
         self.current_mode = SystemMode.ACTIVE
@@ -176,24 +174,25 @@ class AutoProfiler:
 
     def _apply_active_mode(self):
         """
-        ACTIVE mode: 80% CPU cap, moderate memory cleaning.
+        ACTIVE mode: 85% CPU cap, moderate memory cleaning.
 
-        Why 80%:
-          On i5-11300H, 80% ≈ 2.9GHz all-core sustained.
+        Why 85%:
+          On i5-11300H, 85% ≈ 3.1GHz all-core sustained.
           Intel Turbo Boost 3.0 still allows single-core spikes to 4.4GHz
-          for burst workloads. The 80% cap only limits the sustained all-core
+          for burst workloads. The 85% cap limits sustained all-core
           power draw, keeping thermals manageable without fan noise.
+          Boost mode is set to 'efficient' — activates only on demand peaks.
         """
         print(f"[AUTO] ⚡ ACTIVE MODE — CPU cap: {self.active_cpu_cap}%")
 
-        # CPU: set to active cap (80%)
+        # CPU: set to active cap (85%)
         if 'cpu_power' in self.services:
             self.services['cpu_power'].set_max_cpu_frequency(self.active_cpu_cap)
 
-        # Intel Power Control: PERFORMANCE profile
+        # Intel Power Control: BALANCED profile (85% max, boost on peaks only)
         try:
             from modules import intel_power_control
-            intel_power_control.apply_performance_mode()
+            intel_power_control.apply_balanced_mode()
         except ImportError:
             pass
 
@@ -204,16 +203,16 @@ class AutoProfiler:
 
     def _apply_idle_mode(self):
         """
-        IDLE mode: 20% CPU cap, relaxed memory cleaning.
+        IDLE mode: 30% CPU cap, relaxed memory cleaning.
 
         Triggered after 5 minutes of continuous <10% CPU usage.
         The system is truly idle — user is AFK, screen saver, etc.
-        We aggressively reduce power to save battery and reduce fan noise.
+        We reduce power to save battery and reduce fan noise.
         Any CPU spike > 15% instantly wakes back to ACTIVE.
         """
         print(f"[AUTO] 🌿 IDLE MODE — CPU cap: {self.idle_cpu_cap}% (energy saving)")
 
-        # CPU: set to idle cap (20%)
+        # CPU: set to idle cap (30%)
         if 'cpu_power' in self.services:
             self.services['cpu_power'].set_max_cpu_frequency(self.idle_cpu_cap)
 

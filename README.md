@@ -79,17 +79,26 @@
 
 ## Quick Start
 
-```bash
-# Run from source (Administrator PowerShell)
+```powershell
+# 1. Clone the repo
+git clone https://github.com/LucassVal/NOVA-PULSE.git
+cd NOVA-PULSE/src
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Run (Administrator PowerShell required)
 python novapulse.py
 
-# Build standalone executable
-pyinstaller novapulse.spec
-# Output: dist/NovaPulse.exe
-
-# Run diagnostics
+# Optional: Run diagnostics first
 python diagnostic.py
+
+# Optional: Build standalone .exe
+pyinstaller novapulse.spec
 ```
+
+> **Note:** Python 3.10+ must be installed. Run PowerShell as Administrator.
+> `pip install -r requirements.txt` installs: `psutil`, `pynvml`, `rich`, `pyyaml`, `wmi`
 
 ---
 
@@ -866,48 +875,50 @@ pyinstaller novapulse.spec
 ### File Structure
 
 ```
-NOVA-PULSE/
-├── novapulse.py              # Main entry point
-├── diagnostic.py             # Health check tool
-├── config.yaml               # All configuration
-├── requirements.txt          # pip dependencies
-├── README.md                 # This file
-├── LICENSE                   # MIT License
+NOVA-PULSE/               ← repo root (clean)
+├── README.md              # This file
+├── LICENSE                # MIT License
 ├── .gitignore
-└── modules/
-    ├── dashboard.py           # Rich console UI
-    ├── optimization_engine.py # Central orchestrator
-    ├── auto_profiler.py       # 2-stage CPU profiler
-    ├── cpu_power.py           # CPU frequency control
-    ├── intel_power_control.py # Intel-specific power
-    ├── advanced_cpu_optimizer.py # Registry-level CPU tweaks
-    ├── core_parking.py        # CPU core parking
-    ├── timer_resolution.py    # Sub-ms timer resolution
-    ├── cuda_optimizer.py      # NVIDIA CUDA/GPU tweaks
-    ├── gpu_scheduler.py       # HAGS + GPU scheduling + DXGI
-    ├── gamebar_optimizer.py   # Xbox/Game Bar disabler
-    ├── memory_optimizer.py    # RAM optimization
-    ├── smart_process_manager.py # Auto priority manager
-    ├── standby_cleaner.py     # Standby RAM cleaner
-    ├── advanced_storage_optimizer.py # Storage tweaks
-    ├── ntfs_optimizer.py      # NTFS filesystem tweaks
-    ├── nvme_manager.py        # NVMe/SSD + TRIM
-    ├── network_qos.py         # DNS + QoS + Nagle
-    ├── network_stack_optimizer.py # TCP/IP stack tweaks
-    ├── process_controller.py  # Process Lasso-style controller
-    ├── game_detector.py       # Game detection + boost
-    ├── security_scanner.py    # Lightweight security scanner
-    ├── telemetry_blocker.py   # Microsoft telemetry blocker
-    ├── defender_hardener.py   # Windows Defender hardening
-    ├── services_optimizer.py  # Disable unnecessary services
-    ├── startup_manager.py     # Task Scheduler auto-start
-    ├── history_logger.py      # CSV operation logs
-    ├── temperature_service.py # Multi-method temp reading
-    ├── hpet_controller.py     # HPET timer control
-    ├── usb_optimizer.py       # USB latency optimizer
-    ├── tray_icon.py           # System tray integration
-    ├── irq_optimizer.py       # IRQ/MSI optimization
-    └── mmcss_optimizer.py     # Multimedia scheduler tweaks
+└── src/                   ← all source code
+    ├── novapulse.py        # Main entry point
+    ├── diagnostic.py       # Health check tool
+    ├── config.yaml         # All configuration
+    ├── requirements.txt    # pip dependencies
+    ├── novapulse.ico       # App icon
+    └── modules/            # 33 optimization modules
+        ├── dashboard.py           # Rich console UI
+        ├── optimization_engine.py # Central orchestrator
+        ├── auto_profiler.py       # 2-stage CPU profiler
+        ├── cpu_power.py           # CPU frequency control
+        ├── intel_power_control.py # Intel-specific power
+        ├── advanced_cpu_optimizer.py # Registry-level CPU tweaks
+        ├── core_parking.py        # CPU core parking
+        ├── timer_resolution.py    # Sub-ms timer resolution
+        ├── cuda_optimizer.py      # NVIDIA CUDA/GPU tweaks
+        ├── gpu_scheduler.py       # HAGS + GPU scheduling + DXGI
+        ├── gamebar_optimizer.py   # Xbox/Game Bar disabler
+        ├── memory_optimizer.py    # RAM optimization
+        ├── smart_process_manager.py # Auto priority manager
+        ├── standby_cleaner.py     # Standby RAM cleaner
+        ├── advanced_storage_optimizer.py # Storage tweaks
+        ├── ntfs_optimizer.py      # NTFS filesystem tweaks
+        ├── nvme_manager.py        # NVMe/SSD + TRIM
+        ├── network_qos.py         # DNS + QoS + Nagle
+        ├── network_stack_optimizer.py # TCP/IP stack tweaks
+        ├── process_controller.py  # Process Lasso-style controller
+        ├── game_detector.py       # Game detection + boost
+        ├── security_scanner.py    # Lightweight security scanner
+        ├── telemetry_blocker.py   # Microsoft telemetry blocker
+        ├── defender_hardener.py   # Windows Defender hardening
+        ├── services_optimizer.py  # Disable unnecessary services
+        ├── startup_manager.py     # Task Scheduler auto-start
+        ├── history_logger.py      # CSV operation logs
+        ├── temperature_service.py # Multi-method temp reading
+        ├── hpet_controller.py     # HPET timer control
+        ├── usb_optimizer.py       # USB latency optimizer
+        ├── tray_icon.py           # System tray integration
+        ├── irq_optimizer.py       # IRQ/MSI optimization
+        └── mmcss_optimizer.py     # Multimedia scheduler tweaks
 ```
 
 ---

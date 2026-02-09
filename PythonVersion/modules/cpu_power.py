@@ -76,18 +76,29 @@ class CPUPowerManager:
             print(f"[WARN] CPU min control: {e}")
             return False
     
-    def start_adaptive_governor(self):
-        """[V2.0] Starts Adaptive Thermal Throttling"""
+    def start_adaptive_governor(self, base_cap=80):
+        """[V2.0] Starts Adaptive Thermal Throttling.
+        
+        Args:
+            base_cap: The auto_profiler's CPU cap (default 80%). 
+                      The thermal governor will NEVER exceed this ceiling.
+                      It only throttles DOWN further during thermal events.
+        
+        Fixed: Previously overrode auto_profiler's 80% cap back to 100% when 
+        temp < 70°C. Now respects the profiler's cap as the maximum ceiling.
+        """
         import threading
         import time
         from modules import temperature_service
+        
+        self._thermal_base_cap = base_cap
         
         # Get singleton instance (reuses WMI connection)
         temp_svc = temperature_service.get_service()
         
         def thermal_loop():
-            print("[CPU] Adaptive Thermal Governor STARTED 🚀")
-            current_limit = 100
+            print(f"[CPU] Adaptive Thermal Governor STARTED 🚀 (ceiling: {base_cap}%)")
+            current_limit = base_cap
             
             while True:
                 try:
@@ -96,21 +107,22 @@ class CPUPowerManager:
                         
                     if temp > 0:
                         new_limit = current_limit
+                        ceiling = self._thermal_base_cap
                         
-                        # LOGIC:
-                        # < 70°C: 100% (Turbo)
-                        # > 80°C: 90%
-                        # > 90°C: 85% (Safe)
+                        # LOGIC (respects auto_profiler cap as ceiling):
+                        # < 70°C: restore to ceiling (auto_profiler cap)
+                        # > 80°C: min(ceiling, 90%) — throttle if needed
+                        # > 90°C: min(ceiling, 70%) — emergency throttle
                         
-                        if temp < 70 and current_limit < 100:
-                            new_limit = 100
-                        elif temp > 90 and current_limit > 85:
-                            new_limit = 85
-                        elif temp > 80 and temp <= 90 and current_limit > 90:
-                            new_limit = 90
+                        if temp < 70 and current_limit < ceiling:
+                            new_limit = ceiling
+                        elif temp > 90 and current_limit > min(ceiling, 70):
+                            new_limit = min(ceiling, 70)
+                        elif temp > 80 and temp <= 90 and current_limit > min(ceiling, 90):
+                            new_limit = min(ceiling, 90)
                             
                         if new_limit != current_limit:
-                            print(f"[CPU] Thermal Event: {temp:.1f}°C -> Adjusting Limit to {new_limit}%")
+                            print(f"[CPU] Thermal Event: {temp:.0f}°C -> Adjusting Limit to {new_limit}%")
                             self.set_max_cpu_frequency(new_limit)
                             current_limit = new_limit
                             

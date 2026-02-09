@@ -304,7 +304,7 @@ def main():
     services['cpu_power'] = CPUPowerManager()
     
     cpu_config = config.get('cpu_control', {})
-    max_freq = cpu_config.get('max_frequency_percent', 85)
+    max_freq = cpu_config.get('max_frequency_percent', 80)
     min_freq = cpu_config.get('min_frequency_percent', 5)
     
     if max_freq != 100:

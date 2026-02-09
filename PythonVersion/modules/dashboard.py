@@ -12,6 +12,9 @@ Design Decisions:
 
 Target Hardware: Intel Core i5-11300H (Tiger Lake)
 """
+import os
+import io
+import sys
 import psutil
 import time
 import threading
@@ -69,12 +72,13 @@ class Dashboard:
             'cpu_percent': 0,
             'cpu_temp': 0,
             'cpu_freq': 0,
-            'cpu_limit': 85,
+            'cpu_limit': 80,
             'gpu_nvidia_name': '',
             'gpu_nvidia_percent': 0,
             'gpu_nvidia_temp': 0,
             'gpu_nvidia_mem_used': 0,
             'gpu_nvidia_mem_total': 0,
+            'gpu_nvidia_clock_mhz': 0,
             'gpu_nvidia_power_limit': 0,  # Power limit aplicado
             'gpu_intel_name': '',
             'ram_used': 0,
@@ -292,9 +296,22 @@ class Dashboard:
             # Limpa o nome redundante (remove 'NVIDIA ' se já tiver no inicio)
             gpu_name = self.stats['gpu_nvidia_name'].replace("NVIDIA ", "")
             
+            # GPU Clock speed
+            clock_mhz = self.stats.get('gpu_nvidia_clock_mhz', 0)
+            clock_str = f"{clock_mhz} MHz" if clock_mhz > 0 else "N/A"
+            clock_ghz = clock_mhz / 1000 if clock_mhz > 0 else 0
+            clk_color = "green" if clock_ghz > 1.5 else "yellow" if clock_ghz > 1.0 else "cyan"
+            
+            # VRAM usage
+            vram_used = self.stats['gpu_nvidia_mem_used']
+            vram_total = self.stats.get('gpu_nvidia_mem_total', 0)
+            vram_pct = (vram_used / vram_total * 100) if vram_total > 0 else 0
+            vram_color = "green" if vram_pct < 60 else "yellow" if vram_pct < 85 else "red"
+            
             table.add_row(f"[cyan]NVIDIA[/cyan] {gpu_name[:20]}", "")
             table.add_row(f"  Load: [{gpu_color}]{usage:3.0f}%{usage_desc}[/{gpu_color}]", f"Temp: [{gpu_color}]{temp:.0f}°C[/]")
-            table.add_row(f"  VRAM: {self.stats['gpu_nvidia_mem_used']:.0f} MB", f"Limit: {self.stats['gpu_nvidia_power_limit']}%")
+            table.add_row(f"  Clock: [{clk_color}]{clock_str}[/{clk_color}]", f"Limit: {self.stats['gpu_nvidia_power_limit']}%")
+            table.add_row(f"  VRAM: [{vram_color}]{vram_used:.0f}/{vram_total:.0f} MB ({vram_pct:.0f}%)[/{vram_color}]", "")
         
         # 2. Intel (Integrated)
         if intel_active:
@@ -339,9 +356,9 @@ class Dashboard:
             # Thermal throttle status
             gpu_temp = self.stats.get('gpu_nvidia_temp', 0)
             if gpu_temp >= 83:
-                table.add_row("  Thermal", f"[red]⚠️ THROTTLE ({gpu_temp}°C)[/red]")
+                table.add_row("  Thermal", f"[red]⚠️ THROTTLE ({gpu_temp:.0f}°C)[/red]")
             else:
-                table.add_row("  Thermal", f"[green]✓[/green] OK ({gpu_temp}°C)")
+                table.add_row("  Thermal", f"[green]✓[/green] OK ({gpu_temp:.0f}°C)")
             table.add_row("", "")
         
         # Optimizations Status
@@ -356,7 +373,7 @@ class Dashboard:
         # CPU Thermal Status
         cpu_temp = self.stats.get('cpu_temp', 0)
         if cpu_temp >= 85:
-            table.add_row("  CPU Thermal", f"[red]⚠️ THROTTLE ({cpu_temp}°C)[/red]")
+            table.add_row("  CPU Thermal", f"[red]⚠️ THROTTLE ({cpu_temp:.0f}°C)[/red]")
         else:
             table.add_row("  CPU Thermal", f"[green]✓[/green] OK")
         
@@ -549,6 +566,12 @@ class Dashboard:
                 mem_info = pynvml.nvmlDeviceGetMemoryInfo(self.nvidia_handle)
                 self.stats['gpu_nvidia_mem_used'] = mem_info.used / 1024 / 1024
                 self.stats['gpu_nvidia_mem_total'] = mem_info.total / 1024 / 1024
+                # GPU Clock speed (current graphics clock in MHz)
+                try:
+                    clock = pynvml.nvmlDeviceGetClockInfo(self.nvidia_handle, pynvml.NVML_CLOCK_GRAPHICS)
+                    self.stats['gpu_nvidia_clock_mhz'] = clock
+                except:
+                    pass
             except:
                 pass
         
@@ -588,6 +611,8 @@ class Dashboard:
             profiler = services['auto_profiler']
             self.stats['auto_mode'] = profiler.get_current_mode().value.upper()
             self.stats['auto_avg_cpu'] = profiler.get_avg_cpu()
+            # Read actual CPU cap from profiler config
+            self.stats['cpu_limit'] = profiler.active_cpu_cap
         
         # Ping (from background thread, never blocks)
         self.stats['ping_ms'] = self._ping_ms
@@ -685,19 +710,25 @@ class Dashboard:
         """Run the dashboard loop with Rich Live for zero-flicker rendering.
         
         Fix for UI breaking:
-          - refresh_per_second=4 (Rich handles internal throttling properly)
+          - screen=True: uses alternate screen buffer (isolates from stray prints)
+          - refresh_per_second=2: reduced to prevent excessive redraws
           - Ping runs in background thread (no subprocess blocking)
           - Process priorities cached every 30s
           - All panels wrapped in try/except
-          - transient=False keeps display stable
+          - stdout redirected to prevent background module prints from corrupting Live
         """
         self.running = True
         
         # Start background ping thread
         self._start_ping_thread()
         
-        # Rich Live with proper settings for stable rendering
-        with Live(self.layout, refresh_per_second=4, console=self.console, transient=False) as live:
+        # Redirect stdout to suppress background prints from other modules
+        # (SmartProcessManager, AutoProfiler, GameDetector etc.)
+        self._original_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        
+        # Rich Live with screen=True for alternate buffer (no flickering)
+        with Live(self.layout, refresh_per_second=2, console=self.console, screen=True) as live:
             try:
                 while self.running:
                     # Update all stats
@@ -721,6 +752,8 @@ class Dashboard:
                 self.running = False
             finally:
                 self._ping_running = False
+                # Restore stdout
+                sys.stdout = self._original_stdout
 
 
 if __name__ == "__main__":

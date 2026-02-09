@@ -128,17 +128,19 @@ class GameModeDetector:
         self._restore_normal()
     
     def _apply_game_boost(self):
-        """Aplica otimizações para gaming"""
+        """Aplica otimizações para gaming.
+        
+        Note: CPU frequency is NOT overridden to 100% here.
+        The auto_profiler's 80% cap already allows Intel Turbo Boost 3.0
+        to spike single-core to 4.4GHz for burst workloads.
+        Removing the 100% override prevents thermal throttling.
+        """
         try:
-            # 1. CPU: Maximiza frequência
-            if 'cpu_power' in self.services:
-                self.services['cpu_power'].set_max_cpu_frequency(100)
-            
-            # 2. Força limpeza de RAM
+            # 1. Força limpeza de RAM para liberar memória ao jogo
             if 'cleaner' in self.services:
                 self.services['cleaner'].clean_standby_memory()
             
-            # 3. Aumenta prioridade do jogo (handled by SmartProcessManager)
+            # 2. Aumenta prioridade do jogo (handled by SmartProcessManager)
             
             print("[GAME] ⚡ GAME MODE ATIVADO - Performance máxima!")
             

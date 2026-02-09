@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════
-#                        ⚡ NOVAPULSE 2.0 ⚡
+#                        ⚡ NOVAPULSE 2.2.1 ⚡
 #                Intelligent System Optimization
 #                    Advanced Hardware Control
 # ═══════════════════════════════════════════════════════════════════════
@@ -11,7 +11,7 @@ optimization_level: gaming
 # === Limpeza de Memória Standby ===
 standby_cleaner:
   enabled: true
-  threshold_mb: 4096            # Limpa quando tiver MENOS de 4GB livre
+  threshold_mb: 3072            # Limpa quando tiver MENOS de 3GB livre
   check_interval_seconds: 5
 
 # === Otimização de NVMe/SSD ===
@@ -24,24 +24,19 @@ nvme:
 
 # === Controle de CPU ===
 cpu_control:
-  max_frequency_percent: 85     # Auto-Profiler ajusta dinamicamente
+  max_frequency_percent: 80     # Auto-Profiler ajusta dinamicamente
   min_frequency_percent: 5
 
-# === AUTO-PROFILER (Núcleo do NovaPulse) ===
-# Totalmente automatizado - reações rápidas
+# === AUTO-PROFILER v2.2 (2 Stages) ===
+# ACTIVE: 80% CPU cap (always on, ~2.9GHz on i5-11300H)
+# IDLE: 20% CPU cap (after 5 min of inactivity)
 auto_profiler:
   enabled: true
-  check_interval: 1             # Verifica a cada 1 segundo (mais rápido)
-  boost_threshold: 85
-  eco_threshold: 30
-  boost_hold_time: 2            # 2 segundos para ativar BOOST (mais rápido)
-  eco_hold_time: 3              # 3 segundos para ECO
-  eco_progressive: true
-  min_cpu_percent: 10
-  # Thermal Throttle - proteção automática
-  thermal_throttle_enabled: true
-  thermal_threshold: 85           # Se CPU >= 85°C
-  thermal_throttle_percent: 80   # Reduz para 80%
+  check_interval: 2             # Verifica a cada 2 segundos
+  active_cpu_cap: 80            # ACTIVE mode: 80% CPU
+  idle_cpu_cap: 20              # IDLE mode: 20% CPU
+  idle_timeout: 300             # 5 minutos para entrar em IDLE
+  wake_threshold: 15            # CPU >15% = volta para ACTIVE
 
 # === Network QoS (Ping Booster) ===
 network_qos:

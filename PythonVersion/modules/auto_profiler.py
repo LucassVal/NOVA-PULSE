@@ -71,12 +71,6 @@ class AutoProfiler:
         self.services = {}
         self.on_mode_change_callbacks = []
 
-        # Compatibility aliases (dashboard reads these)
-        self.boost_threshold = 85
-        self.eco_threshold = 10
-        self.boost_hold_time = 5
-        self.eco_hold_time = self.idle_timeout
-
     def set_services(self, services: dict):
         """Set reference to optimizer services."""
         self.services = services

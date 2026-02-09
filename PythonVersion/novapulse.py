@@ -2,7 +2,7 @@
 """
 ╔═══════════════════════════════════════════════════════════════════════╗
 ║                                                                       ║
-║                    ⚡ NOVAPULSE 2.0 ⚡                                 ║
+║                    ⚡ NOVAPULSE 2.2 ⚡                                 ║
 ║              Intelligent System Optimization                          ║
 ║                 Advanced Hardware Control                             ║
 ║                                                                       ║
@@ -108,20 +108,20 @@ def get_default_config():
     return {
         'standby_cleaner': {
             'enabled': True,
-            'threshold_mb': 4096,
+            'threshold_mb': 3072,
             'check_interval_seconds': 5
         },
         'cpu_control': {
-            'max_frequency_percent': 85,
+            'max_frequency_percent': 80,
             'min_frequency_percent': 5
         },
         'auto_profiler': {
             'enabled': True,
             'check_interval': 2,
-            'boost_threshold': 85,
-            'eco_threshold': 30,
-            'boost_hold_time': 2,
-            'eco_hold_time': 5
+            'active_cpu_cap': 80,
+            'idle_cpu_cap': 20,
+            'idle_timeout': 300,
+            'wake_threshold': 15
         },
         'network_qos': {
             'enabled': True,
@@ -184,7 +184,8 @@ def run_startup_diagnostic():
     results.append("🔧 MÓDULOS NOVAPULSE")
     results.append("-" * 40)
     modules = ['auto_profiler', 'standby_cleaner', 'cpu_power', 'smart_process_manager',
-               'dashboard', 'tray_icon', 'game_detector', 'network_qos', 'timer_resolution']
+               'dashboard', 'tray_icon', 'game_detector', 'network_qos', 'timer_resolution',
+               'telemetry_blocker', 'security_scanner', 'defender_hardener', 'startup_manager']
     for m in modules:
         results.append(check(m, lambda mod=m: __import__(f'modules.{mod}', fromlist=[mod]) is not None))
     results.append("")

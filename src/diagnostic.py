@@ -81,7 +81,7 @@ def run_diagnostics():
         ("smart_process_manager", "Smart Process Manager"),
         ("dashboard", "Dashboard Visual"),
         ("tray_icon", "System Tray Icon"),
-        ("game_detector", "Game Mode Detector"),
+
         ("network_qos", "Network QoS Manager"),
         ("timer_resolution", "Timer Resolution"),
         ("services_optimizer", "Windows Services Optimizer"),

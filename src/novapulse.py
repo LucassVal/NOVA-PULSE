@@ -29,7 +29,6 @@ from modules.dashboard import Dashboard
 from modules.nvme_manager import NVMeManager
 
 # Detection Modules
-from modules.game_detector import GameModeDetector
 from modules.temperature_service import get_service as get_temp_service
 
 # Optimizer Modules
@@ -122,9 +121,7 @@ def get_default_config():
             'enabled': True,
             'dns_provider': 'adguard'
         },
-        'game_detector': {
-            'enabled': True
-        },
+
         'nvme': {
             'enabled': True
         }
@@ -179,7 +176,7 @@ def run_startup_diagnostic():
     results.append("🔧 MÓDULOS NOVAPULSE")
     results.append("-" * 40)
     modules = ['auto_profiler', 'standby_cleaner', 'cpu_power', 'smart_process_manager',
-               'dashboard', 'tray_icon', 'game_detector', 'network_qos', 'timer_resolution',
+               'dashboard', 'tray_icon', 'network_qos', 'timer_resolution',
                'telemetry_blocker', 'security_scanner', 'defender_hardener', 'startup_manager']
     for m in modules:
         results.append(check(m, lambda mod=m: __import__(f'modules.{mod}', fromlist=[mod]) is not None))
@@ -336,13 +333,6 @@ def main():
         if qos_mgr.apply_qos_rules():
             services['network_qos'] = qos_mgr
     
-    # === GAME MODE DETECTOR ===
-    game_config = config.get('game_detector', {'enabled': True})
-    if game_config.get('enabled', True):
-        game_detector = GameModeDetector(optimizer_services=services, config=game_config)
-        game_detector.start()
-        services['game_detector'] = game_detector
-        print(f"{Fore.GREEN}✓ Game Mode Detector ativado{Style.RESET_ALL}")
     
     # === HISTORY LOGGER ===
     history = get_history_logger()
@@ -462,8 +452,7 @@ def stop_all_services(services):
         services['smart_priority'].stop()
     if 'auto_profiler' in services:
         services['auto_profiler'].stop()
-    if 'game_detector' in services:
-        services['game_detector'].stop()
+
     if 'security_scanner' in services:
         services['security_scanner'].stop()
     if 'tray' in services:

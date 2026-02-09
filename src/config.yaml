@@ -117,10 +117,8 @@ process_controller:
   apply_gaming_preset: true
   throttle_background: true
   
-# === Game Mode Detector ===
-game_detector:
-  enabled: true
-  extra_game_exes: []
+
+
 
 # === Priorização Automática ===
 auto_low_priority_apps:

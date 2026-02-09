@@ -389,13 +389,7 @@ class Dashboard:
         mode_color = mode_colors.get(auto_mode, 'cyan')
         table.add_row(f"  {mode_icon} Auto Mode", f"[{mode_color}]{auto_mode}[/{mode_color}] (CPU: {avg_cpu:.0f}%)")
         
-        # Game Mode Status
-        game_active = self.stats.get('game_active', False)
-        game_name = self.stats.get('game_name', '')
-        if game_active:
-            table.add_row("  🎮 Game Mode", f"[green]●[/green] {game_name[:15]}")
-        else:
-            table.add_row("  🎮 Game Mode", "[dim]○ Waiting[/dim]")
+
         
         # Network QoS
         table.add_row("  📡 Network QoS", "[green]●[/green] Active")
@@ -601,10 +595,7 @@ class Dashboard:
         self.stats['priority_high'] = self._cached_priority_high
         self.stats['priority_low'] = self._cached_priority_low
         
-        # Game Detector
-        if 'game_detector' in services:
-            self.stats['game_active'] = services['game_detector'].is_game_active()
-            self.stats['game_name'] = services['game_detector'].get_current_game() or ''
+
         
         # Auto-Profiler
         if 'auto_profiler' in services:
@@ -723,7 +714,7 @@ class Dashboard:
         self._start_ping_thread()
         
         # Redirect stdout to suppress background prints from other modules
-        # (SmartProcessManager, AutoProfiler, GameDetector etc.)
+        # (SmartProcessManager, AutoProfiler etc.)
         self._original_stdout = sys.stdout
         sys.stdout = io.StringIO()
         

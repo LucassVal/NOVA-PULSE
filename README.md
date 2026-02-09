@@ -596,25 +596,6 @@ pyinstaller novapulse.spec
 
 ---
 
-#### `modules/game_detector.py` — Game Mode Detector
-
-| Detail  | Value              |
-| ------- | ------------------ |
-| Lines   | ~178               |
-| Class   | `GameModeDetector` |
-| Pattern | Background thread  |
-
-**Known Games Database:** ~50 game executables (Valorant, CS2, LoL, Fortnite, etc.)
-
-**When Game Detected:**
-
-1. Triggers RAM cleanup
-2. Boosts game process priority to HIGH
-3. ~~Overrides CPU to 100%~~ (removed — 80% cap is sufficient with Turbo Boost)
-4. Configurable via `game_detector.extra_game_exes` in config
-
----
-
 ### Security & Privacy
 
 #### `modules/security_scanner.py` — Security Scanner

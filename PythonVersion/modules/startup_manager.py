@@ -136,14 +136,16 @@ class StartupManager:
         """Fallback registration using PowerShell."""
         try:
             if self.script_path.endswith('.exe'):
-                arg = ""
                 exe = self.script_path
+                # No -Argument needed for .exe (PowerShell rejects empty string)
+                action_line = f"$action = New-ScheduledTaskAction -Execute '\"{exe}\"' -WorkingDirectory '\"{working_dir}\"'"
             else:
                 exe = sys.executable
                 arg = f'"{self.script_path}"'
+                action_line = f"$action = New-ScheduledTaskAction -Execute '\"{exe}\"' -Argument '{arg}' -WorkingDirectory '\"{working_dir}\"'"
 
             ps_cmd = f'''
-$action = New-ScheduledTaskAction -Execute '"{exe}"' -Argument '{arg}' -WorkingDirectory '"{working_dir}"'
+{action_line}
 $trigger = New-ScheduledTaskTrigger -AtStartup
 $trigger.Delay = 'PT30S'
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable

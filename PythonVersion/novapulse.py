@@ -50,7 +50,7 @@ try:
 except ImportError:
     OPTIMIZATION_ENGINE_AVAILABLE = False
 
-# NovaPulse 2.2 - Security & Privacy
+# NovaPulse 2.2.1 - Security & Privacy
 try:
     from modules.telemetry_blocker import get_blocker
     from modules.security_scanner import get_scanner
@@ -366,10 +366,10 @@ def main():
     services_opt.optimize()
     services['services_opt'] = services_opt
 
-    # === NOVAPULSE 2.2: SECURITY & PRIVACY ===
+    # === NOVAPULSE 2.2.1: SECURITY & PRIVACY ===
     if SECURITY_AVAILABLE:
         print(f"\n{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
-        print(f"{Fore.MAGENTA}🛡️ NovaPulse 2.2 - Security & Privacy Shield{Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA}🛡️ NovaPulse 2.2.1 - Security & Privacy Shield{Style.RESET_ALL}")
         print(f"{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}\n")
         
         # Telemetry Blocker (blocks Microsoft data collection)

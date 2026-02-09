@@ -145,7 +145,7 @@ class Dashboard:
             shield_emoji, shield_color, shield_label = shield
             
             header_text = (
-                f"[bold cyan]⚡ NOVAPULSE 2.2[/bold cyan] | {current_time} | "
+                f"[bold cyan]⚡ NOVAPULSE 2.2.1[/bold cyan] | {current_time} | "
                 f"[{mode_color}]{mode_text}[/{mode_color}] | "
                 f"[{shield_color}]{shield_emoji} {shield_label}[/{shield_color}]"
             )
@@ -154,7 +154,7 @@ class Dashboard:
                 border_style="bold blue"
             )
         except Exception:
-            return Panel(Align.center("[bold cyan]⚡ NOVAPULSE 2.2[/bold cyan]"), border_style="blue")
+            return Panel(Align.center("[bold cyan]⚡ NOVAPULSE 2.2.1[/bold cyan]"), border_style="blue")
     
     def make_cpu_gpu_panel(self):
         """CPU and GPU Panel"""

@@ -242,19 +242,22 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                           |
 | ------- | ------------------------------- |
-| Lines   | 263                             |
+| Lines   | 244                             |
 | Class   | `AdvancedCPUOptimizer`          |
 | Pattern | Singleton via `get_optimizer()` |
 
 **Optimizations Applied:**
-| Tweak | Registry/Command | Impact |
-|-------|-----------------|--------|
-| Disable C-States | Registry `Attributes` | Prevents CPU sleep states, less latency |
-| Force Turbo Boost | `powercfg /setacvalueindex` | Always-on burst frequency |
-| Large System Cache | Registry `LargeSystemCache` | Prioritize apps over file cache |
-| Optimize Scheduling | Registry `SystemResponsiveness` | 0 = max priority for foreground |
-| Disable Power Throttling | Registry `PowerThrottlingOff` | No background throttle |
-| CPU Priority Separation | Registry `Win32PrioritySeparation` | 38 = Foreground boost |
+
+| Tweak                    | Registry/Command                      | Impact                                       |
+| ------------------------ | ------------------------------------- | -------------------------------------------- |
+| Disable C-States         | Registry `Attributes`                 | Prevents CPU sleep states, less latency      |
+| Force Turbo Boost        | `powercfg /setacvalueindex`           | Always-on burst frequency                    |
+| Large System Cache       | Registry `LargeSystemCache`           | Prioritize apps over file cache              |
+| Optimize Scheduling      | Registry `SystemResponsiveness=0`     | Max priority for foreground                  |
+| Disable Power Throttling | Registry `PowerThrottlingOff=1`       | No background throttle                       |
+| CPU Priority Separation  | Registry `Win32PrioritySeparation=38` | Foreground boost                             |
+| Interrupt Affinity       | Registry MSI mode                     | Better IRQ distribution across cores         |
+| SvcHost Splitting        | Registry `SvcHostSplitThresholdInKB`  | Separates services into individual processes |
 
 ---
 
@@ -279,12 +282,12 @@ pyinstaller novapulse.spec
 
 **Profile Presets:**
 
-| Profile     | Min% | Max% | Boost              | Cooling |
-| ----------- | ---- | ---- | ------------------ | ------- |
-| ECO         | 5    | 50   | 0 (off)            | Passive |
-| BALANCED    | 5    | 80   | 3 (efficient)      | Active  |
-| PERFORMANCE | 30   | 100  | 2 (aggressive)     | Active  |
-| TURBO       | 50   | 100  | 4 (eff-aggressive) | Active  |
+| Profile     | Min% | Max% | Boost          | Cooling |
+| ----------- | ---- | ---- | -------------- | ------- |
+| ECO         | 5    | 50   | 0 (off)        | Passive |
+| BALANCED    | 5    | 85   | 3 (efficient)  | Active  |
+| PERFORMANCE | 50   | 100  | 2 (aggressive) | Active  |
+| TURBO       | 100  | 100  | 2 (aggressive) | Active  |
 
 ---
 

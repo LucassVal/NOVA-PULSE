@@ -185,7 +185,7 @@ pyinstaller novapulse.spec
 
 | Detail  | Value                                  |
 | ------- | -------------------------------------- |
-| Lines   | ~147                                   |
+| Lines   | ~159                                   |
 | Class   | `CPUPowerManager`                      |
 | Pattern | Singleton via `get_manager()`          |
 | Backend | `powercfg.exe` (Windows Power Options) |
@@ -951,7 +951,7 @@ NOVA-PULSE/               ← repo root (clean)
     ├── config.yaml         # All configuration
     ├── requirements.txt    # pip dependencies
     ├── novapulse.ico       # App icon
-    └── modules/            # 33 optimization modules
+    └── modules/            # 32 optimization modules
         ├── dashboard.py           # Rich console UI
         ├── optimization_engine.py # Central orchestrator
         ├── auto_profiler.py       # 2-stage CPU profiler
@@ -972,7 +972,7 @@ NOVA-PULSE/               ← repo root (clean)
         ├── network_qos.py         # DNS + QoS + Nagle
         ├── network_stack_optimizer.py # TCP/IP stack tweaks
         ├── process_controller.py  # Process Lasso-style controller
-        ├── game_detector.py       # Game detection + boost
+
         ├── security_scanner.py    # Lightweight security scanner
         ├── telemetry_blocker.py   # Microsoft telemetry blocker
         ├── defender_hardener.py   # Windows Defender hardening

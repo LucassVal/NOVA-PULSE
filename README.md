@@ -435,6 +435,32 @@ pyinstaller novapulse.spec
 
 ---
 
+#### `modules/standby_cleaner.py` — Standby Memory Cleaner (ISLC-style)
+
+| Detail  | Value                                               |
+| ------- | --------------------------------------------------- |
+| Lines   | 231                                                 |
+| Class   | `StandbyMemoryCleaner`                              |
+| Backend | `ntdll.NtSetSystemInformation` (direct kernel call) |
+| Pattern | Background thread with cooldown                     |
+
+**How it works:**
+
+- Monitors free RAM every 10s
+- When free RAM < `threshold_mb` (default 3072MB), purges Windows Standby List
+- Minimum 30s between cleans (prevents thrashing)
+- Requires `SeProfileSingleProcessPrivilege` (auto-enabled)
+
+**Key Methods:**
+| Method | Description |
+|--------|-------------|
+| `start()` | Begin automatic monitoring loop |
+| `stop()` | Stop monitoring |
+| `clean_standby_memory()` | Manual purge, returns MB freed |
+| `get_memory_info()` | Returns dict with current RAM state for dashboard |
+
+---
+
 ### Storage
 
 #### `modules/advanced_storage_optimizer.py` — Advanced Storage Optimizer
@@ -800,6 +826,65 @@ pyinstaller novapulse.spec
 | Games task | Priority=8, Background=false, Clock=10000 | Gaming-optimized scheduling |
 | Audio task | Priority=6, Background=false | Low-latency audio |
 | Pro Audio task | Priority=1, Background=false | DAW/music production |
+
+---
+
+#### `modules/hpet_controller.py` — HPET Timer Controller
+
+| Detail  | Value                               |
+| ------- | ----------------------------------- |
+| Lines   | 316                                 |
+| Class   | `HPETController`                    |
+| Backend | `bcdedit` (Boot Configuration Data) |
+
+**Timer Optimizations:**
+| Method | Impact |
+|--------|--------|
+| `disable_hpet()` | Reduces input lag (HPET adds latency on some systems) |
+| `disable_dynamic_tick()` | Forces constant tick — lower latency, more power |
+| `set_tscsyncpolicy("enhanced")` | Better TSC precision for gaming |
+| `disable_synthetic_timers()` | Removes Hyper-V timer overhead |
+| `optimize_boot_options()` | Boot-level timing tweaks |
+| `benchmark_latency()` | Measures timer latency in microseconds |
+| `restore_defaults()` | Reverts all BCD timer changes |
+
+---
+
+#### `modules/usb_optimizer.py` — USB Polling Optimizer
+
+| Detail  | Value                 |
+| ------- | --------------------- |
+| Lines   | 266                   |
+| Class   | `USBPollingOptimizer` |
+| Backend | Registry, `powercfg`  |
+
+**Optimizations:**
+| Method | Impact |
+|--------|--------|
+| `set_mouse_polling_rate(1000)` | 1ms polling (from default 8ms/125Hz) |
+| `set_keyboard_polling_rate()` | Optimized keyboard repeat/delay |
+| `disable_usb_selective_suspend()` | Prevents USB port sleep |
+| `disable_usb_power_management()` | Disables power saving for all USB hubs |
+| `optimize_usb_latency()` | General USB latency tweaks |
+| `enable_msi_mode_for_usb()` | MSI interrupts for USB controllers |
+
+---
+
+#### `modules/tray_icon.py` — System Tray Integration
+
+| Detail  | Value                                     |
+| ------- | ----------------------------------------- |
+| Lines   | 305                                       |
+| Class   | `SystemTrayIcon`                          |
+| Backend | `pystray`, `pillow`, Windows API (ctypes) |
+
+**Features:**
+
+- Minimize-to-tray (auto-hides console when minimized)
+- Context menu: Show/Hide, Force Clean RAM, Force Mode, Quit
+- Mini-dashboard in tooltip (CPU%, RAM%, GPU%, mode)
+- Color-coded icon by mode (green=normal, orange=gaming)
+- Auto-updates tooltip every 2s
 
 ---
 

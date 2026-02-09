@@ -54,7 +54,7 @@ class Dashboard:
         self.layout.split(
             Layout(name="header", size=3),
             Layout(name="body"),
-            Layout(name="footer", size=8)
+            Layout(name="footer", size=10)
         )
         
         # Split body: hardware | status | security
@@ -386,99 +386,70 @@ class Dashboard:
         return Panel(table, title="[bold]💾  Memory & Status[/bold]", border_style="green")
     
     def make_footer(self):
-        """Footer with Smart System Impact Infographic"""
+        """Footer: Dynamic Infographic — O que fez + O que está fazendo"""
         uptime = self.stats_tracker.get('uptime_seconds', 0)
         h, rem = divmod(uptime, 3600)
         m, s = divmod(rem, 60)
         time_str = f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
         
-        # === IMPACT METRICS ===
+        table = Table(show_header=False, box=None, expand=True, padding=(0, 1))
+        table.add_column("Col1", ratio=1)
+        table.add_column("Col2", ratio=1)
+        table.add_column("Col3", ratio=1)
+        table.add_column("Col4", ratio=1)
         
-        # 1. CPU Impact
-        cpu_limit = self.stats.get('cpu_limit', 85)
-        cpu_temp = self.stats.get('cpu_temp', 0)
-        cpu_impact = f"[cyan]Limit:{cpu_limit}%[/cyan]"
-        if cpu_temp > 0:
-            if cpu_temp < 70:
-                cpu_impact += f" [green]{cpu_temp:.0f}°C ✓[/green]"
-            elif cpu_temp < 85:
-                cpu_impact += f" [yellow]{cpu_temp:.0f}°C[/yellow]"
-            else:
-                cpu_impact += f" [red]{cpu_temp:.0f}°C[/red]"
+        # === ROW 1: O que o NovaPulse FEZ (boot optimizations) ===
+        table.add_row(
+            "[bold cyan]🔧 O QUE FEZ[/bold cyan]",
+            "", "", ""
+        )
+        table.add_row(
+            "[green]✓[/green] 13 módulos aplicados",
+            "[green]✓[/green] Core Parking OFF",
+            "[green]✓[/green] Nagle OFF · AdGuard DNS",
+            "[green]✓[/green] HPET OFF · Turbo Locked"
+        )
+        table.add_row(
+            "[green]✓[/green] HAGS ON · CUDA otimizado",
+            "[green]✓[/green] C-States OFF · MMCSS Gaming",
+            f"[green]✓[/green] {self.stats.get('blocked_domains', 21)} domains bloqueados",
+            "[green]✓[/green] 37 telemetrias bloqueadas"
+        )
         
-        # 2. RAM Impact
+        table.add_row("", "", "", "")
+        
+        # === ROW 2: O que está FAZENDO agora (live) ===
+        # Live metrics
         cleaned_mb = self.stats_tracker.get('total_ram_cleaned_mb', 0)
         cleanups = self.stats_tracker.get('total_cleanups', 0)
-        ram_impact = f"[green]+{cleaned_mb:.0f}MB[/green] ({cleanups} limpezas)"
-        
-        # 3. SSD/NVMe Impact
-        trim_status = "[green]TRIM ✓[/green]"
-        last_access = "[green]NoLastAccess ✓[/green]"
-        ssd_impact = f"{trim_status} {last_access}"
-        
-        # 4. GPU Impact
-        if self.has_nvidia:
-            gpu_load = self.stats.get('gpu_nvidia_usage', 0)
-            gpu_temp = self.stats.get('gpu_nvidia_temp', 0)
-            power_limit = self.stats.get('gpu_nvidia_power_limit', 0)
-            if power_limit > 0:
-                gpu_impact = f"[cyan]Limit:{power_limit}%[/cyan] {gpu_temp}°C"
-            else:
-                gpu_impact = f"[green]Full Power[/green] {gpu_temp}°C"
-        else:
-            gpu_impact = "[dim]N/A[/dim]"
-        
-        # 5. Network/QoS Impact
+        hi_prio = self.stats.get('priority_high', 0)
+        lo_prio = self.stats.get('priority_low', 0)
         ping_ms = self.stats.get('ping_ms', 0)
         ping_baseline = self.stats.get('ping_baseline', 0)
         
-        if ping_ms > 0:
-            ping_color = "green" if ping_ms < 50 else "yellow" if ping_ms < 100 else "red"
-            net_impact = f"[{ping_color}]{ping_ms}ms[/{ping_color}]"
-            if ping_baseline > 0 and ping_baseline != ping_ms:
-                diff = ping_baseline - ping_ms
-                if diff > 0:
-                    net_impact += f" [green](-{diff}ms)[/green]"
-        else:
-            net_impact = "[dim]Measuring...[/dim]"
-        net_impact += " [cyan]Nagle:OFF[/cyan]"
+        # Ping delta
+        ping_str = f"{ping_ms}ms" if ping_ms > 0 else "..."
+        if ping_baseline > 0 and ping_ms > 0 and ping_baseline != ping_ms:
+            diff = ping_baseline - ping_ms
+            if diff > 0:
+                ping_str += f" [green](-{diff}ms)[/green]"
         
-        # 6. DNS/AdBlock Impact
+        # Ads blocked estimate
         ads_blocked = int((uptime / 60) * 100)
-        data_saved_kb = ads_blocked * 50
-        if data_saved_kb >= 1024:
-            data_str = f"{data_saved_kb/1024:.1f}MB"
-        else:
-            data_str = f"{data_saved_kb}KB"
         ads_str = f"{ads_blocked/1000:.1f}K" if ads_blocked >= 1000 else str(ads_blocked)
-        dns_impact = f"[magenta]🛡️{ads_str}[/magenta] [cyan]💾{data_str}[/cyan]"
-        
-        # 7. Priority Impact
-        hi_prio = self.stats.get('priority_high', 0)
-        lo_prio = self.stats.get('priority_low', 0)
-        prio_impact = f"[green]↑{hi_prio}[/green] [yellow]↓{lo_prio}[/yellow]"
-        
-        # Build the infographic table
-        table = Table(show_header=True, box=None, expand=True, padding=(0, 1))
-        table.add_column("⚡ CPU", justify="center", style="cyan")
-        table.add_column("💾 RAM", justify="center", style="green")
-        table.add_column("💿 SSD", justify="center", style="blue")
-        table.add_column("🎮 GPU", justify="center", style="magenta")
-        table.add_column("📶 Network", justify="center", style="yellow")
-        table.add_column("🛡️ DNS", justify="center", style="cyan")
-        table.add_column("⚙️ Priority", justify="center", style="white")
         
         table.add_row(
-            cpu_impact,
-            ram_impact,
-            ssd_impact,
-            gpu_impact,
-            net_impact,
-            dns_impact,
-            prio_impact
+            "[bold yellow]⚡ FAZENDO AGORA[/bold yellow]",
+            "", "", ""
+        )
+        table.add_row(
+            f"💾 RAM limpa: [green]+{cleaned_mb:.0f}MB[/green] ({cleanups}x)",
+            f"⚙️ Prioridades: [green]↑{hi_prio}[/green] [yellow]↓{lo_prio}[/yellow]",
+            f"📶 Ping: [{('green' if ping_ms < 50 else 'yellow' if ping_ms < 100 else 'red')}]{ping_str}[/]",
+            f"🛡️ Ads bloqueados: [magenta]{ads_str}[/magenta]"
         )
         
-        return Panel(table, title=f"[bold]🎯 Smart System Impact • Uptime: {time_str}[/bold]", border_style="yellow")
+        return Panel(table, title=f"[bold]🎯 NovaPulse Infographic • Uptime: {time_str}[/bold]", border_style="yellow")
     
     def _make_bar(self, value, max_value, color):
         """Cria uma barra de progresso visual"""

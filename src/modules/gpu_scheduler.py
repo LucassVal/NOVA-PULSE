@@ -1,6 +1,6 @@
 """
 NovaPulse - GPU Scheduler Controller
-Controla Hardware-Accelerated GPU Scheduling e outras opções de GPU
+Controls Hardware-Accelerated GPU Scheduling and other GPU options
 """
 import winreg
 import ctypes
@@ -10,8 +10,8 @@ from typing import Dict, Optional, Tuple
 
 class GPUSchedulerController:
     """
-    Controla configurações avançadas de GPU do Windows
-    Inclui HAGS (Hardware-Accelerated GPU Scheduling)
+    Controls advanced Windows GPU settings
+    Includes HAGS (Hardware-Accelerated GPU Scheduling)
     """
     
     GPU_KEY = r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers"
@@ -33,7 +33,7 @@ class GPUSchedulerController:
             winreg.CloseKey(key)
             return True
         except Exception as e:
-            print(f"[GPU] Erro no registro: {e}")
+            print(f"[GPU] Registry error: {e}")
             return False
     
     def _get_registry_value(self, key_path: str, value_name: str) -> Optional[any]:
@@ -47,41 +47,41 @@ class GPUSchedulerController:
     
     def enable_hardware_accelerated_scheduling(self, enable: bool = True) -> bool:
         """
-        Habilita/desabilita Hardware-Accelerated GPU Scheduling (HAGS)
+        Enable/disable Hardware-Accelerated GPU Scheduling (HAGS)
         
-        HAGS permite que a GPU gerencie sua própria memória de vídeo,
-        reduzindo latência e overhead da CPU.
+        HAGS allows the GPU to manage its own video memory,
+        reducing latency and CPU overhead.
         
-        Requisitos:
-        - Windows 10 2004+ ou Windows 11
-        - GPU com suporte (NVIDIA 1000+, AMD 5000+)
-        - Driver atualizado
+        Requirements:
+        - Windows 10 2004+ or Windows 11
+        - Supported GPU (NVIDIA 1000+, AMD 5000+)
+        - Updated driver
         """
         if not self.is_admin:
             return False
         
-        value = 2 if enable else 1  # 2 = habilitado, 1 = desabilitado
+        value = 2 if enable else 1  # 2 = enabled, 1 = disabled
         success = self._set_registry_value(self.GPU_KEY, "HwSchMode", value)
         
         if success:
-            state = "habilitado" if enable else "desabilitado"
+            state = "enabled" if enable else "disabled"
             print(f"[GPU] ✓ Hardware-Accelerated Scheduling {state}")
-            print("[GPU] ⚠ Reinicie o PC para aplicar")
+            print("[GPU] ⚠ Restart PC to apply")
             self.applied_changes['hags'] = enable
         
         return success
     
     def set_gpu_priority(self, priority: int = 8) -> bool:
         """
-        Define prioridade de GPU no sistema (0-8)
-        8 = Máxima prioridade para GPU
+        Set GPU priority in the system (0-8)
+        8 = Maximum GPU priority
         """
         if not self.is_admin:
             return False
         
         priority = max(0, min(8, priority))
         
-        # Define em MMCSS também
+        # Also set in MMCSS
         mmcss_key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
         success = self._set_registry_value(mmcss_key, "GPUPriority", priority)
         
@@ -93,44 +93,44 @@ class GPUSchedulerController:
     
     def optimize_dxgi(self) -> bool:
         """
-        Otimiza DXGI (DirectX Graphics Infrastructure)
-        Reduz latência de apresentação de frames
+        Optimize DXGI (DirectX Graphics Infrastructure)
+        Reduces frame presentation latency
         """
         if not self.is_admin:
             return False
         
         try:
             # TdrLevel - Timeout Detection and Recovery
-            # 0 = Desativado (não recomendado)
-            # 3 = Recovery padrão
+            # 0 = Disabled (not recommended)
+            # 3 = Default recovery
             success = self._set_registry_value(self.GPU_KEY, "TdrLevel", 3)
             
-            # TdrDelay - Tempo antes de considerar GPU travada
+            # TdrDelay - Time before considering GPU hung
             success2 = self._set_registry_value(self.GPU_KEY, "TdrDelay", 10)
             
             if success and success2:
-                print("[GPU] ✓ DXGI/TDR otimizado")
+                print("[GPU] ✓ DXGI/TDR optimized")
                 self.applied_changes['dxgi'] = True
                 return True
                 
         except Exception as e:
-            print(f"[GPU] ✗ Erro ao otimizar DXGI: {e}")
+            print(f"[GPU] ✗ Error optimizing DXGI: {e}")
         
         return False
     
     def disable_fullscreen_optimizations_globally(self) -> bool:
         """
-        Desativa Fullscreen Optimizations globalmente
-        (Também pode ser feito por aplicativo)
+        Disable Fullscreen Optimizations globally
+        (Can also be done per application)
         """
         if not self.is_admin:
             return False
         
         try:
             compat_key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
-            # Nota: Isso define para novos apps, apps existentes precisam de configuração individual
-            print("[GPU] ℹ Fullscreen Optimizations devem ser desativadas por app")
-            print("[GPU] ℹ Clique direito no .exe > Propriedades > Compatibilidade")
+            # Note: This sets for new apps, existing apps need individual configuration
+            print("[GPU] ℹ Fullscreen Optimizations should be disabled per app")
+            print("[GPU] ℹ Right-click .exe > Properties > Compatibility")
             self.applied_changes['fso'] = True
             return True
         except:
@@ -138,7 +138,7 @@ class GPUSchedulerController:
     
     def enable_game_mode(self) -> bool:
         """
-        Habilita Game Mode do Windows
+        Enable Windows Game Mode
         Win11 Home: GameBar key is under HKCU, not HKLM
         """
         try:
@@ -152,7 +152,7 @@ class GPUSchedulerController:
             
             winreg.SetValueEx(key, "AutoGameModeEnabled", 0, winreg.REG_DWORD, 1)
             winreg.CloseKey(key)
-            print("[GPU] ✓ Game Mode habilitado")
+            print("[GPU] ✓ Game Mode enabled")
             self.applied_changes['game_mode'] = True
             return True
         except Exception as e:
@@ -160,7 +160,7 @@ class GPUSchedulerController:
             try:
                 success = self._set_registry_value(game_key, "AutoGameModeEnabled", 1)
                 if success:
-                    print("[GPU] ✓ Game Mode habilitado (HKLM)")
+                    print("[GPU] ✓ Game Mode enabled (HKLM)")
                     self.applied_changes['game_mode'] = True
                 return success
             except:
@@ -169,8 +169,8 @@ class GPUSchedulerController:
     
     def set_preferred_gpu_high_performance(self) -> bool:
         """
-        Força GPU NVIDIA como padrão para apps-chave via registro do Windows.
-        Equivale a: Configurações > Sistema > Tela > Elementos Gráficos > Alto Desempenho
+        Force NVIDIA GPU as default for key apps via Windows registry.
+        Equivalent to: Settings > System > Display > Graphics > High Performance
         
         Registry: HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences
         Value: GpuPreference=2  (0=Auto, 1=Power Saving, 2=High Performance)
@@ -215,7 +215,7 @@ class GPUSchedulerController:
             target_apps.append(chrome_x86)
         
         if not target_apps:
-            print("[GPU] ⚠ Nenhum app encontrado para forçar NVIDIA")
+            print("[GPU] ⚠ No apps found to force NVIDIA")
             return False
         
         try:
@@ -237,9 +237,9 @@ class GPUSchedulerController:
                         # Preserve existing flags, add GPU preference
                         new_value = "GpuPreference=2;" + current if current else "GpuPreference=2;"
                         winreg.SetValueEx(key, "DirectXUserGlobalSettings", 0, winreg.REG_SZ, new_value)
-                        print("[GPU] ✓ GLOBAL: Todos os apps gráficos → NVIDIA")
+                        print("[GPU] ✓ GLOBAL: All graphical apps → NVIDIA")
                     else:
-                        print("[GPU] ✓ GLOBAL: Já configurado para NVIDIA")
+                        print("[GPU] ✓ GLOBAL: Already configured for NVIDIA")
             except Exception as e:
                 print(f"[GPU] ✗ Global preference: {e}")
             
@@ -251,24 +251,24 @@ class GPUSchedulerController:
                         winreg.SetValueEx(key, app_path, 0, winreg.REG_SZ, "GpuPreference=2")
                         applied += 1
                         app_name = os.path.basename(app_path)
-                        print(f"[GPU] ✓ NVIDIA forçada: {app_name}")
+                        print(f"[GPU] ✓ NVIDIA forced: {app_name}")
                 except Exception as e:
-                    print(f"[GPU] ✗ Falha: {os.path.basename(app_path)} - {e}")
+                    print(f"[GPU] ✗ Failed: {os.path.basename(app_path)} - {e}")
             
             print(f"[GPU] GPU Preference: GLOBAL + {applied} apps → NVIDIA High Performance")
             return True
         except Exception as e:
-            print(f"[GPU] ✗ Erro GPU preference: {e}")
+            print(f"[GPU] ✗ GPU preference error: {e}")
             return False
     
     def set_physx_gpu(self) -> bool:
         """
-        Forca RTX 3050 como processador PhysX (em vez de Auto/CPU).
-        Libera o i5 de calcular fisica quando apps pedem.
+        Force RTX 3050 as PhysX processor (instead of Auto/CPU).
+        Frees the i5 from computing physics when apps request it.
         Registry: HKLM\\SOFTWARE\\NVIDIA Corporation\\Global\\PhysX\\PhysxGpu = 1
         """
         if not self.is_admin:
-            print("[GPU] ✗ PhysX: precisa de admin")
+            print("[GPU] ✗ PhysX: requires admin")
             return False
         
         try:
@@ -282,9 +282,9 @@ class GPUSchedulerController:
                 
                 if current != 1:
                     winreg.SetValueEx(key, "PhysxGpu", 0, winreg.REG_DWORD, 1)
-                    print("[GPU] ✓ PhysX → RTX 3050 (dedicada)")
+                    print("[GPU] ✓ PhysX → RTX 3050 (dedicated)")
                 else:
-                    print("[GPU] ✓ PhysX já configurado para RTX 3050")
+                    print("[GPU] ✓ PhysX already configured for RTX 3050")
                 
                 self.applied_changes['physx'] = True
                 return True
@@ -294,9 +294,9 @@ class GPUSchedulerController:
     
     def apply_all_optimizations(self) -> Dict[str, bool]:
         """
-        Aplica todas as otimizações de GPU
+        Apply all GPU optimizations
         """
-        print("\n[GPU] Aplicando otimizações de GPU Scheduler...")
+        print("\n[GPU] Applying GPU Scheduler optimizations...")
         
         results = {}
         results['hags'] = self.enable_hardware_accelerated_scheduling(True)
@@ -307,19 +307,19 @@ class GPUSchedulerController:
         results['physx'] = self.set_physx_gpu()
         
         success_count = sum(results.values())
-        print(f"[GPU] Resultado: {success_count}/{len(results)} otimizações aplicadas")
+        print(f"[GPU] Result: {success_count}/{len(results)} optimizations applied")
         
         if results['hags']:
-            print("[GPU] ⚠ REINÍCIO NECESSÁRIO para Hardware-Accelerated Scheduling")
+            print("[GPU] ⚠ RESTART REQUIRED for Hardware-Accelerated Scheduling")
         
         return results
     
     def get_status(self) -> Dict[str, any]:
-        """Retorna status atual das configurações de GPU"""
+        """Returns current GPU settings status"""
         status = {}
         
         hags = self._get_registry_value(self.GPU_KEY, "HwSchMode")
-        status['hags'] = "Habilitado" if hags == 2 else "Desabilitado" if hags == 1 else "Não definido"
+        status['hags'] = "Enabled" if hags == 2 else "Disabled" if hags == 1 else "Not set"
         
         tdr_level = self._get_registry_value(self.GPU_KEY, "TdrLevel")
         status['tdr_level'] = tdr_level
@@ -327,7 +327,7 @@ class GPUSchedulerController:
         return status
     
     def check_gpu_support(self) -> Tuple[bool, str]:
-        """Verifica se a GPU suporta HAGS"""
+        """Check if GPU supports HAGS"""
         try:
             import pynvml
             pynvml.nvmlInit()
@@ -336,11 +336,11 @@ class GPUSchedulerController:
             if isinstance(name, bytes):
                 name = name.decode('utf-8')
             
-            # NVIDIA 1000+ series suporta HAGS
+            # NVIDIA 1000+ series supports HAGS
             supported = any(x in name.upper() for x in ['GTX 10', 'GTX 16', 'RTX'])
             return supported, name
         except:
-            return False, "GPU não detectada"
+            return False, "GPU not detected"
 
 
 # Singleton
@@ -355,7 +355,7 @@ def get_controller() -> GPUSchedulerController:
 
 if __name__ == "__main__":
     controller = GPUSchedulerController()
-    print("Status atual:", controller.get_status())
+    print("Current status:", controller.get_status())
     supported, gpu_name = controller.check_gpu_support()
     print(f"GPU: {gpu_name}")
-    print(f"HAGS Suportado: {supported}")
+    print(f"HAGS Supported: {supported}")

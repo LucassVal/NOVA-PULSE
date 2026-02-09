@@ -1,22 +1,22 @@
 """
 Game Bar / Xbox DVR Disabler
-Desativa Xbox Game Bar e Game DVR para melhor performance em jogos
+Disables Xbox Game Bar and Game DVR for better gaming performance
 """
 import subprocess
 import winreg
 
 class GameBarOptimizer:
-    """Desativa Xbox Game Bar e DVR para ganho de FPS"""
+    """Disables Xbox Game Bar and DVR for FPS gains"""
     
     def __init__(self):
         self.changes_made = []
     
     def disable_game_bar(self):
-        """Desativa Xbox Game Bar via registro"""
-        print("[GAMEBAR] Desativando Xbox Game Bar...")
+        """Disable Xbox Game Bar via registry"""
+        print("[GAMEBAR] Disabling Xbox Game Bar...")
         
         try:
-            # Chave principal do Game Bar
+            # Game Bar main key
             key_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR"
             
             try:
@@ -24,19 +24,19 @@ class GameBarOptimizer:
             except FileNotFoundError:
                 key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
             
-            # Desativa Game DVR
+            # Disable Game DVR
             winreg.SetValueEx(key, "AppCaptureEnabled", 0, winreg.REG_DWORD, 0)
             winreg.SetValueEx(key, "GameDVR_Enabled", 0, winreg.REG_DWORD, 0)
             winreg.CloseKey(key)
             
             self.changes_made.append("GameDVR disabled")
-            print("[GAMEBAR] ✓ Game DVR desativado")
+            print("[GAMEBAR] ✓ Game DVR disabled")
             
         except Exception as e:
-            print(f"[GAMEBAR] ⚠ Erro ao desativar Game DVR: {e}")
+            print(f"[GAMEBAR] ⚠ Error disabling Game DVR: {e}")
         
         try:
-            # Chave do Game Bar
+            # Game Bar key
             key_path2 = r"SOFTWARE\Microsoft\GameBar"
             
             try:
@@ -51,16 +51,16 @@ class GameBarOptimizer:
             winreg.CloseKey(key)
             
             self.changes_made.append("GameBar settings disabled")
-            print("[GAMEBAR] ✓ Game Bar configurações desativadas")
+            print("[GAMEBAR] ✓ Game Bar settings disabled")
             
         except Exception as e:
-            print(f"[GAMEBAR] ⚠ Erro ao configurar Game Bar: {e}")
+            print(f"[GAMEBAR] ⚠ Error configuring Game Bar: {e}")
         
         return len(self.changes_made) > 0
     
     def disable_fullscreen_optimizations(self):
-        """Desativa Fullscreen Optimizations globalmente"""
-        print("[GAMEBAR] Desativando Fullscreen Optimizations...")
+        """Disable Fullscreen Optimizations globally"""
+        print("[GAMEBAR] Disabling Fullscreen Optimizations...")
         
         try:
             key_path = r"SYSTEM\CurrentControlSet\Control\GraphicsDrivers"
@@ -70,19 +70,19 @@ class GameBarOptimizer:
             except:
                 key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, key_path)
             
-            # Força o uso de exclusive fullscreen
+            # Force exclusive fullscreen
             winreg.SetValueEx(key, "HwSchMode", 0, winreg.REG_DWORD, 2)
             winreg.CloseKey(key)
             
             self.changes_made.append("Fullscreen optimizations disabled")
-            print("[GAMEBAR] ✓ Fullscreen Optimizations desativado")
+            print("[GAMEBAR] ✓ Fullscreen Optimizations disabled")
             
         except Exception as e:
-            print(f"[GAMEBAR] ⚠ Erro: {e}")
+            print(f"[GAMEBAR] ⚠ Error: {e}")
     
     def disable_game_mode(self):
-        """Desativa Windows Game Mode (pode causar stuttering)"""
-        print("[GAMEBAR] Configurando Game Mode...")
+        """Disable Windows Game Mode (may cause stuttering)"""
+        print("[GAMEBAR] Configuring Game Mode...")
         
         try:
             key_path = r"SOFTWARE\Microsoft\GameBar"
@@ -92,35 +92,35 @@ class GameBarOptimizer:
             except FileNotFoundError:
                 key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
             
-            # Nota: Game Mode pode ser útil em alguns casos, então apenas desativamos auto
+            # Note: Game Mode can be useful in some cases, so we only disable auto
             winreg.SetValueEx(key, "AutoGameModeEnabled", 0, winreg.REG_DWORD, 0)
             winreg.CloseKey(key)
             
-            print("[GAMEBAR] ✓ Auto Game Mode desativado")
+            print("[GAMEBAR] ✓ Auto Game Mode disabled")
             
         except Exception as e:
-            print(f"[GAMEBAR] ⚠ Erro: {e}")
+            print(f"[GAMEBAR] ⚠ Error: {e}")
     
     def apply_all_optimizations(self):
-        """Aplica todas as otimizações de gaming"""
-        print("[GAMEBAR] Aplicando otimizações de gaming...")
+        """Apply all gaming optimizations"""
+        print("[GAMEBAR] Applying gaming optimizations...")
         
         self.disable_game_bar()
         self.disable_game_mode()
         
-        # Fullscreen optimizations requer admin
+        # Fullscreen optimizations requires admin
         try:
             self.disable_fullscreen_optimizations()
         except:
             pass
         
-        print(f"[GAMEBAR] ✓ {len(self.changes_made)} otimizações aplicadas")
-        print("[GAMEBAR] ✓ Resultado esperado: +5-10 FPS, menos stuttering")
+        print(f"[GAMEBAR] ✓ {len(self.changes_made)} optimizations applied")
+        print("[GAMEBAR] ✓ Expected result: +5-10 FPS, less stuttering")
         
         return True
     
     def get_status(self):
-        """Retorna status atual das configurações"""
+        """Returns current settings status"""
         status = {
             'game_dvr': 'unknown',
             'game_bar': 'unknown',
@@ -143,10 +143,10 @@ class GameBarOptimizer:
 if __name__ == "__main__":
     optimizer = GameBarOptimizer()
     
-    print("Status atual:")
+    print("Current status:")
     status = optimizer.get_status()
     for k, v in status.items():
         print(f"  - {k}: {v}")
     
-    input("\nPressione ENTER para aplicar otimizações...")
+    input("\nPress ENTER to apply optimizations...")
     optimizer.apply_all_optimizations()

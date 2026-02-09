@@ -1,13 +1,13 @@
 """
 Network QoS Manager - Ping Booster + DNS Security
-Prioriza tráfego de jogos online + DNS seguro com bloqueio de ads
+Prioritizes online gaming traffic + secure DNS with ad blocking
 """
 import subprocess
 import threading
 import time
 
 class NetworkQoSManager:
-    """Gerencia políticas de QoS e DNS seguro"""
+    """Manages QoS policies and secure DNS"""
     
     # DNS Providers
     DNS_PROVIDERS = {
@@ -58,38 +58,38 @@ class NetworkQoSManager:
         }
     
     def apply_qos_rules(self):
-        """Aplica regras de QoS + DNS seguro"""
+        """Apply QoS rules + secure DNS"""
         if not self.enabled:
             return False
             
-        print("[NET] Aplicando otimizações de rede...")
+        print("[NET] Applying network optimizations...")
         
         try:
-            # 1. Desabilita algoritmo de Nagle (reduz micro-lag)
+            # 1. Disable Nagle algorithm (reduces micro-lag)
             self._disable_nagle()
             
-            # 2. Otimiza buffers TCP
+            # 2. Optimize TCP buffers
             self._optimize_network_buffer()
             
-            # 3. Configura DNS seguro (AdGuard por padrão)
+            # 3. Configure secure DNS (AdGuard by default)
             self._set_secure_dns()
             
-            print("[NET] ✓ Otimizações de rede aplicadas")
+            print("[NET] ✓ Network optimizations applied")
             return True
             
         except Exception as e:
-            print(f"[NET] Erro ao aplicar QoS: {e}")
+            print(f"[NET] Error applying QoS: {e}")
             return False
     
     def _set_secure_dns(self):
-        """Configura DNS seguro (AdGuard/Google/Cloudflare)"""
+        """Configure secure DNS (AdGuard/Google/Cloudflare)"""
         provider = self.DNS_PROVIDERS.get(self.dns_provider, self.DNS_PROVIDERS['adguard'])
         
-        print(f"[NET] Configurando {provider['name']}...")
+        print(f"[NET] Configuring {provider['name']}...")
         print(f"[NET] → {provider['description']}")
         
         try:
-            # Obtém nome do adaptador de rede ativo
+            # Get active network adapter name
             get_adapter_cmd = '''
             $adapter = Get-NetAdapter | Where-Object {$_.Status -eq "Up" -and $_.InterfaceDescription -notlike "*Virtual*"} | Select-Object -First 1
             $adapter.Name
@@ -99,23 +99,23 @@ class NetworkQoSManager:
             adapter_name = result.stdout.strip()
             
             if adapter_name:
-                # Configura DNS
+                # Configure DNS
                 dns_cmd = f'''
                 Set-DnsClientServerAddress -InterfaceAlias "{adapter_name}" -ServerAddresses ("{provider['primary']}", "{provider['secondary']}")
                 '''
                 subprocess.run(['powershell', '-Command', dns_cmd], 
                               capture_output=True, timeout=10)
-                print(f"[NET] ✓ DNS configurado: {provider['primary']} / {provider['secondary']}")
+                print(f"[NET] ✓ DNS configured: {provider['primary']} / {provider['secondary']}")
             else:
-                print("[NET] ⚠ Não foi possível detectar adaptador de rede")
+                print("[NET] ⚠ Could not detect network adapter")
                 
         except subprocess.TimeoutExpired:
-            print("[NET] ⚠ Timeout ao configurar DNS")
+            print("[NET] ⚠ Timeout configuring DNS")
         except Exception as e:
             print(f"[NET] ⚠ Erro DNS: {e}")
     
     def _disable_nagle(self):
-        """Desabilita algoritmo de Nagle para reduzir latência"""
+        """Disable Nagle algorithm to reduce latency"""
         try:
             cmd = '''
             $adapters = Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces"
@@ -125,12 +125,12 @@ class NetworkQoSManager:
             }
             '''
             subprocess.run(['powershell', '-Command', cmd], capture_output=True, timeout=10)
-            print("[NET] ✓ Nagle disabled (micro-lag reduzido)")
+            print("[NET] ✓ Nagle disabled (micro-lag reduced)")
         except:
             pass
     
     def _optimize_network_buffer(self):
-        """Otimiza buffers de rede para gaming"""
+        """Optimize network buffers for gaming"""
         try:
             cmd = '''
             netsh int tcp set global autotuninglevel=normal
@@ -141,7 +141,7 @@ class NetworkQoSManager:
             pass
     
     def restore_default_dns(self):
-        """Restaura DNS para DHCP automático"""
+        """Restore DNS to automatic DHCP"""
         try:
             get_adapter_cmd = '''
             $adapter = Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Select-Object -First 1
@@ -155,12 +155,12 @@ class NetworkQoSManager:
                 reset_cmd = f'Set-DnsClientServerAddress -InterfaceAlias "{adapter_name}" -ResetServerAddresses'
                 subprocess.run(['powershell', '-Command', reset_cmd], 
                               capture_output=True, timeout=10)
-                print("[NET] DNS restaurado para DHCP automático")
+                print("[NET] DNS restored to automatic DHCP")
         except:
             pass
     
     def get_current_dns(self):
-        """Retorna DNS atual"""
+        """Returns current DNS"""
         try:
             cmd = 'Get-DnsClientServerAddress -AddressFamily IPv4 | Select-Object -ExpandProperty ServerAddresses | Select-Object -First 1'
             result = subprocess.run(['powershell', '-Command', cmd], 
@@ -171,13 +171,13 @@ class NetworkQoSManager:
 
 
 if __name__ == "__main__":
-    # Teste
+    # Test
     qos = NetworkQoSManager({'dns_provider': 'adguard'})
     qos.apply_qos_rules()
     
-    print("\nDNS Providers disponíveis:")
+    print("\nAvailable DNS Providers:")
     for key, provider in qos.DNS_PROVIDERS.items():
         print(f"  - {key}: {provider['name']} ({provider['description']})")
     
-    input("\nPressione ENTER para restaurar DNS padrão...")
+    input("\nPress ENTER to restore default DNS...")
     qos.restore_default_dns()

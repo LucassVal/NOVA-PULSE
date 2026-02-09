@@ -1,6 +1,6 @@
 """
 NovaPulse - Optimization Engine
-Motor central que orquestra todos os módulos de otimização
+Central engine that orchestrates all optimization modules
 """
 import threading
 from typing import Dict, Optional, List
@@ -9,16 +9,16 @@ from enum import Enum
 
 
 class OptimizationLevel(Enum):
-    """Níveis de otimização"""
-    SAFE = "safe"           # Otimizações seguras, reversíveis
-    BALANCED = "balanced"   # Balanço entre segurança e performance
-    AGGRESSIVE = "aggressive"  # Máxima performance, pode requerer restart
-    GAMING = "gaming"       # Específico para jogos
+    """Optimization levels"""
+    SAFE = "safe"           # Safe, reversible optimizations
+    BALANCED = "balanced"   # Balance between safety and performance
+    AGGRESSIVE = "aggressive"  # Maximum performance, may require restart
+    GAMING = "gaming"       # Gaming-specific optimizations
 
 
 @dataclass
 class OptimizationResult:
-    """Resultado de uma otimização"""
+    """Result of an optimization"""
     module: str
     success: bool
     changes: Dict[str, bool]
@@ -28,13 +28,13 @@ class OptimizationResult:
 
 class OptimizationEngine:
     """
-    Motor central de otimização do NovaPulse
+    NovaPulse Central Optimization Engine
     
-    Orquestra todos os módulos de otimização garantindo:
-    - Ordem correta de aplicação
-    - Evita conflitos entre módulos
-    - Permite rollback
-    - Logging centralizado
+    Orchestrates all optimization modules ensuring:
+    - Correct application order
+    - Avoids conflicts between modules
+    - Allows rollback
+    - Centralized logging
     """
     
     def __init__(self):
@@ -44,23 +44,23 @@ class OptimizationEngine:
         
     def apply_all(self, level: OptimizationLevel = OptimizationLevel.BALANCED) -> Dict[str, OptimizationResult]:
         """
-        Aplica todas as otimizações de acordo com o nível
+        Apply all optimizations according to the level
         """
         print(f"\n{'='*60}")
         print(f"⚡ NovaPulse Optimization Engine")
-        print(f"📊 Nível: {level.value}")
+        print(f"Level: {level.value}")
         print(f"{'='*60}\n")
         
         results = {}
         
-        # Ordem de aplicação (importante para evitar conflitos):
+        # Application order (important to avoid conflicts):
         # 1. Power/CPU (base)
-        # 2. Memory (usa CPU settings)
-        # 3. Storage (usa memory settings)
+        # 2. Memory (uses CPU settings)
+        # 3. Storage (uses memory settings)
         # 4. GPU (independent)
         # 5. Network (independent)
-        # 6. Timers (afeta tudo)
-        # 7. Process Control (usa todas settings)
+        # 6. Timers (affects everything)
+        # 7. Process Control (uses all settings)
         
         # === FASE 1: POWER/CPU ===
         try:
@@ -73,7 +73,7 @@ class OptimizationEngine:
                 success=any(changes.values()),
                 changes=changes,
                 requires_restart=False,
-                message='Power scheme e core parking configurados'
+                message='Power scheme and core parking configured'
             )
         except Exception as e:
             print(f"[ENGINE] ⚠ Core Parking: {e}")
@@ -89,7 +89,7 @@ class OptimizationEngine:
                 success=any(changes.values()),
                 changes=changes,
                 requires_restart=True,
-                message='Compressão, Superfetch e paginação otimizados'
+                message='Compression, Superfetch and paging optimized'
             )
             self.requires_restart = True
         except Exception as e:
@@ -106,7 +106,7 @@ class OptimizationEngine:
                 success=any(changes.values()),
                 changes=changes,
                 requires_restart=False,
-                message='Sistema de arquivos otimizado'
+                message='File system optimized'
             )
         except Exception as e:
             print(f"[ENGINE] ⚠ NTFS Optimizer: {e}")
@@ -121,14 +121,14 @@ class OptimizationEngine:
                 success=any(changes.values()),
                 changes=changes,
                 requires_restart=True,
-                message='HAGS e GPU priority configurados'
+                message='HAGS and GPU priority configured'
             )
             if changes.get('hags'):
                 self.requires_restart = True
         except Exception as e:
             print(f"[ENGINE] ⚠ GPU Scheduler: {e}")
         
-        # === FASE 4.5: CUDA OPTIMIZER (Novo!) ===
+        # === PHASE 4.5: CUDA OPTIMIZER ===
         if level in [OptimizationLevel.AGGRESSIVE, OptimizationLevel.GAMING]:
             try:
                 from modules.cuda_optimizer import get_optimizer as get_cuda
@@ -139,7 +139,7 @@ class OptimizationEngine:
                     success=any(changes.values()),
                     changes=changes,
                     requires_restart=False,
-                    message='CUDA, PhysX e aceleração de hardware configurados'
+                    message='CUDA, PhysX and hardware acceleration configured'
                 )
             except Exception as e:
                 print(f"[ENGINE] ⚠ CUDA Optimizer: {e}")
@@ -155,7 +155,7 @@ class OptimizationEngine:
                 success=any(changes.values()),
                 changes=changes,
                 requires_restart=False,
-                message='Multimedia scheduler otimizado'
+                message='Multimedia scheduler optimized'
             )
         except Exception as e:
             print(f"[ENGINE] ⚠ MMCSS Optimizer: {e}")
@@ -171,7 +171,7 @@ class OptimizationEngine:
                 success=any(changes.values()),
                 changes=changes,
                 requires_restart=False,
-                message='TCP/IP stack otimizado'
+                message='TCP/IP stack optimized'
             )
         except Exception as e:
             print(f"[ENGINE] ⚠ Network Stack: {e}")
@@ -186,12 +186,12 @@ class OptimizationEngine:
                 success=any(changes.values()),
                 changes=changes,
                 requires_restart=False,
-                message='USB polling e buffers otimizados'
+                message='USB polling and buffers optimized'
             )
         except Exception as e:
             print(f"[ENGINE] ⚠ USB Optimizer: {e}")
         
-        # === FASE 8: IRQ (Apenas em Aggressive/Gaming) ===
+        # === PHASE 8: IRQ (Aggressive/Gaming only) ===
         if level in [OptimizationLevel.AGGRESSIVE, OptimizationLevel.GAMING]:
             try:
                 from modules.irq_optimizer import get_optimizer as get_irq
@@ -202,13 +202,13 @@ class OptimizationEngine:
                     success=any(changes.values()),
                     changes=changes,
                     requires_restart=True,
-                    message='MSI mode e afinidade de IRQ configurados'
+                    message='MSI mode and IRQ affinity configured'
                 )
                 self.requires_restart = True
             except Exception as e:
                 print(f"[ENGINE] ⚠ IRQ Optimizer: {e}")
         
-        # === FASE 9: HPET/Timers (Apenas em Aggressive/Gaming) ===
+        # === PHASE 9: HPET/Timers (Aggressive/Gaming only) ===
         if level in [OptimizationLevel.AGGRESSIVE, OptimizationLevel.GAMING]:
             try:
                 from modules.hpet_controller import get_controller as get_hpet
@@ -220,13 +220,13 @@ class OptimizationEngine:
                     success=any(changes.values()),
                     changes=changes,
                     requires_restart=True,
-                    message='HPET e timers otimizados'
+                    message='HPET and timers optimized'
                 )
                 self.requires_restart = True
             except Exception as e:
                 print(f"[ENGINE] ⚠ HPET Controller: {e}")
         
-        # === FASE 10: Advanced CPU (Novo!) ===
+        # === PHASE 10: Advanced CPU ===
         if level in [OptimizationLevel.AGGRESSIVE, OptimizationLevel.GAMING]:
             try:
                 from modules.advanced_cpu_optimizer import get_optimizer as get_adv_cpu
@@ -237,13 +237,13 @@ class OptimizationEngine:
                     success=any(changes.values()),
                     changes=changes,
                     requires_restart=True,
-                    message='C-States, Turbo Boost, scheduling otimizados'
+                    message='C-States, Turbo Boost, scheduling optimized'
                 )
                 self.requires_restart = True
             except Exception as e:
                 print(f"[ENGINE] ⚠ Advanced CPU: {e}")
         
-        # === FASE 11: Advanced Storage (Novo!) ===
+        # === PHASE 11: Advanced Storage ===
         if level in [OptimizationLevel.AGGRESSIVE, OptimizationLevel.GAMING]:
             try:
                 from modules.advanced_storage_optimizer import get_optimizer as get_adv_storage
@@ -254,7 +254,7 @@ class OptimizationEngine:
                     success=any(changes.values()),
                     changes=changes,
                     requires_restart=False,
-                    message='Write cache, queue depth, large pages otimizados'
+                    message='Write cache, queue depth, large pages optimized'
                 )
             except Exception as e:
                 print(f"[ENGINE] ⚠ Advanced Storage: {e}")
@@ -272,7 +272,7 @@ class OptimizationEngine:
                     success=True,
                     changes=gaming_results,
                     requires_restart=False,
-                    message='Controle de processos ativo com preset gaming'
+                    message='Process control active with gaming preset'
                 )
             else:
                 results['process'] = OptimizationResult(
@@ -280,20 +280,20 @@ class OptimizationEngine:
                     success=True,
                     changes={'monitoring_active': True},
                     requires_restart=False,
-                    message='Controle de processos ativo'
+                    message='Process control active'
                 )
         except Exception as e:
             print(f"[ENGINE] ⚠ Process Controller: {e}")
         
-        # === RESUMO ===
+        # === SUMMARY ===
         self._print_summary(results)
         
         return results
     
     def _print_summary(self, results: Dict[str, OptimizationResult]):
-        """Imprime resumo das otimizações"""
+        """Print optimization summary"""
         print(f"\n{'='*60}")
-        print("📊 RESUMO DAS OTIMIZAÇÕES")
+        print("OPTIMIZATION SUMMARY")
         print(f"{'='*60}")
         
         total = len(results)
@@ -304,22 +304,22 @@ class OptimizationEngine:
             restart = " ⚠️" if result.requires_restart else ""
             print(f"  {icon} {result.module}: {result.message}{restart}")
         
-        print(f"\n📈 Resultado: {success}/{total} módulos aplicados com sucesso")
+        print(f"\nResult: {success}/{total} modules applied successfully")
         
         if self.requires_restart:
-            print(f"\n⚠️  REINÍCIO NECESSÁRIO para aplicar algumas mudanças")
+            print(f"\n⚠️  RESTART REQUIRED to apply some changes")
         
         print(f"{'='*60}\n")
     
     def get_optimization_status(self) -> Dict[str, any]:
-        """Retorna status de todas as otimizações"""
+        """Returns status of all optimizations"""
         status = {
             'applied': self.applied_optimizations,
             'requires_restart': self.requires_restart,
             'results_count': len(self.results)
         }
         
-        # Coleta status de cada módulo
+        # Collect status from each module
         modules_status = {}
         
         try:
@@ -363,13 +363,13 @@ def get_engine() -> OptimizationEngine:
 if __name__ == "__main__":
     engine = OptimizationEngine()
     
-    print("Escolha o nível de otimização:")
-    print("1. Safe (seguro)")
-    print("2. Balanced (balanceado)")
-    print("3. Gaming (jogos)")
-    print("4. Aggressive (agressivo)")
+    print("Choose optimization level:")
+    print("1. Safe")
+    print("2. Balanced")
+    print("3. Gaming")
+    print("4. Aggressive")
     
-    choice = input("\nOpção (1-4): ").strip()
+    choice = input("\nOption (1-4): ").strip()
     
     levels = {
         '1': OptimizationLevel.SAFE,

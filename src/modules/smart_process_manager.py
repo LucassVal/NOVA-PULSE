@@ -92,14 +92,14 @@ class SmartProcessManager:
         self._low_count = 0
         
     def start(self):
-        """Inicia monitoramento inteligente"""
+        """Start intelligent monitoring"""
         if self.running: return
         self.running = True
         self.thread = threading.Thread(target=self._monitoring_loop, daemon=True)
         self.thread.start()
         high_rules = len(self.high_priority_apps)
         low_rules = len(self.low_priority_apps)
-        print(f"[INFO] SmartProcessManager V2.1 iniciado (allowlist: {high_rules} HIGH, {low_rules} LOW)")
+        print(f"[INFO] SmartProcessManager V2.1 started (allowlist: {high_rules} HIGH, {low_rules} LOW)")
     
     def stop(self):
         self.running = False
@@ -111,7 +111,7 @@ class SmartProcessManager:
                 self._scan_and_prioritize()
                 time.sleep(3)  # Scan every 3 seconds
             except Exception as e:
-                print(f"[ERROR] Erro no monitoramento: {e}")
+                print(f"[ERROR] Monitoring error: {e}")
                 time.sleep(10)
     
     def _scan_and_prioritize(self):
@@ -119,41 +119,31 @@ class SmartProcessManager:
             for proc in psutil.process_iter(['pid', 'name', 'username']):
                 try:
                     if proc.pid in self.adjusted_pids: continue
-                    
                     name = proc.info['name']
                     name_lower = name.lower() if name else ''
-                    
-                    # Skip system processes entirely
                     if name_lower in self.system_processes: continue
                     if not proc.info['username']: continue
                     if 'SYSTEM' in proc.info['username'].upper(): continue
-                    
-                    # Only adjust known apps
                     if name_lower in self.high_priority_apps:
                         self._set_high_priority(proc)
                         self._high_count += 1
                     elif name_lower in self.low_priority_apps:
                         self._set_low_priority(proc)
                         self._low_count += 1
-                    # else: leave at default priority (NORMAL)
-                    
                     self.adjusted_pids.add(proc.pid)
-                        
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
-            
             self._cleanup_dead_pids()
         except Exception as e:
-            print(f"[ERROR] Erro scan: {e}")
+            print(f"[ERROR] Scan error: {e}")
     
     def _set_io_priority(self, pid, priority):
-        """Define prioridade de I/O via native API"""
+        """Set I/O priority via native API"""
         if not self.api_available: return False
         try:
             PROCESS_SET_INFORMATION = 0x0200
             handle = self.kernel32.OpenProcess(PROCESS_SET_INFORMATION, False, pid)
             if not handle: return False
-            
             prio = ctypes.c_int(priority)
             self.ntdll.NtSetInformationProcess(
                 handle, self.ProcessIoPriority, ctypes.byref(prio), ctypes.sizeof(prio)
@@ -167,14 +157,14 @@ class SmartProcessManager:
         try:
             proc.nice(psutil.HIGH_PRIORITY_CLASS)
             self._set_io_priority(proc.pid, IO_PRIORITY.High)
-            print(f"[PRIORITY] ⭐ ALTA → {proc.info['name']}")
+            print(f"[PRIORITY] ⭐ HIGH → {proc.info['name']}")
         except: pass
     
     def _set_low_priority(self, proc):
         try:
             proc.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
             self._set_io_priority(proc.pid, IO_PRIORITY.VeryLow)
-            print(f"[PRIORITY] 🔽 BAIXA → {proc.info['name']}")
+            print(f"[PRIORITY] 🔽 LOW → {proc.info['name']}")
         except: pass
     
     def _cleanup_dead_pids(self):
@@ -192,10 +182,10 @@ if __name__ == "__main__":
     manager = SmartProcessManager()
     manager.start()
     
-    print("\nMonitorando processos...")
-    print("Prioridade HIGH somente para apps essenciais (Antigravity, node, etc)")
-    print("Prioridade LOW para browsers, bloatware, cloud sync")
-    print("\nPressione Ctrl+C para parar\n")
+    print("\nMonitoring processes...")
+    print("HIGH priority only for essential apps (Antigravity, node, etc)")
+    print("LOW priority for browsers, bloatware, cloud sync")
+    print("\nPress Ctrl+C to stop\n")
     
     try:
         while True:
@@ -203,4 +193,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         stats = manager.get_stats()
         manager.stop()
-        print(f"\n[INFO] Finalizado — {stats['high']} processos HIGH, {stats['low']} processos LOW")
+        print(f"\n[INFO] Finished — {stats['high']} HIGH processes, {stats['low']} LOW processes")

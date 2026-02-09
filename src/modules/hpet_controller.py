@@ -1,6 +1,6 @@
 """
 NovaPulse - HPET Controller
-Controla High Precision Event Timer e timers do sistema
+Controls High Precision Event Timer and system timers
 """
 import subprocess
 import ctypes
@@ -9,13 +9,13 @@ from typing import Dict, Tuple, Optional
 
 class HPETController:
     """
-    Controla HPET (High Precision Event Timer) e timers relacionados
+    Controls HPET (High Precision Event Timer) and related timers
     
-    HPET pode adicionar latência em alguns sistemas.
-    Desativar pode melhorar input lag em jogos.
+    HPET can add latency on some systems.
+    Disabling it may improve input lag in games.
     
-    ATENÇÃO: Nem todos os sistemas se beneficiam desta otimização.
-    Em alguns casos, pode causar instabilidade.
+    WARNING: Not all systems benefit from this optimization.
+    In some cases, it may cause instability.
     """
     
     def __init__(self):
@@ -30,7 +30,7 @@ class HPETController:
             return False
     
     def _run_bcdedit(self, args: str) -> Tuple[bool, str]:
-        """Executa comando bcdedit"""
+        """Execute bcdedit command"""
         try:
             result = subprocess.run(
                 f"bcdedit {args}",
@@ -44,62 +44,62 @@ class HPETController:
     
     def disable_hpet(self) -> bool:
         """
-        Desativa HPET via BCD
+        Disable HPET via BCD
         
-        Impacto:
-        - Pode reduzir input lag em jogos
-        - Melhora latência em alguns sistemas
+        Impact:
+        - May reduce input lag in games
+        - Improves latency on some systems
         
-        Riscos:
-        - Pode causar instabilidade em alguns sistemas
-        - Alguns softwares podem ter problemas de timing
+        Risks:
+        - May cause instability on some systems
+        - Some software may have timing issues
         """
         if not self.is_admin:
-            print("[HPET] ✗ Requer privilégios de administrador")
+            print("[HPET] ✗ Requires administrator privileges")
             return False
         
-        # Salva valor original
+        # Save original value
         success, output = self._run_bcdedit("/enum")
         if "useplatformclock" in output.lower():
             self.original_values['useplatformclock'] = True
         
-        # Desativa HPET
+        # Disable HPET
         success, output = self._run_bcdedit("/set useplatformclock false")
         
         if success:
-            print("[HPET] ✓ HPET desativado (useplatformclock = false)")
+            print("[HPET] ✓ HPET disabled (useplatformclock = false)")
             self.applied_changes['hpet'] = False
         else:
-            # Tenta deletar a entrada (volta ao padrão)
+            # Try to delete the entry (restores default)
             self._run_bcdedit("/deletevalue useplatformclock")
-            print("[HPET] ✓ HPET configuração removida (padrão do sistema)")
+            print("[HPET] ✓ HPET configuration removed (system default)")
             self.applied_changes['hpet'] = None
         
         return True
     
     def enable_hpet(self) -> bool:
-        """Reativa HPET"""
+        """Re-enable HPET"""
         if not self.is_admin:
             return False
         
         success, _ = self._run_bcdedit("/set useplatformclock true")
         
         if success:
-            print("[HPET] ✓ HPET reativado")
+            print("[HPET] ✓ HPET re-enabled")
             self.applied_changes['hpet'] = True
         
         return success
     
     def disable_dynamic_tick(self) -> bool:
         """
-        Desativa Dynamic Tick (tickless timer)
+        Disable Dynamic Tick (tickless timer)
         
-        Windows usa tick dinâmico para economia de energia.
-        Desativar força tick constante, pode melhorar latência.
+        Windows uses dynamic tick for power saving.
+        Disabling forces constant tick, may improve latency.
         
-        Impacto:
-        - Menores latências
-        - Maior consumo de energia
+        Impact:
+        - Lower latencies
+        - Higher power consumption
         """
         if not self.is_admin:
             return False
@@ -107,34 +107,34 @@ class HPETController:
         success, output = self._run_bcdedit("/set disabledynamictick yes")
         
         if success:
-            print("[HPET] ✓ Dynamic Tick desativado")
+            print("[HPET] ✓ Dynamic Tick disabled")
             self.applied_changes['dynamic_tick'] = False
         else:
-            print(f"[HPET] ✗ Erro ao desativar Dynamic Tick: {output}")
+            print(f"[HPET] ✗ Error disabling Dynamic Tick: {output}")
         
         return success
     
     def enable_dynamic_tick(self) -> bool:
-        """Reativa Dynamic Tick"""
+        """Re-enable Dynamic Tick"""
         if not self.is_admin:
             return False
         
         success, _ = self._run_bcdedit("/deletevalue disabledynamictick")
         
         if success:
-            print("[HPET] ✓ Dynamic Tick reativado")
+            print("[HPET] ✓ Dynamic Tick re-enabled")
             self.applied_changes['dynamic_tick'] = True
         
         return success
     
     def set_tscsyncpolicy(self, policy: str = "enhanced") -> bool:
         """
-        Define política de sincronização do TSC (Time Stamp Counter)
+        Set TSC (Time Stamp Counter) synchronization policy
         
         Policies:
-        - "default": Padrão do Windows
-        - "legacy": Compatibilidade com sistemas antigos
-        - "enhanced": Melhor precisão (recomendado para gaming)
+        - "default": Windows default
+        - "legacy": Compatibility with older systems
+        - "enhanced": Best precision (recommended for gaming)
         """
         if not self.is_admin:
             return False
@@ -145,14 +145,14 @@ class HPETController:
             print(f"[HPET] ✓ TSC Sync Policy = {policy}")
             self.applied_changes['tscsync'] = policy
         else:
-            print(f"[HPET] ℹ TSC Sync Policy não aplicável neste sistema")
+            print("[HPET] ℹ TSC Sync Policy not applicable on this system")
         
         return success
     
     def disable_synthetic_timers(self) -> bool:
         """
-        Desativa synthetic timers do Hyper-V
-        (Útil apenas se Hyper-V estiver instalado)
+        Disable Hyper-V synthetic timers
+        (Only useful if Hyper-V is installed)
         """
         if not self.is_admin:
             return False
@@ -160,85 +160,85 @@ class HPETController:
         success, _ = self._run_bcdedit("/set hypervisorlaunchtype off")
         
         if success:
-            print("[HPET] ✓ Hyper-V hypervisor desativado")
-            print("[HPET] ⚠ Isso pode afetar WSL2, Docker, etc.")
+            print("[HPET] ✓ Hyper-V hypervisor disabled")
+            print("[HPET] ⚠ This may affect WSL2, Docker, etc.")
             self.applied_changes['hypervisor'] = False
         else:
-            print("[HPET] ℹ Hyper-V não está instalado ou já desativado")
+            print("[HPET] ℹ Hyper-V is not installed or already disabled")
         
         return True
     
     def optimize_boot_options(self) -> bool:
         """
-        Aplica outras otimizações de boot relacionadas a timing
+        Apply other boot optimizations related to timing
         """
         if not self.is_admin:
             return False
         
         optimizations = []
         
-        # Desativa debugging (reduz overhead)
+        # Disable debugging (reduces overhead)
         success, _ = self._run_bcdedit("/debug off")
         if success:
             optimizations.append("debug off")
         
-        # Desativa boot log (menos I/O)
+        # Disable boot log (less I/O)
         success, _ = self._run_bcdedit("/bootlog no")
         if success:
             optimizations.append("bootlog no")
         
         if optimizations:
-            print(f"[HPET] ✓ Boot otimizado: {', '.join(optimizations)}")
+            print(f"[HPET] ✓ Boot optimized: {', '.join(optimizations)}")
             self.applied_changes['boot_optimized'] = True
         
         return len(optimizations) > 0
     
     def apply_all_optimizations(self, aggressive: bool = False) -> Dict[str, bool]:
         """
-        Aplica todas as otimizações de timer
+        Apply all timer optimizations
         
-        aggressive: Se True, aplica otimizações mais arriscadas
+        aggressive: If True, applies riskier optimizations
         """
-        print("\n[HPET] Aplicando otimizações de timer...")
+        print("\n[HPET] Applying timer optimizations...")
         
         results = {}
         
-        # Otimizações seguras
+        # Safe optimizations
         results['hpet'] = self.disable_hpet()
         results['dynamic_tick'] = self.disable_dynamic_tick()
         results['tscsync'] = self.set_tscsyncpolicy("enhanced")
         results['boot'] = self.optimize_boot_options()
         
         if aggressive:
-            print("[HPET] ⚠ Modo agressivo: desativando Hyper-V")
+            print("[HPET] ⚠ Aggressive mode: disabling Hyper-V")
             results['hypervisor'] = self.disable_synthetic_timers()
         
         success_count = sum(results.values())
-        print(f"[HPET] Resultado: {success_count}/{len(results)} otimizações aplicadas")
-        print("[HPET] ⚠ REINÍCIO OBRIGATÓRIO para aplicar mudanças de BCD")
+        print(f"[HPET] Result: {success_count}/{len(results)} optimizations applied")
+        print("[HPET] ⚠ RESTART REQUIRED to apply BCD changes")
         
         return results
     
     def restore_defaults(self) -> bool:
         """
-        Restaura configurações padrão de timer
+        Restore default timer settings
         """
         if not self.is_admin:
             return False
         
-        print("[HPET] Restaurando configurações padrão...")
+        print("[HPET] Restoring default settings...")
         
         self._run_bcdedit("/deletevalue useplatformclock")
         self._run_bcdedit("/deletevalue disabledynamictick")
         self._run_bcdedit("/deletevalue tscsyncpolicy")
         
-        print("[HPET] ✓ Configurações de timer restauradas")
-        print("[HPET] ⚠ Reinicie para aplicar")
+        print("[HPET] ✓ Timer settings restored")
+        print("[HPET] ⚠ Restart to apply")
         
         return True
     
     def get_status(self) -> Dict[str, str]:
-        """Retorna status atual das configurações de timer"""
+        """Returns current timer settings status"""
         status = {}
         
         try:
@@ -246,16 +246,16 @@ class HPETController:
             
             if "useplatformclock" in output.lower():
                 if "yes" in output.lower() or "true" in output.lower():
-                    status['hpet'] = "Ativado"
+                    status['hpet'] = "Enabled"
                 else:
-                    status['hpet'] = "Desativado"
+                    status['hpet'] = "Disabled"
             else:
-                status['hpet'] = "Padrão do sistema"
+                status['hpet'] = "System default"
             
             if "disabledynamictick" in output.lower():
-                status['dynamic_tick'] = "Desativado"
+                status['dynamic_tick'] = "Disabled"
             else:
-                status['dynamic_tick'] = "Ativo (padrão)"
+                status['dynamic_tick'] = "Active (default)"
             
             if "tscsyncpolicy" in output.lower():
                 if "enhanced" in output.lower():
@@ -265,17 +265,17 @@ class HPETController:
                 else:
                     status['tscsync'] = "Custom"
             else:
-                status['tscsync'] = "Padrão"
+                status['tscsync'] = "Default"
                 
         except:
-            status['error'] = "Não foi possível ler configurações"
+            status['error'] = "Could not read settings"
         
         return status
     
     def benchmark_latency(self) -> Optional[float]:
         """
-        Faz um benchmark simples de latência do timer
-        Retorna latência média em microsegundos
+        Run a simple timer latency benchmark
+        Returns average latency in microseconds
         """
         try:
             import time
@@ -283,7 +283,7 @@ class HPETController:
             samples = []
             for _ in range(1000):
                 start = time.perf_counter_ns()
-                # Operação mínima
+                # Minimal operation
                 _ = 1 + 1
                 end = time.perf_counter_ns()
                 samples.append(end - start)
@@ -291,11 +291,11 @@ class HPETController:
             avg_ns = sum(samples) / len(samples)
             avg_us = avg_ns / 1000
             
-            print(f"[HPET] Latência média do timer: {avg_us:.2f} µs")
+            print(f"[HPET] Average timer latency: {avg_us:.2f} µs")
             return avg_us
             
         except Exception as e:
-            print(f"[HPET] Erro no benchmark: {e}")
+            print(f"[HPET] Benchmark error: {e}")
             return None
 
 
@@ -311,5 +311,5 @@ def get_controller() -> HPETController:
 
 if __name__ == "__main__":
     controller = HPETController()
-    print("Status atual:", controller.get_status())
+    print("Current status:", controller.get_status())
     controller.benchmark_latency()

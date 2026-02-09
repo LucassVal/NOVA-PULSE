@@ -79,7 +79,7 @@ class Dashboard:
             'gpu_nvidia_mem_used': 0,
             'gpu_nvidia_mem_total': 0,
             'gpu_nvidia_clock_mhz': 0,
-            'gpu_nvidia_power_limit': 0,  # Power limit aplicado
+            'gpu_nvidia_power_limit': 0,  # Applied power limit
             'gpu_intel_name': '',
             'ram_used': 0,
             'ram_total': 0,
@@ -145,8 +145,16 @@ class Dashboard:
             self._cpu_max_ghz = 0
     
     def make_header(self):
-        """Creates header with title, mode, and security shield status."""
+        """Creates header with title, mode, and security shield status.
+        
+        CRITICAL: Uses no_wrap=True + overflow='ellipsis' to prevent
+        text wrapping that causes header duplication/stacking on narrow terminals.
+        The header Panel has size=3 (border + 1 line + border) — if content
+        wraps to 2 lines, it overflows and stacks.
+        """
         try:
+            from rich.text import Text
+            
             current_time = datetime.now().strftime("%H:%M:%S")
             
             # Auto-profiler mode
@@ -155,20 +163,28 @@ class Dashboard:
             mode_color = mode_colors.get(mode_text, 'cyan')
             
             # Security shield status
-            shield = self.stats.get('shield_status', ('⚪', 'white', 'IDLE'))
+            shield = self.stats.get('shield_status', ('--', 'white', 'IDLE'))
             shield_emoji, shield_color, shield_label = shield
             
-            header_text = (
-                f"[bold cyan]⚡ NOVAPULSE 2.2.1[/bold cyan] | {current_time} | "
-                f"[{mode_color}]{mode_text}[/{mode_color}] | "
-                f"[{shield_color}]{shield_emoji} {shield_label}[/{shield_color}]"
-            )
+            # Build header as a single non-wrapping Text object
+            header = Text(no_wrap=True, overflow="ellipsis", justify="center")
+            header.append("NOVAPULSE 2.2.1", style="bold cyan")
+            header.append(f" | {current_time} | ", style="white")
+            header.append(mode_text, style=f"bold {mode_color}")
+            header.append(" | ", style="white")
+            header.append(f"{shield_emoji} {shield_label}", style=f"bold {shield_color}")
+            
             return Panel(
-                Align.center(header_text),
-                border_style="bold blue"
+                Align.center(header),
+                border_style="bold blue",
+                height=3  # Enforce exact height: top border + content + bottom border
             )
         except Exception:
-            return Panel(Align.center("[bold cyan]⚡ NOVAPULSE 2.2.1[/bold cyan]"), border_style="blue")
+            return Panel(
+                Align.center("[bold cyan]NOVAPULSE 2.2.1[/bold cyan]"),
+                border_style="blue",
+                height=3
+            )
     
     def make_cpu_gpu_panel(self):
         """CPU and GPU Panel"""
@@ -397,7 +413,7 @@ class Dashboard:
         return Panel(table, title="[bold]💾  Memory & Status[/bold]", border_style="green")
     
     def make_footer(self):
-        """Footer: Dynamic Infographic — O que fez + O que está fazendo"""
+        """Footer: Dynamic Infographic — What it did + What it's doing now"""
         uptime = self.stats_tracker.get('uptime_seconds', 0)
         h, rem = divmod(uptime, 3600)
         m, s = divmod(rem, 60)
@@ -409,27 +425,27 @@ class Dashboard:
         table.add_column("Col3", ratio=1)
         table.add_column("Col4", ratio=1)
         
-        # === ROW 1: O que o NovaPulse FEZ (boot optimizations) ===
+        # === ROW 1: What NovaPulse DID (boot optimizations) ===
         table.add_row(
-            "[bold cyan]🔧 O QUE FEZ[/bold cyan]",
+            "[bold cyan]APPLIED AT BOOT[/bold cyan]",
             "", "", ""
         )
         table.add_row(
-            "[green]✓[/green] 13 módulos aplicados",
+            "[green]✓[/green] 13 modules applied",
             "[green]✓[/green] Core Parking OFF",
             "[green]✓[/green] Nagle OFF · AdGuard DNS",
             "[green]✓[/green] HPET OFF · Turbo Locked"
         )
         table.add_row(
-            "[green]✓[/green] HAGS ON · CUDA otimizado",
+            "[green]✓[/green] HAGS ON · CUDA optimized",
             "[green]✓[/green] C-States OFF · MMCSS Gaming",
-            f"[green]✓[/green] {self.stats.get('blocked_domains', 21)} domains bloqueados",
-            "[green]✓[/green] 37 telemetrias bloqueadas"
+            f"[green]✓[/green] {self.stats.get('blocked_domains', 21)} domains blocked",
+            "[green]✓[/green] 37 telemetry entries blocked"
         )
         
         table.add_row("", "", "", "")
         
-        # === ROW 2: O que está FAZENDO agora (live) ===
+        # === ROW 2: What it's DOING now (live) ===
         # Live metrics
         cleaned_mb = self.stats_tracker.get('total_ram_cleaned_mb', 0)
         cleanups = self.stats_tracker.get('total_cleanups', 0)
@@ -450,14 +466,14 @@ class Dashboard:
         ads_str = f"{ads_blocked/1000:.1f}K" if ads_blocked >= 1000 else str(ads_blocked)
         
         table.add_row(
-            "[bold yellow]⚡ FAZENDO AGORA[/bold yellow]",
+            "[bold yellow]LIVE STATUS[/bold yellow]",
             "", "", ""
         )
         table.add_row(
-            f"💾 RAM limpa: [green]+{cleaned_mb:.0f}MB[/green] ({cleanups}x)",
-            f"⚙️ Prioridades: [green]↑{hi_prio}[/green] [yellow]↓{lo_prio}[/yellow]",
-            f"📶 Ping: [{('green' if ping_ms < 50 else 'yellow' if ping_ms < 100 else 'red')}]{ping_str}[/]",
-            f"🛡️ Ads bloqueados: [magenta]{ads_str}[/magenta]"
+            f"RAM cleaned: [green]+{cleaned_mb:.0f}MB[/green] ({cleanups}x)",
+            f"Priorities: [green]↑{hi_prio}[/green] [yellow]↓{lo_prio}[/yellow]",
+            f"Ping: [{('green' if ping_ms < 50 else 'yellow' if ping_ms < 100 else 'red')}]{ping_str}[/]",
+            f"Ads blocked: [magenta]{ads_str}[/magenta]"
         )
         
         return Panel(table, title=f"[bold]🎯 NovaPulse Infographic • Uptime: {time_str}[/bold]", border_style="yellow")
@@ -700,23 +716,26 @@ class Dashboard:
     def run(self, services):
         """Run the dashboard loop with Rich Live for zero-flicker rendering.
         
-        Fix for UI breaking:
-          - screen=True: uses alternate screen buffer (isolates from stray prints)
-          - refresh_per_second=2: reduced to prevent excessive redraws
-          - Ping runs in background thread (no subprocess blocking)
-          - Process priorities cached every 30s
-          - All panels wrapped in try/except
-          - stdout redirected to prevent background module prints from corrupting Live
+        CRITICAL: Background threads (SmartProcessManager, NVMe TRIM, AutoProfiler)
+        print to stdout/stderr which corrupts the Rich Live alternate screen buffer.
+        We redirect BOTH stdout AND stderr to StringIO BEFORE entering Live.
         """
         self.running = True
         
         # Start background ping thread
         self._start_ping_thread()
         
-        # Redirect stdout to suppress background prints from other modules
-        # (SmartProcessManager, AutoProfiler etc.)
+        # Flush any pending output before taking over the screen
+        sys.stdout.flush()
+        sys.stderr.flush()
+        time.sleep(0.5)  # Let background threads finish their startup prints
+        
+        # Redirect BOTH stdout AND stderr to suppress ALL background prints
+        # (SmartProcessManager, AutoProfiler, NVMe TRIM, etc.)
         self._original_stdout = sys.stdout
+        self._original_stderr = sys.stderr
         sys.stdout = io.StringIO()
+        sys.stderr = io.StringIO()
         
         # Rich Live with screen=True for alternate buffer (no flickering)
         with Live(self.layout, refresh_per_second=2, console=self.console, screen=True) as live:
@@ -736,15 +755,15 @@ class Dashboard:
                     live.update(self.layout)
                     
                     # Sleep 3 seconds between data updates
-                    # Rich Live handles visual refresh at 4fps independently
                     time.sleep(3)
                     
             except KeyboardInterrupt:
                 self.running = False
             finally:
                 self._ping_running = False
-                # Restore stdout
+                # Restore stdout and stderr
                 sys.stdout = self._original_stdout
+                sys.stderr = self._original_stderr
 
 
 if __name__ == "__main__":

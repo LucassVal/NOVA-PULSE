@@ -1,6 +1,6 @@
 """
 NovaPulse - Core Parking Manager
-Controla o estacionamento de núcleos da CPU (Core Parking)
+Controls CPU core parking (Core Parking)
 """
 import winreg
 import ctypes
@@ -10,13 +10,13 @@ from typing import Dict, Optional
 
 class CoreParkingManager:
     """
-    Gerencia Core Parking do Windows
+    Manages Windows Core Parking
     
-    Core Parking é um recurso que "dorme" núcleos inativos para economizar energia.
-    Desativar melhora responsividade em troca de maior consumo de energia.
+    Core Parking is a feature that "sleeps" inactive cores to save energy.
+    Disabling it improves responsiveness at the cost of higher power consumption.
     """
     
-    # GUIDs dos power settings
+    # Power settings GUIDs
     PROCESSOR_SUBGROUP = "54533251-82be-4824-96c1-47b60b740d00"
     
     # Core Parking settings
@@ -36,7 +36,7 @@ class CoreParkingManager:
             return False
     
     def _run_powercfg(self, args: str) -> bool:
-        """Executa comando powercfg"""
+        """Execute powercfg command"""
         try:
             result = subprocess.run(
                 f"powercfg {args}",
@@ -49,7 +49,7 @@ class CoreParkingManager:
             return False
     
     def _set_power_setting(self, setting_guid: str, value: int, ac: bool = True) -> bool:
-        """Define uma configuração de energia via powercfg"""
+        """Set a power setting via powercfg"""
         power_type = "/setacvalueindex" if ac else "/setdcvalueindex"
         
         cmd = f"{power_type} scheme_current sub_processor {setting_guid} {value}"
@@ -57,23 +57,23 @@ class CoreParkingManager:
     
     def disable_core_parking(self) -> bool:
         """
-        Desativa Core Parking completamente
-        Todos os núcleos ficam sempre ativos
+        Disable Core Parking completely
+        All cores remain active at all times
         
-        Impacto:
-        - ⚡ Resposta mais rápida
-        - ⚡ Menos stuttering em jogos
-        - 🔋 Maior consumo de energia
+        Impact:
+        - ⚡ Faster response
+        - ⚡ Less stuttering in games
+        - 🔋 Higher power consumption
         """
         if not self.is_admin:
-            print("[PARKING] ✗ Requer privilégios de administrador")
+            print("[PARKING] ✗ Requires administrator privileges")
             return False
         
-        print("[PARKING] Desativando Core Parking...")
+        print("[PARKING] Disabling Core Parking...")
         
         success = True
         
-        # Min cores unparked = 100% (todos ativos)
+        # Min cores unparked = 100% (all active)
         success &= self._set_power_setting(self.CORE_PARKING_MIN, 100, ac=True)
         success &= self._set_power_setting(self.CORE_PARKING_MIN, 100, ac=False)
         
@@ -81,21 +81,21 @@ class CoreParkingManager:
         success &= self._set_power_setting(self.CORE_PARKING_MAX, 100, ac=True)
         success &= self._set_power_setting(self.CORE_PARKING_MAX, 100, ac=False)
         
-        # Aplica as mudanças
+        # Apply changes
         self._run_powercfg("/setactive scheme_current")
         
         if success:
-            print("[PARKING] ✓ Core Parking desativado (100% cores ativos)")
+            print("[PARKING] ✓ Core Parking disabled (100% cores active)")
             self.applied_changes['parking_disabled'] = True
         else:
-            print("[PARKING] ✗ Erro ao desativar Core Parking")
+            print("[PARKING] ✗ Error disabling Core Parking")
         
         return success
     
     def enable_core_parking(self, min_percent: int = 50) -> bool:
         """
-        Reativa Core Parking com configuração personalizada
-        min_percent: Mínimo de cores que ficam ativos (0-100)
+        Re-enable Core Parking with custom configuration
+        min_percent: Minimum cores that stay active (0-100)
         """
         if not self.is_admin:
             return False
@@ -109,74 +109,74 @@ class CoreParkingManager:
         self._run_powercfg("/setactive scheme_current")
         
         if success:
-            print(f"[PARKING] ✓ Core Parking reativado (min {min_percent}% cores)")
+            print(f"[PARKING] ✓ Core Parking re-enabled (min {min_percent}% cores)")
             self.applied_changes['parking_disabled'] = False
         
         return success
     
     def optimize_parking_timers(self) -> bool:
         """
-        Otimiza timers de parking para resposta mais rápida
-        - Tempo para aumentar cores: Reduzido
-        - Tempo para diminuir cores: Aumentado
+        Optimize parking timers for faster response
+        - Time to increase cores: Reduced
+        - Time to decrease cores: Increased
         """
         if not self.is_admin:
             return False
         
         success = True
         
-        # Increase time: 1ms (reage rápido a carga)
+        # Increase time: 1ms (react quickly to load)
         success &= self._set_power_setting(self.CORE_PARKING_INCREASE_TIME, 1, ac=True)
         
-        # Decrease time: 100ms (demora mais para dormir)
+        # Decrease time: 100ms (takes longer to sleep)
         success &= self._set_power_setting(self.CORE_PARKING_DECREASE_TIME, 100, ac=True)
         
         self._run_powercfg("/setactive scheme_current")
         
         if success:
-            print("[PARKING] ✓ Timers de parking otimizados")
+            print("[PARKING] ✓ Parking timers optimized")
             self.applied_changes['timers_optimized'] = True
         
         return success
     
     def set_high_performance_scheme(self) -> bool:
         """
-        Ativa plano de energia High Performance
-        (Desativa muitas otimizações de economia automaticamente)
+        Activate High Performance power plan
+        (Disables many power-saving optimizations automatically)
         """
         if not self.is_admin:
             return False
         
-        # GUID do High Performance scheme
+        # High Performance scheme GUID
         # 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
         success = self._run_powercfg("/setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c")
         
         if success:
-            print("[PARKING] ✓ Plano High Performance ativado")
+            print("[PARKING] ✓ High Performance plan activated")
             self.applied_changes['high_performance'] = True
         else:
-            # Tenta criar se não existir
+            # Try to create if it doesn't exist
             self._run_powercfg("/duplicatescheme 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c")
             success = self._run_powercfg("/setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c")
             if success:
-                print("[PARKING] ✓ Plano High Performance criado e ativado")
+                print("[PARKING] ✓ High Performance plan created and activated")
                 self.applied_changes['high_performance'] = True
         
         return success
     
     def create_ultimate_performance_scheme(self) -> bool:
         """
-        Cria e ativa plano Ultimate Performance (Windows 10 Pro+)
+        Create and activate Ultimate Performance plan (Windows 10 Pro+)
         """
         if not self.is_admin:
             return False
         
-        # Tenta ativar Ultimate Performance
+        # Try to activate Ultimate Performance
         # e9a42b02-d5df-448d-aa00-03f14749eb61
         success = self._run_powercfg("/setactive e9a42b02-d5df-448d-aa00-03f14749eb61")
         
         if not success:
-            # Tenta criar o scheme
+            # Try to create the scheme
             result = subprocess.run(
                 "powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61",
                 shell=True, capture_output=True, text=True
@@ -185,45 +185,45 @@ class CoreParkingManager:
                 success = self._run_powercfg("/setactive e9a42b02-d5df-448d-aa00-03f14749eb61")
         
         if success:
-            print("[PARKING] ✓ Ultimate Performance ativado")
+            print("[PARKING] ✓ Ultimate Performance activated")
             self.applied_changes['ultimate_performance'] = True
         else:
-            print("[PARKING] ℹ Ultimate Performance não disponível, usando High Performance")
+            print("[PARKING] ℹ Ultimate Performance not available, using High Performance")
             return self.set_high_performance_scheme()
         
         return success
     
     def apply_all_optimizations(self, use_ultimate: bool = True) -> Dict[str, bool]:
         """
-        Aplica todas as otimizações de Core Parking
+        Apply all Core Parking optimizations
         """
-        print("\n[PARKING] Aplicando otimizações de Core Parking...")
+        print("\n[PARKING] Applying Core Parking optimizations...")
         
         results = {}
         
-        # Primeiro define o power scheme
+        # First set the power scheme
         if use_ultimate:
             results['power_scheme'] = self.create_ultimate_performance_scheme()
         else:
             results['power_scheme'] = self.set_high_performance_scheme()
         
-        # Desativa parking
+        # Disable parking
         results['disable_parking'] = self.disable_core_parking()
         
-        # Otimiza timers
+        # Optimize timers
         results['timers'] = self.optimize_parking_timers()
         
         success_count = sum(results.values())
-        print(f"[PARKING] Resultado: {success_count}/{len(results)} otimizações aplicadas")
+        print(f"[PARKING] Result: {success_count}/{len(results)} optimizations applied")
         
         return results
     
     def get_status(self) -> Dict[str, str]:
-        """Retorna status atual do Core Parking"""
+        """Returns current Core Parking status"""
         status = {}
         
         try:
-            # Verifica plano ativo
+            # Check active plan
             result = subprocess.run(
                 "powercfg /getactivescheme",
                 shell=True, capture_output=True, text=True
@@ -237,7 +237,7 @@ class CoreParkingManager:
             else:
                 status['power_scheme'] = result.stdout.strip()
         except:
-            status['power_scheme'] = "Desconhecido"
+            status['power_scheme'] = "Unknown"
         
         return status
 
@@ -254,4 +254,4 @@ def get_manager() -> CoreParkingManager:
 
 if __name__ == "__main__":
     manager = CoreParkingManager()
-    print("Status atual:", manager.get_status())
+    print("Current status:", manager.get_status())

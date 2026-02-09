@@ -1,11 +1,11 @@
 """
 NovaPulse System Tray Icon
-Permite controlar o otimizador pela bandeja do sistema
-Requer: pip install pystray pillow
+Controls the optimizer from the system tray
+Requires: pip install pystray pillow
 
-FEATURE: Minimize-to-Tray automático
-- Ao minimizar a janela, ela vai automaticamente para a bandeja
-- Clique no ícone para restaurar
+FEATURE: Automatic minimize-to-tray
+- When minimizing the window, it goes automatically to the tray
+- Click the icon to restore
 """
 import threading
 import sys
@@ -13,14 +13,14 @@ import os
 import ctypes
 import time
 
-# Tenta importar pystray (pode não estar instalado)
+# Try to import pystray (may not be installed)
 TRAY_AVAILABLE = False
 try:
     import pystray
     from PIL import Image, ImageDraw
     TRAY_AVAILABLE = True
 except ImportError:
-    print("[TRAY] pystray não instalado. Execute: pip install pystray pillow")
+    print("[TRAY] pystray not installed. Run: pip install pystray pillow")
 
 # Windows API Constants
 SW_HIDE = 0
@@ -30,26 +30,26 @@ SW_RESTORE = 9
 GWL_STYLE = -16
 WS_MINIMIZE = 0x20000000
 
-# Windows API para esconder/mostrar janela
+# Windows API to hide/show window
 def get_console_window():
-    """Retorna handle da janela do console"""
+    """Returns console window handle"""
     return ctypes.windll.kernel32.GetConsoleWindow()
 
 def is_window_minimized(hwnd):
-    """Verifica se a janela está minimizada"""
+    """Check if window is minimized"""
     if not hwnd:
         return False
     style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
     return bool(style & WS_MINIMIZE)
 
 def hide_console():
-    """Esconde a janela do console (vai para tray)"""
+    """Hide console window (go to tray)"""
     hwnd = get_console_window()
     if hwnd:
         ctypes.windll.user32.ShowWindow(hwnd, SW_HIDE)
 
 def show_console():
-    """Mostra a janela do console"""
+    """Show console window"""
     hwnd = get_console_window()
     if hwnd:
         ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)
@@ -57,7 +57,7 @@ def show_console():
         ctypes.windll.user32.SetForegroundWindow(hwnd)
 
 class SystemTrayIcon:
-    """Gerencia ícone na bandeja do sistema com mini-dashboard"""
+    """Manages system tray icon with mini-dashboard"""
     
     def __init__(self, optimizer_services=None, on_quit_callback=None):
         self.services = optimizer_services or {}
@@ -70,66 +70,49 @@ class SystemTrayIcon:
         self._last_minimize_state = False
         
         if not TRAY_AVAILABLE:
-            print("[TRAY] Sistema de tray não disponível")
+            print("[TRAY] Tray system not available")
             return
     
     def _minimize_to_tray_monitor(self):
-        """Monitora se a janela foi minimizada e esconde automaticamente para tray"""
+        """Monitor if window was minimized and auto-hide to tray"""
         hwnd = get_console_window()
         while self.running and hwnd:
             try:
                 is_minimized = is_window_minimized(hwnd)
-                
-                # Detecta transição para minimizado
+                # Detect transition to minimized
                 if is_minimized and not self._last_minimize_state and self.console_visible:
-                    # Janela foi minimizada - esconde para tray
-                    time.sleep(0.1)  # Pequeno delay para animação
+                    # Window was minimized - hide to tray
+                    time.sleep(0.1)  # Small delay for animation
                     hide_console()
                     self.console_visible = False
-                    
                 self._last_minimize_state = is_minimized
-                
             except Exception:
                 pass
-            
             time.sleep(0.2)  # Checks every 200ms
     
     def _create_icon_image(self, mode='normal'):
-        """Cria imagem do ícone baseado no modo"""
+        """Create icon image based on mode"""
         size = 64
         image = Image.new('RGBA', (size, size), (0, 0, 0, 0))
         draw = ImageDraw.Draw(image)
-        
-        # Cores baseadas no modo
         mode_colors = {
-            'boost': (255, 100, 50, 255),   # Laranja/Vermelho
-            'normal': (0, 200, 80, 255),    # Verde
-            'eco': (50, 180, 120, 255)      # Verde claro
+            'boost': (255, 100, 50, 255),
+            'normal': (0, 200, 80, 255),
+            'eco': (50, 180, 120, 255)
         }
         fill_color = mode_colors.get(mode.lower(), mode_colors['normal'])
-        
-        # Desenha círculo
         margin = 4
         draw.ellipse([margin, margin, size-margin, size-margin], fill=fill_color)
-        
-        # Adiciona borda
         draw.ellipse([margin, margin, size-margin, size-margin], outline=(255, 255, 255, 200), width=2)
-        
         return image
     
     def _get_mini_dashboard(self):
-        """Gera texto do mini-dashboard para tooltip (max 128 chars)"""
+        """Generate mini-dashboard text for tooltip (max 128 chars)"""
         try:
             import psutil
-            
-            # CPU
             cpu_percent = psutil.cpu_percent()
-            
-            # RAM
             mem = psutil.virtual_memory()
             ram_pct = mem.percent
-            
-            # GPU NVIDIA
             gpu_pct = 0
             gpu_temp = 0
             try:
@@ -142,27 +125,21 @@ class SystemTrayIcon:
                     gpu_temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
             except:
                 pass
-            
-            # Modo atual
             mode = "NORMAL"
             if 'auto_profiler' in self.services:
                 try:
                     mode = self.services['auto_profiler'].get_current_mode().value.upper()
                 except:
                     pass
-            
-            # Tooltip compacto (max 128 chars)
             tooltip = f"NovaPulse 2.2.1 | {mode}\n"
             tooltip += f"CPU:{cpu_percent:.0f}% RAM:{ram_pct:.0f}%\n"
             tooltip += f"GPU:{gpu_pct}% {gpu_temp}C"
-            
             return tooltip, mode.lower()
-            
         except Exception as e:
             return "NovaPulse 2.2.1", "normal"
     
     def _tooltip_update_loop(self):
-        """Atualiza tooltip a cada 2 segundos"""
+        """Update tooltip every 2 seconds"""
         import time
         while self.running and self.icon:
             try:
@@ -174,62 +151,52 @@ class SystemTrayIcon:
             time.sleep(2)
     
     def _create_menu(self):
-        """Cria menu de contexto do tray"""
+        """Create tray context menu"""
         menu_items = [
             pystray.MenuItem('⚡ NovaPulse', None, enabled=False),
             pystray.Menu.SEPARATOR,
-            
-            # Controles principais
-            pystray.MenuItem('📺 Mostrar Dashboard', self._toggle_console, default=True),
+            pystray.MenuItem('📺 Show Dashboard', self._toggle_console, default=True),
             pystray.Menu.SEPARATOR,
-            
-            # Controle de modo
             pystray.MenuItem('🏛️ Mode', pystray.Menu(
                 pystray.MenuItem('⚡ Force ACTIVE', lambda: self._force_mode('active')),
                 pystray.MenuItem('🌿 Force IDLE', lambda: self._force_mode('idle')),
             )),
-            
-            # Ações rápidas
-            pystray.MenuItem('🧹 Limpar RAM', self._force_clean),
+            pystray.MenuItem('🧹 Clean RAM', self._force_clean),
             pystray.Menu.SEPARATOR,
-            
-            # Sair
-            pystray.MenuItem('❌ Sair', self._quit)
+            pystray.MenuItem('❌ Exit', self._quit)
         ]
         return pystray.Menu(*menu_items)
     
     def _toggle_console(self):
-        """Alterna visibilidade do console (Mostrar/Esconder)"""
+        """Toggle console visibility (Show/Hide)"""
         if self.console_visible:
             hide_console()
             self.console_visible = False
         else:
             show_console()
             self.console_visible = True
-            self._last_minimize_state = False  # Reset minimize state
+            self._last_minimize_state = False
     
     def _force_mode(self, mode_name):
         """Force a specific mode via tray menu."""
         try:
             from modules.auto_profiler import get_profiler, SystemMode
             profiler = get_profiler()
-
             if mode_name == 'active':
                 profiler.force_mode(SystemMode.ACTIVE)
             elif mode_name == 'idle':
                 profiler.force_mode(SystemMode.IDLE)
-
         except Exception as e:
             print(f"[TRAY] Error changing mode: {e}")
     
     def _force_clean(self):
-        """Força limpeza de RAM"""
+        """Force RAM cleanup"""
         if 'cleaner' in self.services:
             freed = self.services['cleaner'].clean_standby_memory()
-            print(f"[TRAY] Limpeza manual: {freed}MB liberados")
+            print(f"[TRAY] Manual cleanup: {freed}MB freed")
     
     def _quit(self):
-        """Fecha o programa"""
+        """Close the program"""
         self.running = False
         show_console()
         if self.icon:
@@ -239,45 +206,39 @@ class SystemTrayIcon:
         sys.exit(0)
     
     def start(self):
-        """Inicia o ícone na bandeja"""
+        """Start the tray icon"""
         if not TRAY_AVAILABLE:
-            print("[TRAY] Tray não disponível - continuando sem ícone")
+            print("[TRAY] Tray not available - continuing without icon")
             return False
         
         self.running = True
         
         try:
             tooltip, mode = self._get_mini_dashboard()
-            
             self.icon = pystray.Icon(
                 name="NovaPulse",
                 icon=self._create_icon_image(mode),
                 title=tooltip,
                 menu=self._create_menu()
             )
-            
-            # Thread para atualizar tooltip
+            # Thread to update tooltip
             self.tooltip_thread = threading.Thread(target=self._tooltip_update_loop, daemon=True)
             self.tooltip_thread.start()
-            
-            # Thread para monitorar minimize-to-tray
+            # Thread to monitor minimize-to-tray
             self.minimize_monitor_thread = threading.Thread(target=self._minimize_to_tray_monitor, daemon=True)
             self.minimize_monitor_thread.start()
-            
-            # Roda em thread separada
+            # Run in separate thread
             tray_thread = threading.Thread(target=self.icon.run, daemon=True)
             tray_thread.start()
-            
-            print("[TRAY] ✓ Ícone na bandeja ativado")
-            print("[TRAY] → Minimize: Vai para bandeja | Clique no ícone: Restaurar")
+            print("[TRAY] ✓ Tray icon activated")
+            print("[TRAY] → Minimize: Goes to tray | Click icon: Restore")
             return True
-            
         except Exception as e:
-            print(f"[TRAY] Erro ao iniciar tray: {e}")
+            print(f"[TRAY] Error starting tray: {e}")
             return False
     
     def stop(self):
-        """Para o ícone"""
+        """Stop the icon"""
         self.running = False
         show_console()
         if self.icon:
@@ -285,15 +246,14 @@ class SystemTrayIcon:
 
 
 if __name__ == "__main__":
-    # Teste
     def on_quit():
-        print("Saindo...")
+        print("Exiting...")
         sys.exit(0)
     
     tray = SystemTrayIcon(on_quit_callback=on_quit)
     if tray.start():
-        print("Tray iniciado. Clique com botão direito no ícone.")
-        print("Clique em 'Mostrar/Esconder' para minimizar para bandeja.")
+        print("Tray started. Right-click the icon.")
+        print("Click 'Show/Hide' to minimize to tray.")
         try:
             while tray.running:
                 import time
@@ -301,4 +261,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             tray.stop()
     else:
-        print("Falha ao iniciar tray. Instale: pip install pystray pillow")
+        print("Failed to start tray. Install: pip install pystray pillow")

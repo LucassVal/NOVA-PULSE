@@ -1,6 +1,6 @@
 """
 NVMe/SSD Manager
-Otimizações específicas para drives de estado sólido (NVMe/SATA SSD)
+Specific optimizations for solid state drives (NVMe/SATA SSD)
 """
 import subprocess
 import threading
@@ -16,10 +16,10 @@ class NVMeManager:
         self.thread = None
 
     def apply_filesystem_optimizations(self):
-        """Aplica otimizações de sistema de arquivos (NTFS)"""
-        print("[NVMe] Verificando otimizações de NTFS...")
+        """Apply file system optimizations (NTFS)"""
+        print("[NVMe] Checking NTFS optimizations...")
         
-        # 1. Desativar Last Access Update (Ganho de IOPS em leitura)
+        # 1. Disable Last Access Update (Read IOPS improvement)
         # fsutil behavior set disablelastaccess 1
         try:
             # Check current status
@@ -27,55 +27,55 @@ class NVMeManager:
                                  capture_output=True, text=True)
             
             if " = 1" not in check.stdout:
-                print("[NVMe] Desativando 'Last Access Update' (Otimizando IOPS)...")
+                print("[NVMe] Disabling 'Last Access Update' (Optimizing IOPS)...")
                 subprocess.run(['fsutil', 'behavior', 'set', 'DisableLastAccess', '1'], 
                              capture_output=True)
-                print("[NVMe] ✓ Last Access Update desativado")
+                print("[NVMe] ✓ Last Access Update disabled")
             else:
-                print("[NVMe] ✓ Last Access Update já estava otimizado")
+                print("[NVMe] ✓ Last Access Update already optimized")
                 
         except Exception as e:
-            print(f"[NVMe] Erro ao otimizar NTFS: {e}")
+            print(f"[NVMe] Error optimizing NTFS: {e}")
 
     def apply_power_optimizations(self):
-        """Impede que o SSD entre em suspensão (Evita APST Lag)"""
+        """Prevent SSD from entering sleep (Avoids APST Lag)"""
         try:
-            print("[NVMe] Configurando Plano de Energia (Disco: Nunca suspender)...")
-            # AC (Tomada)
+            print("[NVMe] Configuring Power Plan (Disk: Never sleep)...")
+            # AC (Wall power)
             subprocess.run(['powercfg', '/change', 'disk-timeout-ac', '0'], capture_output=True)
-            # DC (Bateria - opcional, mas bom para performance)
+            # DC (Battery - optional, but good for performance)
             subprocess.run(['powercfg', '/change', 'disk-timeout-dc', '0'], capture_output=True)
-            print("[NVMe] ✓ Suspensão de disco desativada")
+            print("[NVMe] ✓ Disk sleep disabled")
         except Exception as e:
-            print(f"[NVMe] Erro ao configurar energia: {e}")
+            print(f"[NVMe] Error configuring power: {e}")
 
     def run_retrim(self):
-        """Executa comando de ReTrim (Powershell)"""
-        print("[NVMe] 🧹 Iniciando TRIM inteligente...")
+        """Execute ReTrim command (Powershell)"""
+        print("[NVMe] Starting smart TRIM...")
         try:
-            # ReTrim é rápido e seguro. Defrag é bloqueado pelo Windows em SSDs automaticamente.
+            # ReTrim is fast and safe. Defrag is blocked by Windows on SSDs automatically.
             # Removed -Verbose to prevent dashboard glitches
             cmd = "Optimize-Volume -DriveLetter C -ReTrim"
             subprocess.run(["powershell", "-Command", cmd], capture_output=True)
-            print("[NVMe] ✓ TRIM executado com sucesso")
+            print("[NVMe] ✓ TRIM completed successfully")
             return True
         except Exception as e:
-            print(f"[NVMe] Erro ao executar TRIM: {e}")
+            print(f"[NVMe] Error running TRIM: {e}")
             return False
 
     def start_periodic_trim(self):
-        """Inicia thread de TRIM periódico"""
+        """Start periodic TRIM thread"""
         if self.running: return
         
         self.running = True
         
         def trim_loop():
-            # Executa um TRIM logo na inicialização
-            time.sleep(10) # Aguarda sistema estabilizar
+            # Run a TRIM at startup
+            time.sleep(10) # Wait for system to stabilize
             self.run_retrim()
             
             while self.running:
-                # Aguarda intervalo (padrão 24h)
+                # Wait for interval (default 24h)
                 for _ in range(int(self.trim_interval / 10)):
                     if not self.running: break
                     time.sleep(10)
@@ -85,7 +85,7 @@ class NVMeManager:
         
         self.thread = threading.Thread(target=trim_loop, daemon=True)
         self.thread.start()
-        print(f"[NVMe] Agendador de TRIM iniciado (Intervalo: {self.trim_interval/3600:.1f}h)")
+        print(f"[NVMe] TRIM scheduler started (Interval: {self.trim_interval/3600:.1f}h)")
 
     def stop(self):
         self.running = False

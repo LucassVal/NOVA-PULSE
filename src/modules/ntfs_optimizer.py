@@ -1,6 +1,6 @@
 """
 NovaPulse - NTFS Optimizer
-Otimizações de sistema de arquivos NTFS para melhor I/O
+NTFS file system optimizations for better I/O
 """
 import subprocess
 import ctypes
@@ -9,21 +9,21 @@ from typing import Dict, Tuple
 
 
 class NTFSOptimizer:
-    """Otimiza configurações do sistema de arquivos NTFS"""
+    """Optimizes NTFS file system settings"""
     
     def __init__(self):
         self.applied_changes = {}
         self.is_admin = self._check_admin()
     
     def _check_admin(self) -> bool:
-        """Verifica privilégios de admin"""
+        """Check admin privileges"""
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
         except:
             return False
     
     def _run_fsutil(self, args: str) -> Tuple[bool, str]:
-        """Executa comando fsutil"""
+        """Execute fsutil command"""
         try:
             result = subprocess.run(
                 f"fsutil behavior set {args}",
@@ -39,8 +39,8 @@ class NTFSOptimizer:
     
     def disable_8dot3_names(self) -> bool:
         """
-        Desativa criação de nomes curtos 8.3 (legado DOS)
-        Impacto: Melhora performance de criação de arquivos
+        Disable 8.3 short name creation (legacy DOS)
+        Impact: Improves file creation performance
         """
         if not self.is_admin:
             return False
@@ -49,16 +49,16 @@ class NTFSOptimizer:
         self.applied_changes['8dot3'] = success
         
         if success:
-            print("[NTFS] ✓ 8.3 filenames desativados")
+            print("[NTFS] ✓ 8.3 filenames disabled")
         else:
-            print(f"[NTFS] ✗ Erro ao desativar 8.3: {output}")
+            print(f"[NTFS] ✗ Error disabling 8.3: {output}")
         
         return success
     
     def disable_last_access_time(self) -> bool:
         """
-        Desativa atualização de Last Access Time
-        Impacto: Reduz writes desnecessários (especialmente em SSDs)
+        Disable Last Access Time updates
+        Impact: Reduces unnecessary writes (especially on SSDs)
         """
         if not self.is_admin:
             return False
@@ -67,17 +67,17 @@ class NTFSOptimizer:
         self.applied_changes['lastaccess'] = success
         
         if success:
-            print("[NTFS] ✓ Last Access Time desativado")
+            print("[NTFS] ✓ Last Access Time disabled")
         else:
-            print(f"[NTFS] ✗ Erro ao desativar Last Access: {output}")
+            print(f"[NTFS] ✗ Error disabling Last Access: {output}")
         
         return success
     
     def optimize_memory_usage(self, large_cache: bool = False) -> bool:
         """
-        Otimiza uso de memória para cache de arquivos
-        large_cache=True: Prioriza cache (bom para servidores)
-        large_cache=False: Prioriza aplicativos (bom para desktop/gaming)
+        Optimize memory usage for file cache
+        large_cache=True: Prioritize cache (good for servers)
+        large_cache=False: Prioritize applications (good for desktop/gaming)
         """
         if not self.is_admin:
             return False
@@ -88,14 +88,14 @@ class NTFSOptimizer:
         
         if success:
             mode = "cache" if large_cache else "apps"
-            print(f"[NTFS] ✓ Memória otimizada para {mode}")
+            print(f"[NTFS] ✓ Memory optimized for {mode}")
         
         return success
     
     def disable_encryption(self) -> bool:
         """
-        Desativa EFS (Encrypting File System) no sistema
-        Impacto: Pequena melhoria em I/O
+        Disable EFS (Encrypting File System) on the system
+        Impact: Slight I/O improvement
         """
         if not self.is_admin:
             return False
@@ -104,15 +104,15 @@ class NTFSOptimizer:
         self.applied_changes['encryption'] = success
         
         if success:
-            print("[NTFS] ✓ Encryption pagefile desativado")
+            print("[NTFS] ✓ Encryption pagefile disabled")
         
         return success
     
     def set_mft_zone(self, size: int = 2) -> bool:
         """
-        Define tamanho da MFT Zone (1-4)
+        Set MFT Zone size (1-4)
         1 = 12.5%, 2 = 25%, 3 = 37.5%, 4 = 50%
-        Maior = menos fragmentação para muitos arquivos pequenos
+        Larger = less fragmentation for many small files
         """
         if not self.is_admin:
             return False
@@ -122,16 +122,16 @@ class NTFSOptimizer:
         self.applied_changes['mftzone'] = success
         
         if success:
-            print(f"[NTFS] ✓ MFT Zone definido para {size}")
+            print(f"[NTFS] ✓ MFT Zone set to {size}")
         
         return success
     
     def apply_all_optimizations(self, gaming_mode: bool = True) -> Dict[str, bool]:
         """
-        Aplica todas as otimizações NTFS
-        gaming_mode=True: Prioriza aplicativos sobre cache
+        Apply all NTFS optimizations
+        gaming_mode=True: Prioritize applications over cache
         """
-        print("\n[NTFS] Aplicando otimizações do sistema de arquivos...")
+        print("\n[NTFS] Applying file system optimizations...")
         
         results = {}
         results['8dot3'] = self.disable_8dot3_names()
@@ -141,12 +141,12 @@ class NTFSOptimizer:
         results['mftzone'] = self.set_mft_zone(2)
         
         success_count = sum(results.values())
-        print(f"[NTFS] Resultado: {success_count}/{len(results)} otimizações aplicadas")
+        print(f"[NTFS] Result: {success_count}/{len(results)} optimizations applied")
         
         return results
     
     def get_status(self) -> Dict[str, str]:
-        """Retorna status atual das configurações NTFS"""
+        """Returns current NTFS settings status"""
         status = {}
         
         try:
@@ -155,13 +155,13 @@ class NTFSOptimizer:
                 "fsutil behavior query disable8dot3",
                 shell=True, capture_output=True, text=True
             )
-            status['8dot3'] = "Desativado" if "1" in result.stdout else "Ativado"
+            status['8dot3'] = "Disabled" if "1" in result.stdout else "Enabled"
             
             result = subprocess.run(
                 "fsutil behavior query disablelastaccess",
                 shell=True, capture_output=True, text=True
             )
-            status['lastaccess'] = "Desativado" if "1" in result.stdout or "2" in result.stdout else "Ativado"
+            status['lastaccess'] = "Disabled" if "1" in result.stdout or "2" in result.stdout else "Enabled"
             
         except:
             pass
@@ -181,5 +181,5 @@ def get_optimizer() -> NTFSOptimizer:
 
 if __name__ == "__main__":
     optimizer = NTFSOptimizer()
-    print("Status atual:", optimizer.get_status())
+    print("Current status:", optimizer.get_status())
     # optimizer.apply_all_optimizations()

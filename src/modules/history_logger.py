@@ -1,6 +1,6 @@
 """
-History Logger - CSV Log de Limpezas
-Salva histórico de todas as operações de limpeza
+History Logger - CSV Cleanup Log
+Saves history of all cleanup operations
 """
 import csv
 import os
@@ -8,10 +8,10 @@ from datetime import datetime
 from pathlib import Path
 
 class HistoryLogger:
-    """Gerencia histórico de limpezas em CSV"""
+    """Manages cleanup history in CSV"""
     
     def __init__(self, log_dir=None):
-        # Diretório de logs
+        # Log directory
         if log_dir:
             self.log_dir = Path(log_dir)
         else:
@@ -21,11 +21,11 @@ class HistoryLogger:
         self.cleanup_log = self.log_dir / "cleanup_history.csv"
         self.events_log = self.log_dir / "events.csv"
         
-        # Inicializa arquivos se não existirem
+        # Initialize files if they don't exist
         self._init_files()
     
     def _init_files(self):
-        """Cria arquivos CSV com headers se não existirem"""
+        """Create CSV files with headers if they don't exist"""
         if not self.cleanup_log.exists():
             with open(self.cleanup_log, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
@@ -38,7 +38,7 @@ class HistoryLogger:
     
     def log_cleanup(self, freed_mb: float, trigger: str = "auto", 
                     ram_before_mb: float = 0, ram_after_mb: float = 0):
-        """Registra uma limpeza de memória"""
+        """Record a memory cleanup"""
         timestamp = datetime.now().isoformat()
         
         try:
@@ -46,10 +46,10 @@ class HistoryLogger:
                 writer = csv.writer(f)
                 writer.writerow([timestamp, freed_mb, trigger, ram_before_mb, ram_after_mb])
         except Exception as e:
-            print(f"[HISTORY] Erro ao salvar log: {e}")
+            print(f"[HISTORY] Error saving log: {e}")
     
     def log_event(self, event_type: str, details: str = ""):
-        """Registra um evento genérico"""
+        """Record a generic event"""
         timestamp = datetime.now().isoformat()
         
         try:
@@ -60,7 +60,7 @@ class HistoryLogger:
             pass
     
     def get_cleanup_stats(self) -> dict:
-        """Retorna estatísticas de limpezas"""
+        """Returns cleanup statistics"""
         stats = {
             'total_cleanups': 0,
             'total_freed_mb': 0,
@@ -84,15 +84,15 @@ class HistoryLogger:
         return stats
     
     def get_log_path(self) -> Path:
-        """Retorna caminho da pasta de logs"""
+        """Returns the log folder path"""
         return self.log_dir
 
 
-# Singleton global
+# Global singleton
 _instance = None
 
 def get_logger() -> HistoryLogger:
-    """Retorna instância singleton do logger"""
+    """Returns singleton logger instance"""
     global _instance
     if _instance is None:
         _instance = HistoryLogger()
@@ -100,13 +100,13 @@ def get_logger() -> HistoryLogger:
 
 
 if __name__ == "__main__":
-    # Teste
+    # Test
     logger = get_logger()
     
-    # Simula algumas limpezas
+    # Simulate some cleanups
     logger.log_cleanup(512, "auto", 4096, 4608)
     logger.log_cleanup(256, "manual", 3500, 3756)
     logger.log_event("game_start", "valorant.exe")
     
-    print(f"Logs salvos em: {logger.get_log_path()}")
-    print(f"Estatísticas: {logger.get_cleanup_stats()}")
+    print(f"Logs saved to: {logger.get_log_path()}")
+    print(f"Statistics: {logger.get_cleanup_stats()}")

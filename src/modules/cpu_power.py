@@ -1,5 +1,5 @@
 """
-Gerenciador de energia e frequência da CPU
+CPU power and frequency manager
 """
 import ctypes
 from ctypes import wintypes
@@ -15,15 +15,15 @@ class CPUPowerManager:
         self.GUID_MIN_THROTTLE = "PROCTHROTTLEMIN"
     
     def set_max_cpu_frequency(self, percentage):
-        """Define frequência máxima da CPU (5-100%)"""
+        """Set maximum CPU frequency (5-100%)"""
         if not (5 <= percentage <= 100):
-            print(f"[ERROR] Percentual inválido: {percentage}%. Deve estar entre 5-100%")
+            print(f"[ERROR] Invalid percentage: {percentage}%. Must be between 5-100%")
             return False
         
         try:
-            print(f"[INFO] Configurando frequência máxima da CPU para {percentage}%")
+            print(f"[INFO] Setting CPU max frequency to {percentage}%")
             
-            # Usa powercfg.exe com aliases (mais compatível)
+            # Use powercfg.exe with aliases (more compatible)
             result = subprocess.run(
                 ['powercfg', '-setacvalueindex', 'SCHEME_CURRENT',
                  self.GUID_PROCESSOR, self.GUID_MAX_THROTTLE, str(percentage)],
@@ -34,26 +34,26 @@ class CPUPowerManager:
             )
             
             if result.returncode == 0:
-                # Aplica mudanças
+                # Apply changes
                 subprocess.run(['powercfg', '-setactive', 'SCHEME_CURRENT'], 
                               capture_output=True, encoding='utf-8', errors='ignore')
-                print(f"[SUCCESS] Frequência máxima definida para {percentage}%")
+                print(f"[SUCCESS] Max frequency set to {percentage}%")
                 return True
             else:
-                # Silencia erro se já está no valor desejado
+                # Silence error if already at desired value
                 return True
         except Exception as e:
             print(f"[WARN] CPU control: {e}")
             return False
     
     def set_min_cpu_frequency(self, percentage):
-        """Define frequência mínima da CPU (0-100%)"""
+        """Set minimum CPU frequency (0-100%)"""
         if not (0 <= percentage <= 100):
-            print(f"[ERROR] Percentual inválido: {percentage}%")
+            print(f"[ERROR] Invalid percentage: {percentage}%")
             return False
         
         try:
-            print(f"[INFO] Configurando frequência mínima da CPU para {percentage}%")
+            print(f"[INFO] Setting CPU min frequency to {percentage}%")
             
             result = subprocess.run(
                 ['powercfg', '-setacvalueindex', 'SCHEME_CURRENT',
@@ -67,10 +67,10 @@ class CPUPowerManager:
             if result.returncode == 0:
                 subprocess.run(['powercfg', '-setactive', 'SCHEME_CURRENT'],
                               capture_output=True, encoding='utf-8', errors='ignore')
-                print(f"[SUCCESS] Frequência mínima definida para {percentage}%")
+                print(f"[SUCCESS] Min frequency set to {percentage}%")
                 return True
             else:
-                # Silencia erro
+                # Silence error
                 return True
         except Exception as e:
             print(f"[WARN] CPU min control: {e}")
@@ -134,25 +134,25 @@ class CPUPowerManager:
         t.start()
 
     def restore_defaults(self):
-        """Restaura configurações padrão de CPU (100%)"""
+        """Restore default CPU settings (100%)"""
         try:
-            print("[INFO] Restaurando configurações padrão de CPU...")
+            print("[INFO] Restoring default CPU settings...")
             self.set_max_cpu_frequency(100)
             self.set_min_cpu_frequency(5)
-            print("[SUCCESS] Configurações de CPU restauradas para padrão")
+            print("[SUCCESS] CPU settings restored to defaults")
             return True
         except Exception as e:
-            print(f"[ERROR] Erro ao restaurar padrões: {e}")
+            print(f"[ERROR] Failed to restore defaults: {e}")
             return False
 
 
 if __name__ == "__main__":
-    # Teste
+    # Test
     manager = CPUPowerManager()
     
-    print("Testando controle de CPU...")
-    print("1. Definindo máximo para 80%")
+    print("Testing CPU control...")
+    print("1. Setting max to 80%")
     manager.set_max_cpu_frequency(80)
     
-    input("\nPressione ENTER para restaurar padrões...")
+    input("\nPress ENTER to restore defaults...")
     manager.restore_defaults()

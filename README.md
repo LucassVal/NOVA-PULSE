@@ -1011,15 +1011,29 @@ NOVA-PULSE/               ← repo root (clean)
 > **NovaPulse modifies kernel-level settings, registry keys, and boot configuration.**
 > This section explains the risks, safeguards, and recommended usage.
 
+### 🚨 Emergency Recovery (If System Becomes Unstable)
+
+| Step | Action                                                                                     | When to Use                |
+| ---- | ------------------------------------------------------------------------------------------ | -------------------------- |
+| 1    | **Boot normally** — NovaPulse session-only changes (timer, priority) reset automatically   | Minor issues after reboot  |
+| 2    | **Safe Mode** — Press `F8` / `Shift+Restart` → run `bcdedit /deletevalue useplatformclock` | Boot failure or time drift |
+| 3    | **System Restore** — Use the restore point created before first run                        | Multiple issues at once    |
+
+**Contact for help:** Open an [Issue](https://github.com/LucassVal/NOVA-PULSE/issues) — include `~/Desktop/NovaPulse_Diagnostic.txt` and exact error message.
+
+---
+
 ### ⚠️ What NovaPulse Touches
 
-| Layer                    | Examples                                         | Risk Level                                                    |
-| ------------------------ | ------------------------------------------------ | ------------------------------------------------------------- |
-| Windows Registry         | Power plans, GPU settings, NTFS behavior         | 🟡 Medium — reversible via `restore_defaults()`               |
-| Boot Configuration (BCD) | HPET, Dynamic Tick, TSC sync                     | 🟠 High — requires reboot to revert                           |
-| System Services          | DiagTrack, SysMain, Xbox services                | 🟡 Medium — re-enabled via `services_optimizer.restore_all()` |
-| Hosts File               | Telemetry domains blocked                        | 🟢 Low — `telemetry_blocker.restore_hosts()`                  |
-| Kernel APIs              | Timer resolution, memory purge, process priority | 🟢 Low — session-only, resets on reboot                       |
+| Layer                    | Examples                                         | Risk Level                                                    | Potential Symptom If Incompatible    |
+| ------------------------ | ------------------------------------------------ | ------------------------------------------------------------- | ------------------------------------ |
+| Boot Configuration (BCD) | HPET, Dynamic Tick, TSC sync                     | 🟠 High — requires reboot to revert                           | Boot failure, time drift, BSOD       |
+| Windows Registry         | Power plans, GPU settings, NTFS behavior         | 🟡 Medium — reversible via `restore_defaults()`               | Reduced performance, driver warnings |
+| System Services          | DiagTrack, SysMain, Xbox services                | 🟡 Medium — re-enabled via `services_optimizer.restore_all()` | Longer boot time, missing telemetry  |
+| Hosts File               | Telemetry domains blocked                        | 🟢 Low — `telemetry_blocker.restore_hosts()`                  | Some Microsoft services unreachable  |
+| Kernel APIs              | Timer resolution, memory purge, process priority | 🟢 Low — session-only, resets on reboot                       | None — auto-resets on reboot         |
+
+---
 
 ### 🛡️ Every Optimization is Reversible
 
@@ -1034,7 +1048,7 @@ All modules implement restore/undo methods:
 | `telemetry_blocker.py`  | `restore_hosts()` → removes NovaPulse entries from hosts |
 | `timer_resolution.py`   | `restore()` → returns to 15.625ms default                |
 
-> **Worst-case recovery:** Boot into Safe Mode → run `bcdedit /deletevalue useplatformclock` → reboot.
+---
 
 ### 🎯 Recommended Usage Flow
 
@@ -1049,6 +1063,8 @@ All modules implement restore/undo methods:
 
 **Never jump straight to AGGRESSIVE.** Each level builds on the previous, and the `optimization_engine.py` enforces dependency order.
 
+---
+
 ### 🖥️ Hardware Compatibility
 
 NovaPulse is **optimized for Intel Tiger Lake + NVIDIA**, but most modules work across all Windows 10/11 systems:
@@ -1061,6 +1077,39 @@ NovaPulse is **optimized for Intel Tiger Lake + NVIDIA**, but most modules work 
 | ⚙️ **Tiger Lake tuned**         | `cpu_power` (80% cap rationale)                                                              | Cap values are hardware-specific |
 
 > **AMD users:** NovaPulse will not break your system. Intel-specific modules simply skip when Intel hardware is not detected. All universal modules provide full benefit.
+
+---
+
+### 🔄 Windows Updates & NovaPulse
+
+Windows updates may reset some optimizations. After major updates (Feature Updates):
+
+1. Re-run `diagnostic.py` to check for changes
+2. Re-apply your optimization level if needed
+3. Check the [Releases](https://github.com/LucassVal/NOVA-PULSE/releases) page for NovaPulse updates addressing new Windows versions
+
+> **Note:** Registry-based tweaks persist through updates. BCD and service changes may be reset by major Feature Updates (e.g., 23H2 → 24H2).
+
+---
+
+### ❓ Common Questions
+
+**Q: Will NovaPulse work on my AMD Ryzen + NVIDIA system?**
+A: Yes — all universal modules (~75%) work fully. Intel-specific modules skip themselves. NVIDIA modules work normally.
+
+**Q: Can I use NovaPulse on a laptop?**
+A: Yes, but monitor temperatures closely. The 80% CPU cap is specifically designed for laptop thermal constraints.
+
+**Q: What if I want to uninstall NovaPulse?**
+A: Run each module's restore method before removing. All changes are reversible — nothing is permanent.
+
+**Q: Does this work with Windows 11 24H2?**
+A: Yes, tested on Windows 10 22H2 and Windows 11 23H2/24H2. The `diagnostic.py` tool verifies compatibility.
+
+**Q: Will this void my warranty?**
+A: No. NovaPulse only changes software settings (registry, services, power plans). No firmware or hardware modifications are made.
+
+---
 
 ### 🧪 Before You Start
 

@@ -5,7 +5,7 @@ Registers NovaPulse to start with Windows using Task Scheduler.
 Why Task Scheduler instead of Registry Run key:
   - Task Scheduler can run with HIGHEST privileges (admin) automatically
   - Runs at SYSTEM STARTUP (before user login) — earliest possible
-  - More reliable than HKCU\Run (survives registry cleaners)
+  - More reliable than HKCU\\Run (survives registry cleaners)
   - Can set conditions (only on AC power, network available, etc.)
 
 The BIOS/UEFI level is NOT accessible from user-mode applications.

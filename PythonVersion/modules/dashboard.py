@@ -54,7 +54,7 @@ class Dashboard:
         self.layout.split(
             Layout(name="header", size=3),
             Layout(name="body"),
-            Layout(name="footer", size=10)
+            Layout(name="footer", size=12)
         )
         
         # Split body: hardware | status | security

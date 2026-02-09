@@ -139,22 +139,33 @@ class GPUSchedulerController:
     def enable_game_mode(self) -> bool:
         """
         Habilita Game Mode do Windows
+        Win11 Home: GameBar key is under HKCU, not HKLM
         """
-        if not self.is_admin:
-            return False
-        
         try:
+            # Win11: GameBar settings are per-user (HKCU)
             game_key = r"SOFTWARE\Microsoft\GameBar"
-            # AutoGameModeEnabled = 1
-            success = self._set_registry_value(game_key, "AutoGameModeEnabled", 1)
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, game_key, 0, winreg.KEY_SET_VALUE)
+            except FileNotFoundError:
+                # Create key if it doesn't exist
+                key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, game_key)
             
-            if success:
-                print("[GPU] ✓ Game Mode habilitado")
-                self.applied_changes['game_mode'] = True
-            
-            return success
-        except:
-            return False
+            winreg.SetValueEx(key, "AutoGameModeEnabled", 0, winreg.REG_DWORD, 1)
+            winreg.CloseKey(key)
+            print("[GPU] ✓ Game Mode habilitado")
+            self.applied_changes['game_mode'] = True
+            return True
+        except Exception as e:
+            # Fallback: try HKLM (older Windows / domain-joined)
+            try:
+                success = self._set_registry_value(game_key, "AutoGameModeEnabled", 1)
+                if success:
+                    print("[GPU] ✓ Game Mode habilitado (HKLM)")
+                    self.applied_changes['game_mode'] = True
+                return success
+            except:
+                print(f"[GPU] ✗ Game Mode: {e}")
+                return False
     
     def set_preferred_gpu_high_performance(self) -> bool:
         """

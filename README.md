@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![NovaPulse Banner](https://img.shields.io/badge/NovaPulse-v2.2-brightgreen?style=for-the-badge&logo=windows&logoColor=white)
+![NovaPulse Banner](https://img.shields.io/badge/NovaPulse-v2.2.1-brightgreen?style=for-the-badge&logo=windows&logoColor=white)
 
 **🎮 Ultimate Windows Gaming Optimization + Security Shield 🛡️**
 
@@ -196,21 +196,18 @@ NovaPulse is a **kernel-level Windows optimizer** that applies **13 optimization
 
 ---
 
-### 🔷 13. Intel Power Control ⚡ (NEW in v2.1)
+### 🔷 13. Auto-Profiler (2-Stage) ⚡ (v2.2.1)
 
-| Profile            | Min/Max CPU | Boost Mode | Use Case               |
-| ------------------ | ----------- | ---------- | ---------------------- |
-| 🌿 **ECO**         | 5% / 50%    | Disabled   | Silent, battery saving |
-| ⚖️ **BALANCED**    | 5% / 85%    | Efficient  | Normal use             |
-| 🎮 **PERFORMANCE** | 50% / 100%  | Aggressive | Gaming                 |
-| 🚀 **TURBO**       | 100% / 100% | Maximum    | Benchmarks             |
+| Stage         | CPU Cap | Condition                       |
+| ------------- | ------- | ------------------------------- |
+| ⚡ **ACTIVE** | 80%     | Always on — gaming, work, daily |
+| 🌿 **IDLE**   | 20%     | After 5 min of CPU < 15%        |
 
-**🌡️ Thermal Protection:**
+**Behavior**: Instantly wakes to ACTIVE when CPU exceeds 15%. No temperature sensor dependency — pure CPU load monitoring.
 
-```
-Temperature < 70°C  → PERFORMANCE mode
-Temperature 70-85°C → BALANCED mode
-Temperature > 85°C  → ECO mode (prevents crash at 90°C)
+```text
+CPU > 15% → ACTIVE (80% cap, ~2.9GHz on i5-11300H)
+CPU < 15% for 5 min → IDLE (20% cap, power saving)
 ```
 
 ---
@@ -253,7 +250,7 @@ MIT License - Free for personal and commercial use.
 
 ### ⭐ Star this repo if it helped you!
 
-**NovaPulse 2.1** - _Intelligent Windows System Optimization_
+**NovaPulse 2.2.1** - _Intelligent Windows System Optimization_
 
 Made with ❤️ for gamers and power users
 

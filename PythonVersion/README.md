@@ -1,4 +1,4 @@
-# ⚡ NovaPulse 2.2
+# ⚡ NovaPulse 2.2.1
 
 **Intelligent Windows System Optimization + Security Shield**
 
@@ -48,12 +48,13 @@ A comprehensive system optimization tool with built-in security scanner and tele
 
 - **Rich Console Dashboard**: Real-time CPU/GPU/RAM + Security Shield status
 - **System Tray Icon**: Quick access, minimize to tray, compact tooltip
-- **Auto-Profiler**: Automatic BOOST/NORMAL/ECO mode based on CPU load
-- **Thermal Protection**: Auto-throttle when CPU > 85°C to prevent slowdown at 90°C
+- **Auto-Profiler (2-Stage)**: ACTIVE (80% CPU) / IDLE (20% CPU after 5 min inactivity)
+- **Windows Defender Hardening**: Enables ASR rules, ransomware protection, exploit mitigations
+- **Auto-Start**: Runs at system startup via Task Scheduler (before login)
 
 ### Temperature Service (5-stage hierarchy)
 
-```
+```text
 Priority 1: OpenHardwareMonitor / LibreHardwareMonitor (most accurate)
 Priority 2: WMI Win32_TemperatureProbe
 Priority 3: ACPI ThermalZone (MSAcpi_ThermalZoneTemperature) ← Intel DPTF
@@ -104,20 +105,21 @@ Windows sends diagnostic data, crash reports, usage statistics, and browsing pat
 
 ## 📊 Architecture
 
-```
-novapulse.py (main v2.2)
+```text
+novapulse.py (main v2.2.1)
 ├── optimization_engine.py     ← Orchestrates all 13 modules
 ├── modules/
 │   ├── Core: auto_profiler, standby_cleaner, cpu_power
 │   ├── Hardware: core_parking, memory_optimizer, hpet_controller
-│   ├── GPU: gpu_scheduler, cuda_optimizer, gpu_controller
+│   ├── GPU: gpu_scheduler, cuda_optimizer
 │   ├── Network: network_qos, network_stack_optimizer
 │   ├── Input: usb_optimizer, irq_optimizer
 │   ├── System: ntfs_optimizer, mmcss_optimizer, services_optimizer
 │   ├── Process: process_controller, smart_process_manager
 │   ├── Monitoring: temperature_service, intel_power_control
-│   ├── Security: security_scanner, telemetry_blocker  ← NEW v2.2
-│   └── UI: dashboard (with security panel), tray_icon
+│   ├── Security: security_scanner, telemetry_blocker, defender_hardener
+│   ├── Startup: startup_manager
+│   └── UI: dashboard (with security panel), tray_icon, dashboard_webview
 ├── config.yaml               ← All module settings
 └── diagnostic.py             ← System diagnostics
 ```
@@ -145,17 +147,14 @@ python -m PyInstaller --onefile --icon=novapulse_logo.ico --add-data "config.yam
 Edit `config.yaml` to customize:
 
 ```yaml
-optimization:
-  level: gaming # safe, balanced, gaming, aggressive
+optimization_level: gaming # safe, balanced, gaming, aggressive
 
 auto_profiler:
   enabled: true
-  boost_threshold: 85 # CPU % to trigger BOOST mode
-  eco_threshold: 30 # CPU % to trigger ECO mode
-
-thermal:
-  threshold: 85 # °C to trigger thermal throttle
-  throttle_percent: 70 # CPU limit when thermal active
+  active_cpu_cap: 80 # ACTIVE mode CPU cap
+  idle_cpu_cap: 20 # IDLE mode CPU cap
+  idle_timeout: 300 # 5 min to enter IDLE
+  wake_threshold: 15 # CPU >15% = wake to ACTIVE
 ```
 
 ## ⚠️ Notes
@@ -183,6 +182,6 @@ Personal use. Created for optimizing Windows gaming performance and privacy.
 
 ---
 
-**Version**: 2.2  
+**Version**: 2.2.1  
 **Last Updated**: 2026-02-09  
 **Target CPU**: Intel Core i5-11300H @ 3.10GHz (Tiger Lake)

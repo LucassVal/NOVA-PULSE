@@ -59,6 +59,8 @@ except ImportError:
 try:
     from modules.telemetry_blocker import get_blocker
     from modules.security_scanner import get_scanner
+    from modules.defender_hardener import get_hardener
+    from modules.startup_manager import get_startup_manager
     SECURITY_AVAILABLE = True
 except ImportError:
     SECURITY_AVAILABLE = False
@@ -67,7 +69,7 @@ except ImportError:
 init()
 
 # Version
-VERSION = "2.2"
+VERSION = "2.2.1"
 APP_NAME = "NovaPulse"
 
 
@@ -391,20 +393,38 @@ def main():
         except Exception as e:
             print(f"{Fore.YELLOW}[WARN] Security Scanner: {e}{Style.RESET_ALL}")
 
+        # Defender Hardening (enables all advanced Defender features)
+        try:
+            hardener = get_hardener()
+            hardener.harden_all()
+            services['defender_hardener'] = hardener
+        except Exception as e:
+            print(f"{Fore.YELLOW}[WARN] Defender Hardener: {e}{Style.RESET_ALL}")
+
+        # Startup Registration (Task Scheduler at boot)
+        try:
+            startup = get_startup_manager()
+            if not startup.is_registered():
+                startup.register()
+            else:
+                print(f"{Fore.GREEN}✓ Auto-start already registered{Style.RESET_ALL}")
+            services['startup_manager'] = startup
+        except Exception as e:
+            print(f"{Fore.YELLOW}[WARN] Startup Manager: {e}{Style.RESET_ALL}")
+
     # === AUTO-PROFILER (NOVAPULSE CORE) ===
     profiler_config = config.get('auto_profiler', {})
     if profiler_config.get('enabled', True):
         profiler = get_profiler()
         profiler.config = profiler_config
-        profiler.boost_threshold = profiler_config.get('boost_threshold', 85)
-        profiler.eco_threshold = profiler_config.get('eco_threshold', 30)
+        profiler.active_cpu_cap = profiler_config.get('active_cpu_cap', 80)
+        profiler.idle_cpu_cap = profiler_config.get('idle_cpu_cap', 20)
+        profiler.idle_timeout = profiler_config.get('idle_timeout', 300)
         profiler.check_interval = profiler_config.get('check_interval', 2)
-        profiler.boost_hold_time = profiler_config.get('boost_hold_time', 2)
-        profiler.eco_hold_time = profiler_config.get('eco_hold_time', 5)
         profiler.set_services(services)
         profiler.start()
         services['auto_profiler'] = profiler
-        print(f"{Fore.GREEN}✓ Auto-Profiler ativado (reação: {profiler.check_interval}s){Style.RESET_ALL}")
+        print(f"{Fore.GREEN}✓ Auto-Profiler v2.2 (ACTIVE {profiler.active_cpu_cap}% / IDLE {profiler.idle_cpu_cap}% after {profiler.idle_timeout}s){Style.RESET_ALL}")
 
     print(f"\n{Fore.GREEN}✓ Todos os serviços NovaPulse iniciados{Style.RESET_ALL}")
     

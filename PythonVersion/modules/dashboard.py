@@ -137,7 +137,7 @@ class Dashboard:
             
             # Auto-profiler mode
             mode_text = self.stats.get('auto_mode', 'NORMAL')
-            mode_colors = {'BOOST': 'red', 'NORMAL': 'cyan', 'ECO': 'green'}
+            mode_colors = {'ACTIVE': 'cyan', 'IDLE': 'green'}
             mode_color = mode_colors.get(mode_text, 'cyan')
             
             # Security shield status
@@ -342,8 +342,8 @@ class Dashboard:
         # Auto-Profiler Mode
         auto_mode = self.stats.get('auto_mode', 'NORMAL')
         avg_cpu = self.stats.get('auto_avg_cpu', 0)
-        mode_icons = {'BOOST': '⚡', 'NORMAL': '🔄', 'ECO': '🌿'}
-        mode_colors = {'BOOST': 'red', 'NORMAL': 'cyan', 'ECO': 'green'}
+        mode_icons = {'ACTIVE': '⚡', 'IDLE': '🌿'}
+        mode_colors = {'ACTIVE': 'cyan', 'IDLE': 'green'}
         mode_icon = mode_icons.get(auto_mode, '🔄')
         mode_color = mode_colors.get(auto_mode, 'cyan')
         table.add_row(f"  {mode_icon} Auto Mode", f"[{mode_color}]{auto_mode}[/{mode_color}] (CPU: {avg_cpu:.0f}%)")

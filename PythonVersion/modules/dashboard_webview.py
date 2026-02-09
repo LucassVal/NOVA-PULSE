@@ -106,37 +106,26 @@ class DashboardAPI:
             print(f"[DASHBOARD] Erro ao obter métricas: {e}")
             return None
     
-    def force_boost(self):
-        """Força modo BOOST"""
+    def force_active(self):
+        """Force ACTIVE mode (80% CPU)."""
         try:
             from modules.auto_profiler import get_profiler, SystemMode
             profiler = get_profiler()
-            profiler.force_mode(SystemMode.BOOST)
+            profiler.force_mode(SystemMode.ACTIVE)
             return True
         except Exception as e:
-            print(f"[DASHBOARD] Erro ao forçar BOOST: {e}")
+            print(f"[DASHBOARD] Error forcing ACTIVE: {e}")
             return False
     
-    def force_eco(self):
-        """Força modo ECO"""
+    def force_idle(self):
+        """Force IDLE mode (20% CPU)."""
         try:
             from modules.auto_profiler import get_profiler, SystemMode
             profiler = get_profiler()
-            profiler.force_mode(SystemMode.ECO)
+            profiler.force_mode(SystemMode.IDLE)
             return True
         except Exception as e:
-            print(f"[DASHBOARD] Erro ao forçar ECO: {e}")
-            return False
-    
-    def force_auto(self):
-        """Retorna ao modo AUTO (NORMAL)"""
-        try:
-            from modules.auto_profiler import get_profiler, SystemMode
-            profiler = get_profiler()
-            profiler.force_mode(SystemMode.NORMAL)
-            return True
-        except Exception as e:
-            print(f"[DASHBOARD] Erro ao forçar AUTO: {e}")
+            print(f"[DASHBOARD] Error forcing IDLE: {e}")
             return False
     
     def clean_ram(self):

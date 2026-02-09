@@ -1,6 +1,21 @@
 """
-Módulo de limpeza de memória Standby usando ctypes
-Similar ao ISLC
+NovaPulse Standby Memory Cleaner v2.2
+Purges Windows standby memory (cached file pages) to free RAM.
+
+Similar to ISLC (Intelligent Standby List Cleaner) but integrated.
+
+Design Decisions:
+  - Only purges StandbyList (code 4). Never calls EmptyWorkingSets (code 2)
+    because that forces active apps to swap to disk, causing 1-2s stutter.
+  - Surgical check: Only cleans if BOTH conditions are true:
+      1. Available RAM < threshold (default 3GB)
+      2. Standby cache > 1GB (cleaning empty cache = wasted I/O)
+  - Minimum 30 seconds between cleans to prevent thrashing.
+  - Tracks total MB cleaned per session for the dashboard.
+
+Uses NtSetSystemInformation via ctypes — requires Administrator.
+
+Target: Intel Core i5-11300H, 16GB RAM (Tiger Lake laptop)
 """
 import ctypes
 from ctypes import wintypes
@@ -9,162 +24,187 @@ import threading
 import psutil
 from datetime import datetime
 
-# Constantes da API do Windows
+
+# Windows API constants
 SystemMemoryListInformation = 80
 MemoryPurgeStandbyList = 4
-MemoryEmptyWorkingSets = 2
+# MemoryEmptyWorkingSets = 2  # DISABLED — causes stutter
 
-# Carregar ntdll.dll
+# Load Windows DLLs
 ntdll = ctypes.WinDLL('ntdll')
 kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
+
 class StandbyMemoryCleaner:
-    def __init__(self, threshold_mb=1024, check_interval=5):
-        self.threshold_mb = threshold_mb
-        self.check_interval = check_interval
+    """
+    Monitors RAM and purges standby list when memory is low.
+
+    Improved in v2.2:
+    - Minimum 30s between cleans (prevents thrashing)
+    - Logs total freed per session
+    - Smarter threshold defaults (3GB instead of 1GB)
+    - Standby estimation before cleaning
+    """
+
+    def __init__(self, threshold_mb=3072, check_interval=10):
+        self.threshold_mb = threshold_mb        # Clean when available < this
+        self.check_interval = check_interval     # Seconds between checks
+        self.min_clean_interval = 30             # Minimum 30s between cleans
+        self.min_standby_mb = 1024               # Only clean if standby > 1GB
         self.running = False
         self.thread = None
         self.last_cleaned_mb = 0
         self.clean_count = 0
-        self.total_cleaned_mb = 0  # Total acumulado na sessão
-        
+        self.total_cleaned_mb = 0
+        self._last_clean_time = 0                # Timestamp of last clean
+        self._privilege_enabled = False
+
     def start(self):
-        """Inicia monitoramento automático"""
+        """Start automatic monitoring."""
         if self.running:
             return
-            
+
         self.running = True
-        self.thread = threading.Thread(target=self._monitoring_loop, daemon=True)
+        self.thread = threading.Thread(target=self._monitoring_loop, daemon=True,
+                                       name='NovaPulse-MemCleaner')
         self.thread.start()
-        print(f"[INFO] StandbyMemoryCleaner iniciado (threshold: {self.threshold_mb}MB)")
-        
+        print(f"[MEM] Standby Cleaner started (threshold: {self.threshold_mb}MB, "
+              f"interval: {self.check_interval}s)")
+
     def stop(self):
-        """Para o monitoramento"""
+        """Stop monitoring."""
         self.running = False
         if self.thread:
             self.thread.join(timeout=5)
-        print("[INFO] StandbyMemoryCleaner parado")
-        
+        if self.total_cleaned_mb > 0:
+            print(f"[MEM] Session total: {self.total_cleaned_mb}MB freed in {self.clean_count} cleans")
+        print("[MEM] Standby Cleaner stopped")
+
     def _monitoring_loop(self):
-        """Loop de monitoramento contínuo"""
+        """Main monitoring loop with surgical cleaning."""
+        # Enable privilege once at startup
+        self._enable_privilege()
+
         while self.running:
             try:
                 mem = psutil.virtual_memory()
                 available_mb = mem.available // (1024 * 1024)
-                
+
                 if available_mb < self.threshold_mb:
-                    # [V2.0] Surgical Check: Just checking free RAM is not enough.
-                    # We must check if there is actually Cached/Standby memory to clean.
-                    # IF (Free < Limit) AND (Standby > 1GB) -> CLEAN
-                    # IF (Free < Limit) AND (Standby < 1GB) -> DO NOTHING (Cleaning empty cache = Stutter)
-                    
-                    # Estimate Standby (Available - Free)
-                    # Note: psutil 'available' includes standby. 'free' is zero-filled pages.
-                    # This is rough estimation but efficient.
+                    # Check 1: Is there actually standby cache to clean?
+                    # (Available - Free = approximate standby cache)
                     standby_estimated = mem.available - mem.free
                     standby_mb = standby_estimated // (1024 * 1024)
-                    
-                    if standby_mb > 1024:
-                        print(f"[CLEANER] Low Memory ({available_mb}MB) & High Cache ({standby_mb}MB) -> PURGING...")
+
+                    # Check 2: Min interval between cleans (prevent thrashing)
+                    time_since_last = time.time() - self._last_clean_time
+
+                    if standby_mb > self.min_standby_mb and time_since_last >= self.min_clean_interval:
                         freed_mb = self.clean_standby_memory()
-                        
-                        if freed_mb > 100:
+
+                        if freed_mb > 50:
                             self.last_cleaned_mb = freed_mb
                             self.clean_count += 1
                             self.total_cleaned_mb += freed_mb
-                            print(f"[CLEAN] Released: {freed_mb}MB | New Available: {available_mb + freed_mb}MB")
-                    else:
-                        # Low memory but also low cache -> System is genuinely full. Cleaning won't help.
-                        # Do nothing to avoid I/O thrashing.
-                        pass
-                
+                            self._last_clean_time = time.time()
+                            print(f"[MEM] Purged {freed_mb}MB standby → "
+                                  f"{available_mb + freed_mb}MB available "
+                                  f"(session total: {self.total_cleaned_mb}MB)")
+                    # else: Low memory but nothing to clean, or too soon. Skip.
+
                 time.sleep(self.check_interval)
+
             except Exception as e:
-                print(f"[ERROR] Erro no monitoramento: {e}")
+                print(f"[MEM] Monitoring error: {e}")
                 time.sleep(10)
-    
+
     def clean_standby_memory(self):
-        """Limpa a lista de memória Standby"""
+        """
+        Purge the Windows Standby List.
+
+        This frees cached file pages that Windows keeps "just in case".
+        These pages are already marked as available by the OS, but
+        some games and apps see them as "used" and allocate more,
+        leading to unnecessary paging.
+
+        Returns: MB freed (0 if failed)
+        """
         try:
-            # Eleva privilégios
-            self._enable_privilege()
-            
-            # Obtém memória antes
+            if not self._privilege_enabled:
+                self._enable_privilege()
+
             mem_before = psutil.virtual_memory().available // (1024 * 1024)
-            
-            # [V2.0] Purge Standby List ONLY.
-            # Avoid 'EmptyWorkingSets' as it forces active apps to swap to disk (Causes Stutter!)
+
+            # Purge StandbyList ONLY
             command = ctypes.c_int(MemoryPurgeStandbyList)
             ntdll.NtSetSystemInformation(
                 SystemMemoryListInformation,
                 ctypes.byref(command),
                 ctypes.sizeof(command)
             )
-            
-            # Note: We DISABLED MemoryEmptyWorkingSets consciously.
-            # While it frees more "Ram", it degrades performance heavily for 1-2 seconds.
-            
-            time.sleep(0.1)  # Aguarda processamento
-            
-            # Obtém memória depois
+
+            # NOTE: We consciously do NOT call MemoryEmptyWorkingSets.
+            # While it frees more "RAM", it forces every running process
+            # to re-fault its pages from disk, causing 1-2 seconds of
+            # system-wide stuttering. Not worth it.
+
+            time.sleep(0.1)  # Brief wait for OS to process
+
             mem_after = psutil.virtual_memory().available // (1024 * 1024)
-            
             return max(0, mem_after - mem_before)
+
         except Exception as e:
-            print(f"[ERROR] Erro ao limpar memória: {e}")
+            print(f"[MEM] Clean error: {e}")
             return 0
-    
+
     def _enable_privilege(self):
-        """Habilita privilégio SE_PROF_SINGLE_PROCESS_NAME"""
+        """Enable SeProfileSingleProcessPrivilege (required for NtSetSystemInformation)."""
         try:
             SE_PRIVILEGE_ENABLED = 0x00000002
             TOKEN_ADJUST_PRIVILEGES = 0x0020
             TOKEN_QUERY = 0x0008
-            
-            # Abre token do processo
+
             token = wintypes.HANDLE()
             kernel32.OpenProcessToken(
                 kernel32.GetCurrentProcess(),
                 TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
                 ctypes.byref(token)
             )
-            
-            # Lookup privilege value
+
             luid = wintypes.LUID()
             ctypes.windll.advapi32.LookupPrivilegeValueW(
                 None,
                 "SeProfileSingleProcessPrivilege",
                 ctypes.byref(luid)
             )
-            
-            # Adjust privileges
+
             class TOKEN_PRIVILEGES(ctypes.Structure):
                 _fields_ = [
                     ("PrivilegeCount", wintypes.DWORD),
                     ("Luid", wintypes.LUID),
                     ("Attributes", wintypes.DWORD),
                 ]
-            
+
             tp = TOKEN_PRIVILEGES()
             tp.PrivilegeCount = 1
             tp.Luid = luid
             tp.Attributes = SE_PRIVILEGE_ENABLED
-            
-            ctypes.windll.advapi32.AdjustTokenPrivileges(
-                token,
-                False,
-                ctypes.byref(tp),
-                ctypes.sizeof(tp),
-                None,
-                None
+
+            result = ctypes.windll.advapi32.AdjustTokenPrivileges(
+                token, False, ctypes.byref(tp),
+                ctypes.sizeof(tp), None, None
             )
-            
+
             kernel32.CloseHandle(token)
+
+            if result:
+                self._privilege_enabled = True
+
         except:
-            pass  # Privilégio pode já estar habilitado
-    
+            pass  # Privilege may already be enabled
+
     def get_memory_info(self):
-        """Retorna informações da memória"""
+        """Return current memory info dict for dashboard."""
         mem = psutil.virtual_memory()
         return {
             'total_mb': mem.total // (1024 * 1024),
@@ -174,16 +214,17 @@ class StandbyMemoryCleaner:
 
 
 if __name__ == "__main__":
-    # Teste básico
-    cleaner = StandbyMemoryCleaner(threshold_mb=1024, check_interval=5)
+    cleaner = StandbyMemoryCleaner(threshold_mb=3072, check_interval=10)
     cleaner.start()
-    
+
     try:
         while True:
             mem_info = cleaner.get_memory_info()
-            print(f"\rRAM: {mem_info['available_mb']}MB livre / {mem_info['total_mb']}MB total "
-                  f"({100 - mem_info['used_percent']:.1f}% livre) | Limpezas: {cleaner.clean_count}", end='')
+            print(f"\rRAM: {mem_info['available_mb']}MB free / {mem_info['total_mb']}MB total "
+                  f"({100 - mem_info['used_percent']:.1f}% free) | "
+                  f"Cleans: {cleaner.clean_count} | "
+                  f"Total freed: {cleaner.total_cleaned_mb}MB", end='')
             time.sleep(2)
     except KeyboardInterrupt:
         cleaner.stop()
-        print("\n[INFO] Finalizado")
+        print("\n[INFO] Stopped")

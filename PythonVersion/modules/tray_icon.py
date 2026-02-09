@@ -184,10 +184,9 @@ class SystemTrayIcon:
             pystray.Menu.SEPARATOR,
             
             # Controle de modo
-            pystray.MenuItem('🎛️ Modo', pystray.Menu(
-                pystray.MenuItem('🚀 Forçar BOOST', lambda: self._force_mode('boost')),
-                pystray.MenuItem('🔄 Modo AUTO', lambda: self._force_mode('auto')),
-                pystray.MenuItem('🌿 Forçar ECO', lambda: self._force_mode('eco')),
+            pystray.MenuItem('🏛️ Mode', pystray.Menu(
+                pystray.MenuItem('⚡ Force ACTIVE', lambda: self._force_mode('active')),
+                pystray.MenuItem('🌿 Force IDLE', lambda: self._force_mode('idle')),
             )),
             
             # Ações rápidas
@@ -210,20 +209,18 @@ class SystemTrayIcon:
             self._last_minimize_state = False  # Reset minimize state
     
     def _force_mode(self, mode_name):
-        """Força um modo específico via menu"""
+        """Force a specific mode via tray menu."""
         try:
             from modules.auto_profiler import get_profiler, SystemMode
             profiler = get_profiler()
-            
-            if mode_name == 'boost':
-                profiler.force_mode(SystemMode.BOOST)
-            elif mode_name == 'eco':
-                profiler.force_mode(SystemMode.ECO)
-            else:
-                profiler.force_mode(SystemMode.NORMAL)
-                
+
+            if mode_name == 'active':
+                profiler.force_mode(SystemMode.ACTIVE)
+            elif mode_name == 'idle':
+                profiler.force_mode(SystemMode.IDLE)
+
         except Exception as e:
-            print(f"[TRAY] Erro ao mudar modo: {e}")
+            print(f"[TRAY] Error changing mode: {e}")
     
     def _force_clean(self):
         """Força limpeza de RAM"""

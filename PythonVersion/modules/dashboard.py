@@ -1,5 +1,5 @@
 """
-NovaPulse Dashboard v2.2
+NovaPulse Dashboard v2.2.1
 Real-time visual dashboard with security shield and system monitoring.
 Includes hardware stats, security scanner status, and telemetry blocker info.
 
@@ -57,10 +57,11 @@ class Dashboard:
             Layout(name="footer", size=8)
         )
         
-        # Split body: hardware | security+status
+        # Split body: hardware | status | security
         self.layout["body"].split_row(
-            Layout(name="cpu_gpu", ratio=1),
-            Layout(name="memory", ratio=1)
+            Layout(name="cpu_gpu", ratio=2),
+            Layout(name="memory", ratio=2),
+            Layout(name="security", ratio=1)
         )
         
         # Dados para exibir
@@ -83,7 +84,9 @@ class Dashboard:
             'priority_high': 0,
             'priority_low': 0,
             'ping_ms': 0,
-            'ping_baseline': 0
+            'ping_baseline': 0,
+            'cpu_freq_ghz': 0,
+            'cpu_freq_max_ghz': 0
         }
         
         # Detecta GPUs
@@ -129,6 +132,13 @@ class Dashboard:
         
         # Get temperature service singleton
         self._temp_service = temperature_service.get_service()
+        
+        # Cache max CPU frequency (turbo target)
+        try:
+            freq = psutil.cpu_freq()
+            self._cpu_max_ghz = freq.max / 1000 if freq and freq.max else 0
+        except:
+            self._cpu_max_ghz = 0
     
     def make_header(self):
         """Creates header with title, mode, and security shield status."""
@@ -196,8 +206,22 @@ class Dashboard:
 
         freq_color = "cyan"
         
+        # CPU frequency
+        current_ghz = self.stats.get('cpu_freq_ghz', 0)
+        max_ghz = self.stats.get('cpu_freq_max_ghz', 0)
+        if current_ghz > 0:
+            if max_ghz > 0:
+                turbo_pct = (current_ghz / max_ghz) * 100
+                freq_color = 'green' if turbo_pct > 90 else 'yellow' if turbo_pct > 70 else 'red'
+                freq_display = f"[{freq_color}]{current_ghz:.2f} GHz[/{freq_color}] / {max_ghz:.2f} GHz"
+            else:
+                freq_display = f"[cyan]{current_ghz:.2f} GHz[/cyan]"
+        else:
+            freq_display = "[dim]N/A[/dim]"
+        
         table.add_row("[bold white]CPU Package[/bold white]", "")
         table.add_row("  Total Load", f"[{cpu_color}]{cpu_usage:.1f}% {cpu_desc}[/{cpu_color}] {cpu_bar}")
+        table.add_row("  Frequency", freq_display)
         table.add_row("  Package Temp", f"[{cpu_t_color}]{temp_display} {cpu_t_desc}[/{cpu_t_color}]")
         table.add_row("  Governor Cap", f"[yellow]{self.stats['cpu_limit']}%[/yellow] (Smart Limit)")
         table.add_row("", "")
@@ -536,10 +560,12 @@ class Dashboard:
         # CPU Temperature (centralized service with cache)
         self.stats['cpu_temp'] = self._temp_service.get_cpu_temp()
         
-        # CPU Frequency
+        # CPU Frequency (current + max/turbo)
         freq = psutil.cpu_freq()
         if freq:
             self.stats['cpu_freq'] = freq.current / 1000
+            self.stats['cpu_freq_ghz'] = freq.current / 1000
+            self.stats['cpu_freq_max_ghz'] = self._cpu_max_ghz if self._cpu_max_ghz > 0 else (freq.max / 1000 if freq.max else 0)
         
         # GPU NVIDIA
         if self.has_nvidia and self.nvidia_handle:
@@ -622,6 +648,7 @@ class Dashboard:
         self.layout["header"].update(self.make_header())
         self.layout["cpu_gpu"].update(self.make_cpu_gpu_panel())
         self.layout["memory"].update(self.make_memory_panel())
+        self.layout["security"].update(self.make_security_panel())
         self.layout["footer"].update(self.make_footer())
         
         return self.layout
@@ -709,6 +736,7 @@ class Dashboard:
                     self.layout["header"].update(self.make_header())
                     self.layout["cpu_gpu"].update(self.make_cpu_gpu_panel())
                     self.layout["memory"].update(self.make_memory_panel())
+                    self.layout["security"].update(self.make_security_panel())
                     self.layout["footer"].update(self.make_footer())
                     
                     # Push update to Live renderer

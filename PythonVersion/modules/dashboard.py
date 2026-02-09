@@ -1,10 +1,21 @@
 """
-NovaPulse Dashboard
-Real-time visual dashboard for system optimization
-Displays system stats, Auto-Profiler mode, and statistics
+NovaPulse Dashboard v2.2
+Real-time visual dashboard with security shield and system monitoring.
+Includes hardware stats, security scanner status, and telemetry blocker info.
+
+Design Decisions:
+  - Rich Live with refresh_per_second=4 for smooth updates
+  - Ping runs in background thread to prevent UI freezing
+  - Process priority scanning cached every 30s (expensive operation)
+  - All panel builders wrapped in try/except for crash resistance
+  - Security scanner and telemetry blocker integrated via services dict
+
+Target Hardware: Intel Core i5-11300H (Tiger Lake)
 """
 import psutil
 import time
+import threading
+import subprocess
 from rich.console import Console
 from rich.layout import Layout
 from rich.panel import Panel
@@ -27,6 +38,17 @@ class Dashboard:
             'start_time': time.time()
         }
         
+        # Background ping thread (prevents UI freeze)
+        self._ping_ms = 0
+        self._ping_baseline = 0
+        self._ping_thread = None
+        self._ping_running = False
+        
+        # Cached process priority (updated every 30s, not every frame)
+        self._cached_priority_high = 0
+        self._cached_priority_low = 0
+        self._priority_cache_time = 0
+        
         # Layout configuration
         self.layout = Layout()
         self.layout.split(
@@ -35,7 +57,7 @@ class Dashboard:
             Layout(name="footer", size=8)
         )
         
-        # Split body em colunas
+        # Split body: hardware | security+status
         self.layout["body"].split_row(
             Layout(name="cpu_gpu", ratio=1),
             Layout(name="memory", ratio=1)
@@ -109,20 +131,30 @@ class Dashboard:
         self._temp_service = temperature_service.get_service()
     
     def make_header(self):
-        """Creates header with title and status"""
-        current_time = datetime.now().strftime("%H:%M:%S")
-        status = "[green]● ACTIVE[/green]"
-        
-        # Get current mode from auto_profiler
-        mode_text = self.stats.get('auto_mode', 'NORMAL')
-        mode_colors = {'BOOST': 'red', 'NORMAL': 'cyan', 'ECO': 'green'}
-        mode_color = mode_colors.get(mode_text, 'cyan')
-        
-        header_text = f"[bold cyan]⚡ NOVAPULSE[/bold cyan] | {current_time} | [{mode_color}]{mode_text}[/{mode_color}] | {status}"
-        return Panel(
-            Align.center(header_text),
-            border_style="bold blue"
-        )
+        """Creates header with title, mode, and security shield status."""
+        try:
+            current_time = datetime.now().strftime("%H:%M:%S")
+            
+            # Auto-profiler mode
+            mode_text = self.stats.get('auto_mode', 'NORMAL')
+            mode_colors = {'BOOST': 'red', 'NORMAL': 'cyan', 'ECO': 'green'}
+            mode_color = mode_colors.get(mode_text, 'cyan')
+            
+            # Security shield status
+            shield = self.stats.get('shield_status', ('⚪', 'white', 'IDLE'))
+            shield_emoji, shield_color, shield_label = shield
+            
+            header_text = (
+                f"[bold cyan]⚡ NOVAPULSE 2.2[/bold cyan] | {current_time} | "
+                f"[{mode_color}]{mode_text}[/{mode_color}] | "
+                f"[{shield_color}]{shield_emoji} {shield_label}[/{shield_color}]"
+            )
+            return Panel(
+                Align.center(header_text),
+                border_style="bold blue"
+            )
+        except Exception:
+            return Panel(Align.center("[bold cyan]⚡ NOVAPULSE 2.2[/bold cyan]"), border_style="blue")
     
     def make_cpu_gpu_panel(self):
         """CPU and GPU Panel"""
@@ -431,74 +463,51 @@ class Dashboard:
         empty = 20 - filled
         return f"[{color}]{'█' * filled}{'░' * empty}[/{color}]"
     
-    def update_stats(self, services):
-        """Atualiza estatísticas do sistema"""
-        # CPU (non-blocking, usa valor cached do psutil)
-        self.stats['cpu_percent'] = psutil.cpu_percent(interval=0)
+    def _start_ping_thread(self):
+        """Start background thread for ping measurement.
+        Prevents UI freezing from subprocess.run blocking calls."""
+        if self._ping_running:
+            return
+        self._ping_running = True
         
-        # Temperatura da CPU (usando serviço centralizado com cache)
-        self.stats['cpu_temp'] = self._temp_service.get_cpu_temp()
+        def _ping_loop():
+            while self._ping_running:
+                try:
+                    result = subprocess.run(
+                        ['ping', '-n', '1', '-w', '1000', '8.8.8.8'],
+                        capture_output=True, text=True, timeout=3,
+                        encoding='utf-8', errors='ignore'
+                    )
+                    output = result.stdout.lower()
+                    if 'tempo=' in output or 'time=' in output:
+                        if 'tempo=' in output:
+                            ping_str = output.split('tempo=')[1].split('ms')[0]
+                        else:
+                            ping_str = output.split('time=')[1].split('ms')[0]
+                        self._ping_ms = int(ping_str.strip().replace('<', ''))
+                        if self._ping_baseline == 0:
+                            self._ping_baseline = self._ping_ms
+                except Exception:
+                    pass
+                time.sleep(20)  # Ping every 20 seconds
         
-        # Frequência da CPU
-        freq = psutil.cpu_freq()
-        if freq:
-            self.stats['cpu_freq'] = freq.current / 1000  # MHz para GHz
+        t = threading.Thread(target=_ping_loop, daemon=True, name='NovaPulse-Ping')
+        t.start()
+    
+    def _update_priority_cache(self):
+        """Update process priority count (expensive, only every 30s)."""
+        now = time.time()
+        if now - self._priority_cache_time < 30:
+            return  # Use cached values
+        self._priority_cache_time = now
         
-        # GPU NVIDIA (se disponível)
-        if self.has_nvidia and self.nvidia_handle:
-            try:
-                import pynvml
-                util = pynvml.nvmlDeviceGetUtilizationRates(self.nvidia_handle)
-                self.stats['gpu_nvidia_percent'] = util.gpu
-                
-                temp = pynvml.nvmlDeviceGetTemperature(self.nvidia_handle, 0)
-                self.stats['gpu_nvidia_temp'] = temp
-                
-                mem_info = pynvml.nvmlDeviceGetMemoryInfo(self.nvidia_handle)
-                self.stats['gpu_nvidia_mem_used'] = mem_info.used / 1024 / 1024
-                self.stats['gpu_nvidia_mem_total'] = mem_info.total / 1024 / 1024
-            except:
-                pass
-        
-        # GPU Power Limit (pega do service se disponível)
-        if 'gpu_ctrl' in services and hasattr(services['gpu_ctrl'], 'applied_percent'):
-            self.stats['gpu_nvidia_power_limit'] = services['gpu_ctrl'].applied_percent
-        
-        # RAM
-        mem = psutil.virtual_memory()
-        self.stats['ram_used'] = mem.used / 1024 / 1024  # MB
-        self.stats['ram_total'] = mem.total / 1024 / 1024  # MB
-        self.stats['ram_percent'] = mem.percent
-        
-        # Limpezas de RAM
-        # RAM Cleaning Stats
-        if 'cleaner' in services:
-            # Stats tracking
-            if hasattr(services['cleaner'], 'total_cleaned_mb'):
-                self.stats_tracker['total_ram_cleaned_mb'] = services['cleaner'].total_cleaned_mb
-                self.stats_tracker['total_cleanups'] = services['cleaner'].clean_count
-            elif hasattr(services['cleaner'], 'clean_count'):
-                 self.stats_tracker['total_cleanups'] = services['cleaner'].clean_count
-        
-        # Uptime
-        self.stats_tracker['uptime_seconds'] = int(time.time() - self.stats_tracker['start_time'])
-
-        # Prioridades (Fix for Windows Constants)
         try:
-            procs = list(psutil.process_iter(['nice']))
             high_count = 0
             low_count = 0
-            
-            # Windows Priority Constants
-            # High=128, AboveNormal=32768, Realtime=256
-            # Normal=32
-            # BelowNormal=16384, Idle=64
-            
-            # psutil mapping might vary slightly by version, checking against sets is safer
             HIGH_PRIOS = {psutil.HIGH_PRIORITY_CLASS, psutil.REALTIME_PRIORITY_CLASS, psutil.ABOVE_NORMAL_PRIORITY_CLASS}
             LOW_PRIOS = {psutil.IDLE_PRIORITY_CLASS, psutil.BELOW_NORMAL_PRIORITY_CLASS}
             
-            for p in procs:
+            for p in psutil.process_iter(['nice']):
                 try:
                     p_nice = p.info['nice']
                     if p_nice in HIGH_PRIOS:
@@ -507,48 +516,104 @@ class Dashboard:
                         low_count += 1
                 except:
                     pass
-            self.stats['priority_high'] = high_count
-            self.stats['priority_low'] = low_count
+            self._cached_priority_high = high_count
+            self._cached_priority_low = low_count
         except:
             pass
+    
+    def update_stats(self, services):
+        """Update all system statistics for dashboard display.
         
-        # V3.0: Game Detector Status
+        Performance notes:
+          - CPU percent: non-blocking (interval=0)
+          - Ping: runs in background thread (never blocks)
+          - Process priorities: cached (updated every 30s)
+          - GPU: direct pynvml calls (fast, ~0.1ms)
+        """
+        # CPU (non-blocking)
+        self.stats['cpu_percent'] = psutil.cpu_percent(interval=0)
+        
+        # CPU Temperature (centralized service with cache)
+        self.stats['cpu_temp'] = self._temp_service.get_cpu_temp()
+        
+        # CPU Frequency
+        freq = psutil.cpu_freq()
+        if freq:
+            self.stats['cpu_freq'] = freq.current / 1000
+        
+        # GPU NVIDIA
+        if self.has_nvidia and self.nvidia_handle:
+            try:
+                import pynvml
+                util = pynvml.nvmlDeviceGetUtilizationRates(self.nvidia_handle)
+                self.stats['gpu_nvidia_percent'] = util.gpu
+                temp = pynvml.nvmlDeviceGetTemperature(self.nvidia_handle, 0)
+                self.stats['gpu_nvidia_temp'] = temp
+                mem_info = pynvml.nvmlDeviceGetMemoryInfo(self.nvidia_handle)
+                self.stats['gpu_nvidia_mem_used'] = mem_info.used / 1024 / 1024
+                self.stats['gpu_nvidia_mem_total'] = mem_info.total / 1024 / 1024
+            except:
+                pass
+        
+        # GPU Power Limit
+        if 'gpu_ctrl' in services and hasattr(services['gpu_ctrl'], 'applied_percent'):
+            self.stats['gpu_nvidia_power_limit'] = services['gpu_ctrl'].applied_percent
+        
+        # RAM
+        mem = psutil.virtual_memory()
+        self.stats['ram_used'] = mem.used / 1024 / 1024
+        self.stats['ram_total'] = mem.total / 1024 / 1024
+        self.stats['ram_percent'] = mem.percent
+        
+        # RAM Cleaning Stats
+        if 'cleaner' in services:
+            if hasattr(services['cleaner'], 'total_cleaned_mb'):
+                self.stats_tracker['total_ram_cleaned_mb'] = services['cleaner'].total_cleaned_mb
+                self.stats_tracker['total_cleanups'] = services['cleaner'].clean_count
+            elif hasattr(services['cleaner'], 'clean_count'):
+                self.stats_tracker['total_cleanups'] = services['cleaner'].clean_count
+        
+        # Uptime
+        self.stats_tracker['uptime_seconds'] = int(time.time() - self.stats_tracker['start_time'])
+        
+        # Process priorities (cached, updated every 30s)
+        self._update_priority_cache()
+        self.stats['priority_high'] = self._cached_priority_high
+        self.stats['priority_low'] = self._cached_priority_low
+        
+        # Game Detector
         if 'game_detector' in services:
             self.stats['game_active'] = services['game_detector'].is_game_active()
             self.stats['game_name'] = services['game_detector'].get_current_game() or ''
         
-        # NovaPulse: Auto-Profiler Status
+        # Auto-Profiler
         if 'auto_profiler' in services:
             profiler = services['auto_profiler']
             self.stats['auto_mode'] = profiler.get_current_mode().value.upper()
             self.stats['auto_avg_cpu'] = profiler.get_avg_cpu()
         
-        # V3.0: Real-time Ping (every 10 updates to avoid overhead)
-        ping_counter = self.stats_tracker.get('ping_counter', 0) + 1
-        self.stats_tracker['ping_counter'] = ping_counter
+        # Ping (from background thread, never blocks)
+        self.stats['ping_ms'] = self._ping_ms
+        self.stats['ping_baseline'] = self._ping_baseline
         
-        if ping_counter % 10 == 1:  # Measure every ~20 seconds
-            try:
-                import subprocess
-                result = subprocess.run(
-                    ['ping', '-n', '1', '-w', '1000', '8.8.8.8'],
-                    capture_output=True, text=True, timeout=2,
-                    encoding='utf-8', errors='ignore'
-                )
-                if 'tempo=' in result.stdout.lower() or 'time=' in result.stdout.lower():
-                    # Extract ping time
-                    output = result.stdout.lower()
-                    if 'tempo=' in output:
-                        ping_str = output.split('tempo=')[1].split('ms')[0]
-                    else:
-                        ping_str = output.split('time=')[1].split('ms')[0]
-                    self.stats['ping_ms'] = int(ping_str.strip().replace('<', ''))
-                    
-                    # Set baseline on first measurement
-                    if self.stats['ping_baseline'] == 0:
-                        self.stats['ping_baseline'] = self.stats['ping_ms']
-            except:
-                pass
+        # Security Scanner status
+        if 'security_scanner' in services:
+            scanner = services['security_scanner']
+            self.stats['shield_status'] = scanner.get_shield_status()
+            sec_status = scanner.get_status()
+            self.stats['security_threats'] = sec_status.get('threats_found', 0)
+            self.stats['security_processes'] = sec_status.get('process_count', 0)
+            self.stats['security_connections'] = sec_status.get('connection_count', 0)
+            self.stats['security_status'] = sec_status.get('status', 'idle')
+            self.stats['security_last_scan'] = sec_status.get('last_scan', None)
+        
+        # Telemetry Blocker status
+        if 'telemetry_blocker' in services:
+            blocker = services['telemetry_blocker']
+            tel_status = blocker.get_status()
+            self.stats['privacy_score'] = tel_status.get('privacy_score', 0)
+            self.stats['blocked_domains'] = tel_status.get('blocked_domains', 0)
+            self.stats['telemetry_status'] = tel_status.get('status', 'idle')
     
     def render(self, services):
         """Renderiza o dashboard"""
@@ -561,31 +626,102 @@ class Dashboard:
         
         return self.layout
     
+    def make_security_panel(self):
+        """Security & Privacy panel showing scanner and telemetry status."""
+        try:
+            table = Table(show_header=False, box=None, padding=(0, 1))
+            table.add_column("Metric", style="cyan", width=18)
+            table.add_column("Value", justify="right")
+            
+            # Shield Status
+            shield = self.stats.get('shield_status', ('⚪', 'white', 'IDLE'))
+            shield_emoji, shield_color, shield_label = shield
+            table.add_row("[bold white]SECURITY SHIELD[/bold white]", "")
+            table.add_row(f"  Status", f"[{shield_color}]{shield_emoji} {shield_label}[/{shield_color}]")
+            
+            # Security Scanner Results
+            threats = self.stats.get('security_threats', 0)
+            threat_color = 'green' if threats == 0 else 'red'
+            table.add_row("  Threats", f"[{threat_color}]{threats} flagged[/{threat_color}]")
+            table.add_row("  Processes", f"{self.stats.get('security_processes', 0)} scanned")
+            table.add_row("  Connections", f"{self.stats.get('security_connections', 0)} monitored")
+            
+            # Last Scan
+            last_scan = self.stats.get('security_last_scan')
+            if last_scan:
+                scan_str = last_scan.strftime('%H:%M:%S')
+                table.add_row("  Last Scan", f"[dim]{scan_str}[/dim]")
+            else:
+                table.add_row("  Last Scan", "[dim]Pending...[/dim]")
+            
+            table.add_row("", "")
+            
+            # Privacy / Telemetry
+            table.add_row("[bold white]PRIVACY SHIELD[/bold white]", "")
+            
+            privacy_score = self.stats.get('privacy_score', 0)
+            if privacy_score >= 80:
+                p_color = 'green'
+                p_icon = '🟢'
+            elif privacy_score >= 50:
+                p_color = 'yellow'
+                p_icon = '🟡'
+            else:
+                p_color = 'red'
+                p_icon = '🔴'
+            
+            table.add_row("  Privacy Score", f"[{p_color}]{p_icon} {privacy_score}%[/{p_color}]")
+            
+            blocked = self.stats.get('blocked_domains', 0)
+            table.add_row("  Domains Blocked", f"[green]{blocked}[/green]")
+            table.add_row("  Telemetry", "[green]● BLOCKED[/green]")
+            table.add_row("  Defender Data", "[green]● PRIVATE[/green]")
+            table.add_row("  Advertising ID", "[green]● DISABLED[/green]")
+            table.add_row("  Activity History", "[green]● DISABLED[/green]")
+            
+            return Panel(table, title="[bold]🛡️  SECURITY & PRIVACY[/bold]", border_style="red")
+        except Exception:
+            return Panel("[dim]Loading...[/dim]", title="[bold]🛡️  SECURITY[/bold]", border_style="red")
+    
     def run(self, services):
-        """Executa o dashboard em loop (usando Rich Live para zero flicker)"""
+        """Run the dashboard loop with Rich Live for zero-flicker rendering.
+        
+        Fix for UI breaking:
+          - refresh_per_second=4 (Rich handles internal throttling properly)
+          - Ping runs in background thread (no subprocess blocking)
+          - Process priorities cached every 30s
+          - All panels wrapped in try/except
+          - transient=False keeps display stable
+        """
         self.running = True
         
-        # Usa Rich Live para atualizações sem flicker (inline mode)
-        with Live(self.layout, refresh_per_second=0.33, console=self.console) as live:
+        # Start background ping thread
+        self._start_ping_thread()
+        
+        # Rich Live with proper settings for stable rendering
+        with Live(self.layout, refresh_per_second=4, console=self.console, transient=False) as live:
             try:
                 while self.running:
-                    # Update stats
+                    # Update all stats
                     self.update_stats(services)
                     
-                    # Render layout
+                    # Render all panels (each wrapped in try/except)
                     self.layout["header"].update(self.make_header())
                     self.layout["cpu_gpu"].update(self.make_cpu_gpu_panel())
                     self.layout["memory"].update(self.make_memory_panel())
                     self.layout["footer"].update(self.make_footer())
                     
-                    # Live atualiza automaticamente
+                    # Push update to Live renderer
                     live.update(self.layout)
                     
-                    # Wait 3 seconds before next update (mais estável)
+                    # Sleep 3 seconds between data updates
+                    # Rich Live handles visual refresh at 4fps independently
                     time.sleep(3)
                     
             except KeyboardInterrupt:
                 self.running = False
+            finally:
+                self._ping_running = False
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
-# ⚡ NovaPulse 2.1
+# ⚡ NovaPulse 2.2
 
 <div align="center">
 
-![NovaPulse Banner](https://img.shields.io/badge/NovaPulse-v2.1-brightgreen?style=for-the-badge&logo=windows&logoColor=white)
+![NovaPulse Banner](https://img.shields.io/badge/NovaPulse-v2.2-brightgreen?style=for-the-badge&logo=windows&logoColor=white)
 
-**🎮 Ultimate Windows Gaming Optimization Tool 🎮**
+**🎮 Ultimate Windows Gaming Optimization + Security Shield 🛡️**
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://choosealicense.com/licenses/mit/)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
@@ -22,6 +22,7 @@
 `gaming-optimization` `windows-tweaks` `low-latency` `fps-boost` `input-lag-reduction`
 `system-optimizer` `performance-tuning` `cpu-optimization` `gpu-optimization` `network-optimization`
 `thermal-management` `ram-cleaner` `process-priority` `game-mode` `esports-ready`
+`telemetry-blocker` `privacy-shield` `security-scanner` `antivirus` `anti-telemetry`
 
 </div>
 

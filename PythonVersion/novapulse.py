@@ -55,11 +55,19 @@ try:
 except ImportError:
     OPTIMIZATION_ENGINE_AVAILABLE = False
 
+# NovaPulse 2.2 - Security & Privacy
+try:
+    from modules.telemetry_blocker import get_blocker
+    from modules.security_scanner import get_scanner
+    SECURITY_AVAILABLE = True
+except ImportError:
+    SECURITY_AVAILABLE = False
+
 # Inicializa colorama para cores no terminal
 init()
 
-# Versão
-VERSION = "2.0"
+# Version
+VERSION = "2.2"
 APP_NAME = "NovaPulse"
 
 
@@ -360,6 +368,29 @@ def main():
     services_opt.optimize()
     services['services_opt'] = services_opt
 
+    # === NOVAPULSE 2.2: SECURITY & PRIVACY ===
+    if SECURITY_AVAILABLE:
+        print(f"\n{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA}🛡️ NovaPulse 2.2 - Security & Privacy Shield{Style.RESET_ALL}")
+        print(f"{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}\n")
+        
+        # Telemetry Blocker (blocks Microsoft data collection)
+        try:
+            blocker = get_blocker()
+            blocker.apply_full_protection()
+            services['telemetry_blocker'] = blocker
+        except Exception as e:
+            print(f"{Fore.YELLOW}[WARN] Telemetry Blocker: {e}{Style.RESET_ALL}")
+        
+        # Security Scanner (process/network/startup/port monitoring)
+        try:
+            scanner = get_scanner()
+            scanner.start_background_scan(interval_seconds=300)  # Scan every 5 min
+            services['security_scanner'] = scanner
+            print(f"{Fore.GREEN}✓ Security Scanner active (5 min interval){Style.RESET_ALL}")
+        except Exception as e:
+            print(f"{Fore.YELLOW}[WARN] Security Scanner: {e}{Style.RESET_ALL}")
+
     # === AUTO-PROFILER (NOVAPULSE CORE) ===
     profiler_config = config.get('auto_profiler', {})
     if profiler_config.get('enabled', True):
@@ -408,7 +439,7 @@ def main():
 
 
 def stop_all_services(services):
-    """Para todos os serviços"""
+    """Stop all running services cleanly."""
     if 'cleaner' in services:
         services['cleaner'].stop()
     if 'smart_priority' in services:
@@ -417,6 +448,8 @@ def stop_all_services(services):
         services['auto_profiler'].stop()
     if 'game_detector' in services:
         services['game_detector'].stop()
+    if 'security_scanner' in services:
+        services['security_scanner'].stop()
     if 'tray' in services:
         try:
             services['tray'].stop()

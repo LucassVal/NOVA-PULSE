@@ -1,8 +1,8 @@
-# ⚡ NovaPulse 2.0
+# ⚡ NovaPulse 2.2
 
-**Intelligent Windows System Optimization for Gaming & Performance**
+**Intelligent Windows System Optimization + Security Shield**
 
-A comprehensive system optimization tool that applies kernel-level tweaks to reduce input lag, improve FPS, and maximize hardware performance. Designed and tested on Intel Tiger Lake laptops.
+A comprehensive system optimization tool with built-in security scanner and telemetry blocker. Applies kernel-level tweaks to reduce input lag, improve FPS, and maximize privacy. Designed and tested on Intel Tiger Lake laptops.
 
 ## 🎯 Target Hardware
 
@@ -31,9 +31,22 @@ A comprehensive system optimization tool that applies kernel-level tweaks to red
 | **Advanced Storage**   | Write caching, NVMe queue depth, Large Pages            | Faster disk access          |
 | **Process Controller** | Auto priority for games, low priority for browsers      | Smarter resource allocation |
 
+### 🛡️ Security Shield (NEW in v2.2)
+
+| Feature                | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| **Process Scanner**    | Scans all processes, flags unsigned/suspicious executables   |
+| **Network Monitor**    | Lists outbound connections, flags unknown IPs/ports          |
+| **Startup Auditor**    | Checks Run/RunOnce registry + Startup folder for persistence |
+| **Port Scanner**       | Shows open listening ports, flags unusual ports              |
+| **Telemetry Blocker**  | Blocks 21+ Microsoft telemetry domains via hosts file        |
+| **Registry Hardening** | Disables telemetry flags, Advertising ID, Activity History   |
+| **Defender Privacy**   | Blocks SpyNet/MAPS data sharing (keeps protection ON)        |
+| **Privacy Score**      | 0-100% score based on how many data leaks are blocked        |
+
 ### Monitoring & Control
 
-- **Rich Console Dashboard**: Real-time CPU/GPU/RAM monitoring with color-coded status
+- **Rich Console Dashboard**: Real-time CPU/GPU/RAM + Security Shield status
 - **System Tray Icon**: Quick access, minimize to tray, compact tooltip
 - **Auto-Profiler**: Automatic BOOST/NORMAL/ECO mode based on CPU load
 - **Thermal Protection**: Auto-throttle when CPU > 85°C to prevent slowdown at 90°C
@@ -50,7 +63,7 @@ Priority 5: Intel iGPU reference (+5°C offset)
 
 **Design Decision**: On Intel DPTF systems (like i5-11300H), the ACPI thermal zone reports actual CPU die temperature, NOT chassis temperature. No offset is applied.
 
-### Intel Power Control (NEW in v2.1)
+### Intel Power Control
 
 Controls CPU power limits via Windows Power Options (works on locked CPUs):
 
@@ -85,10 +98,14 @@ High Precision Event Timer is legacy hardware. Modern CPUs have TSC (Time Stamp 
 
 TCP optimization that batches small packets. Great for throughput, terrible for latency. For gaming, every packet should be sent immediately.
 
+### Microsoft Telemetry (Blocked)
+
+Windows sends diagnostic data, crash reports, usage statistics, and browsing patterns to Microsoft. Even "Basic" telemetry sends hardware inventory, app compatibility data, and performance metrics. NovaPulse blocks 21+ telemetry endpoints at the DNS level — completely transparent and reversible.
+
 ## 📊 Architecture
 
 ```
-novapulse.py (main v2.0)
+novapulse.py (main v2.2)
 ├── optimization_engine.py     ← Orchestrates all 13 modules
 ├── modules/
 │   ├── Core: auto_profiler, standby_cleaner, cpu_power
@@ -99,7 +116,8 @@ novapulse.py (main v2.0)
 │   ├── System: ntfs_optimizer, mmcss_optimizer, services_optimizer
 │   ├── Process: process_controller, smart_process_manager
 │   ├── Monitoring: temperature_service, intel_power_control
-│   └── UI: dashboard, tray_icon
+│   ├── Security: security_scanner, telemetry_blocker  ← NEW v2.2
+│   └── UI: dashboard (with security panel), tray_icon
 ├── config.yaml               ← All module settings
 └── diagnostic.py             ← System diagnostics
 ```
@@ -145,6 +163,7 @@ thermal:
 - **Restart Required**: Some optimizations (HPET, HAGS, IRQ Affinity) require a PC restart
 - **Admin Required**: Must run as Administrator for kernel-level tweaks
 - **Reversible**: All changes can be undone by Windows Reset or manually via Registry
+- **Telemetry**: Hosts file entries can be removed manually or via `blocker.restore_hosts()`
 
 ## 📈 Expected Impact
 
@@ -156,13 +175,14 @@ thermal:
 | Disk I/O        | +10 to +30%    |
 | Network Latency | -5 to -20ms    |
 | Gaming FPS      | +3 to +10%     |
+| Privacy Score   | 80-100%        |
 
 ## 📄 License
 
-Personal use. Created for optimizing Windows gaming performance.
+Personal use. Created for optimizing Windows gaming performance and privacy.
 
 ---
 
-**Version**: 2.1  
-**Last Updated**: 2024-01-23  
+**Version**: 2.2  
+**Last Updated**: 2026-02-09  
 **Target CPU**: Intel Core i5-11300H @ 3.10GHz (Tiger Lake)

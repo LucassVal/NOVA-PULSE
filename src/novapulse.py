@@ -25,7 +25,12 @@ from colorama import init, Fore, Style
 from modules.standby_cleaner import StandbyMemoryCleaner
 from modules.cpu_power import CPUPowerManager
 from modules.smart_process_manager import SmartProcessManager
-from modules.dashboard import Dashboard
+from modules.dashboard import Dashboard  # Rich console fallback
+try:
+    from modules.html_dashboard import HtmlDashboard
+    HTML_DASHBOARD_AVAILABLE = True
+except ImportError:
+    HTML_DASHBOARD_AVAILABLE = False
 from modules.nvme_manager import NVMeManager
 
 # Detection Modules
@@ -381,11 +386,21 @@ def main():
     
     # === DASHBOARD ===
     try:
-        print(f"\n{Fore.CYAN}Starting Console Dashboard...{Style.RESET_ALL}\n")
-        rlog.log("MODULE", "dashboard", "Rich console dashboard starting")
-        
-        dashboard = Dashboard()
-        dashboard.run(services)
+        if HTML_DASHBOARD_AVAILABLE:
+            print(f"\n{Fore.CYAN}Starting HTML Dashboard (pywebview)...{Style.RESET_ALL}\n")
+            rlog.log("MODULE", "dashboard", "HTML glassmorphism dashboard starting")
+            html_dash = HtmlDashboard(services)
+            if not html_dash.start():
+                # Fallback to Rich console if HTML dashboard fails
+                print(f"{Fore.YELLOW}[WARN] HTML dashboard failed, falling back to console...{Style.RESET_ALL}")
+                rlog.log("WARN", "dashboard", "HTML dashboard failed, using Rich fallback")
+                dashboard = Dashboard()
+                dashboard.run(services)
+        else:
+            print(f"\n{Fore.CYAN}Starting Console Dashboard...{Style.RESET_ALL}\n")
+            rlog.log("MODULE", "dashboard", "Rich console dashboard starting (pywebview not available)")
+            dashboard = Dashboard()
+            dashboard.run(services)
             
     except KeyboardInterrupt:
         rlog.log("SHUTDOWN", "dashboard", "User pressed Ctrl+C")

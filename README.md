@@ -403,24 +403,41 @@ pyinstaller novapulse.spec
 
 ### Memory
 
-#### `modules/memory_optimizer.py` — Memory Optimizer Pro
+> **Focus: Memory Pressure Management** — On systems with 16GB RAM hitting 85%+ usage,
+> NovaPulse squeezes every last byte via ZRAM-style compression, page deduplication,
+> working set trimming, and file cache limiting — techniques used by Linux (zswap/KSM)
+> and commercial tools (MemReduct, Razer Cortex).
+
+#### `modules/memory_optimizer.py` — Memory Optimizer Pro (Endgame Edition)
 
 | Detail  | Value                           |
 | ------- | ------------------------------- |
-| Lines   | 341                             |
+| Lines   | ~470                            |
 | Class   | `MemoryOptimizerPro`            |
 | Pattern | Singleton via `get_optimizer()` |
+| Version | V4.0 Endgame                    |
 
-**Optimizations:**
-| Tweak | Description |
-|-------|-------------|
-| Disable compression | Stops Windows from compressing RAM pages (saves CPU) |
-| Configure SysMain | Mode 0 = disabled (best for SSDs) |
-| Configure Prefetch | Mode 0 = disabled |
-| Optimize paging | `DisablePagingExecutive=1` (keep kernel in RAM) |
-| Large System Cache | Disabled (prioritize apps over file cache) |
-| I/O Page Lock Limit | Increased for heavy I/O workloads |
-| Clear Standby List | Frees cached memory on demand via `NtSetSystemInformation` |
+**Optimization Pipeline (3 Stages):**
+
+| Stage        | Tweak                  | API                                    | Impact                                                  |
+| ------------ | ---------------------- | -------------------------------------- | ------------------------------------------------------- |
+| 1 — ZRAM     | Memory Compression     | `Enable-MMAgent -MemoryCompression`    | Compresses inactive pages in RAM (~25% effective gain)  |
+| 1 — ZRAM     | Page Combining         | `Enable-MMAgent -PageCombining`        | Deduplicates identical pages (huge for Chrome/Electron) |
+| 1 — ZRAM     | Application PreLaunch  | `Enable-MMAgent -ApplicationPreLaunch` | Keeps frequent apps warm                                |
+| 2 — Registry | SysMain OFF            | Registry + `sc stop SysMain`           | Removes predictive prefetching (redundant on SSDs)      |
+| 2 — Registry | Prefetch OFF           | Registry `EnablePrefetcher=0`          | Disables boot/app prefetching                           |
+| 2 — Registry | DisablePagingExecutive | Registry = 1                           | Keeps kernel/drivers in RAM (never paged to SSD)        |
+| 2 — Registry | LargeSystemCache OFF   | Registry = 0                           | Prioritizes app memory over file cache                  |
+| 2 — Registry | IoPageLockLimit 512MB  | Registry                               | More RAM reserved for I/O operations                    |
+| 3 — Endgame  | File Cache Limit       | `kernel32.SetSystemFileCacheSize`      | Caps invisible file cache to 512MB (frees 1-3 GB)       |
+| 3 — Endgame  | Working Set Trim       | `psapi.EmptyWorkingSet`                | Forces idle processes to release unused RAM pages       |
+| 3 — Endgame  | Standby List Purge     | `ntdll.NtSetSystemInformation`         | Clears cached memory on demand                          |
+
+**Privilege Elevation:**
+
+- `SeIncreaseQuotaPrivilege` enabled via `ctypes`/`advapi32` (no pywin32 dependency)
+- `SeProfileSingleProcessPrivilege` for standby list purge
+- Process handles opened with `PROCESS_SET_QUOTA` (0x0100) — minimal permission
 
 ---
 

@@ -21,8 +21,63 @@ from pathlib import Path
 # NovaPulse module path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Desktop log path
-DESKTOP = Path(os.environ.get('USERPROFILE', Path.home())) / 'Desktop'
+# Desktop log path — robust resolution for elevated/PyInstaller contexts
+def _resolve_desktop():
+    """Resolve Desktop path reliably even when running elevated or from PyInstaller."""
+    candidates = []
+    
+    userprofile = os.environ.get('USERPROFILE', '')
+    
+    # 1. Windows Shell Folders registry (most authoritative — knows OneDrive redirect)
+    try:
+        import winreg
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+        )
+        desktop_path, _ = winreg.QueryValueEx(key, "Desktop")
+        winreg.CloseKey(key)
+        candidates.append(Path(desktop_path))
+    except Exception:
+        pass
+    
+    # 2. Standard USERPROFILE\Desktop
+    if userprofile:
+        candidates.append(Path(userprofile) / 'Desktop')
+    
+    # 3. OneDrive Desktop (common Windows 11 redirect)
+    onedrive = os.environ.get('OneDriveConsumer', os.environ.get('OneDrive', ''))
+    if onedrive:
+        candidates.append(Path(onedrive) / 'Desktop')
+        candidates.append(Path(onedrive) / 'Área de Trabalho')
+    
+    # 4. Path.home() Desktop
+    candidates.append(Path.home() / 'Desktop')
+    
+    # Test each candidate: must exist and be writable
+    for desktop in candidates:
+        if desktop.exists() and desktop.is_dir():
+            try:
+                test_file = desktop / '.novapulse_write_test'
+                test_file.write_text('test', encoding='utf-8')
+                test_file.unlink()
+                return desktop
+            except Exception:
+                continue
+    
+    # 5. Create Desktop if possible
+    if userprofile:
+        desktop = Path(userprofile) / 'Desktop'
+        try:
+            desktop.mkdir(parents=True, exist_ok=True)
+            return desktop
+        except Exception:
+            pass
+    
+    # 6. Last resort: use temp directory
+    return Path(os.environ.get('TEMP', os.path.dirname(os.path.abspath(__file__))))
+
+DESKTOP = _resolve_desktop()
 LOG_FILE = DESKTOP / 'NovaPulse_Diagnostic.txt'
 
 
@@ -53,8 +108,11 @@ class RuntimeLogger:
         self._entries = []
         self._file_lock = threading.Lock()
         
-        # Write session header
-        self._write_header()
+        # Write session header (never crash if log path is invalid)
+        try:
+            self._write_header()
+        except Exception:
+            pass
     
     @classmethod
     def get(cls):

@@ -93,7 +93,7 @@ class Dashboard:
             'cpu_freq_max_ghz': 0
         }
         
-        # Detecta GPUs
+        # Detect GPUs
         self.has_nvidia = False
         self.has_intel = False
         self.nvidia_handle = None
@@ -109,17 +109,17 @@ class Dashboard:
                 self.nvidia_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
                 name = pynvml.nvmlDeviceGetName(self.nvidia_handle)
                 
-                # Decodifica se for bytes
+                # Decode if bytes
                 if isinstance(name, bytes):
                     name = name.decode('utf-8')
                 
                 self.stats['gpu_nvidia_name'] = name
                 self.has_nvidia = True
-                print(f"[GPU] NVIDIA detectada: {name}")
+                print(f"[GPU] NVIDIA detected: {name}")
         except Exception as e:
-            print(f"[GPU] NVIDIA não detectada: {e}")
+            print(f"[GPU] NVIDIA not detected: {e}")
         
-        # Detecta Intel integrada via WMI (CACHED at init - no per-frame calls)
+        # Detect Intel integrated GPU via WMI (CACHED at init - no per-frame calls)
         self._cached_intel_name = "Intel Integrated Graphics"
         try:
             import wmi
@@ -129,10 +129,10 @@ class Dashboard:
                     self.has_intel = True
                     self.stats['gpu_intel_name'] = gpu.Name
                     self._cached_intel_name = gpu.Name
-                    print(f"[GPU] Intel detectada: {gpu.Name}")
+                    print(f"[GPU] Intel detected: {gpu.Name}")
                     break
         except Exception as e:
-            print(f"[GPU] Intel não detectada: {e}")
+            print(f"[GPU] Intel not detected: {e}")
         
         # Get temperature service singleton
         self._temp_service = temperature_service.get_service()
@@ -479,9 +479,9 @@ class Dashboard:
         return Panel(table, title=f"[bold]🎯 NovaPulse Infographic • Uptime: {time_str}[/bold]", border_style="yellow")
     
     def _make_bar(self, value, max_value, color):
-        """Cria uma barra de progresso visual"""
+        """Creates a visual progress bar"""
         pct = min(100, (value / max_value) * 100)
-        filled = int(pct / 5)  # 20 caracteres max
+        filled = int(pct / 5)  # 20 chars max
         empty = 20 - filled
         return f"[{color}]{'█' * filled}{'░' * empty}[/{color}]"
     
@@ -645,7 +645,7 @@ class Dashboard:
             self.stats['telemetry_status'] = tel_status.get('status', 'idle')
     
     def render(self, services):
-        """Renderiza o dashboard"""
+        """Renders the dashboard"""
         self.update_stats(services)
         
         self.layout["header"].update(self.make_header())
@@ -719,6 +719,9 @@ class Dashboard:
         CRITICAL: Background threads (SmartProcessManager, NVMe TRIM, AutoProfiler)
         print to stdout/stderr which corrupts the Rich Live alternate screen buffer.
         We redirect BOTH stdout AND stderr to StringIO BEFORE entering Live.
+        
+        If Rich Live fails (e.g. PyInstaller console limitations), falls back
+        to a simple text refresh mode.
         """
         self.running = True
         
@@ -730,44 +733,83 @@ class Dashboard:
         sys.stderr.flush()
         time.sleep(0.5)  # Let background threads finish their startup prints
         
+        # Create a console bound to the REAL stdout BEFORE we redirect
+        real_stdout = sys.stdout
+        real_stderr = sys.stderr
+        live_console = Console(file=real_stdout)
+        
         # Redirect BOTH stdout AND stderr to suppress ALL background prints
         # (SmartProcessManager, AutoProfiler, NVMe TRIM, etc.)
-        self._original_stdout = sys.stdout
-        self._original_stderr = sys.stderr
         sys.stdout = io.StringIO()
         sys.stderr = io.StringIO()
         
-        # Rich Live with screen=True for alternate buffer (no flickering)
-        with Live(self.layout, refresh_per_second=2, console=self.console, screen=True) as live:
-            try:
-                while self.running:
-                    # Update all stats
-                    self.update_stats(services)
-                    
-                    # Render all panels (each wrapped in try/except)
-                    self.layout["header"].update(self.make_header())
-                    self.layout["cpu_gpu"].update(self.make_cpu_gpu_panel())
-                    self.layout["memory"].update(self.make_memory_panel())
-                    self.layout["security"].update(self.make_security_panel())
-                    self.layout["footer"].update(self.make_footer())
-                    
-                    # Push update to Live renderer
-                    live.update(self.layout)
-                    
-                    # Sleep 3 seconds between data updates
-                    time.sleep(3)
-                    
-            except KeyboardInterrupt:
-                self.running = False
-            finally:
-                self._ping_running = False
-                # Restore stdout and stderr
-                sys.stdout = self._original_stdout
-                sys.stderr = self._original_stderr
+        try:
+            # Rich Live with screen=True for alternate buffer (no flickering)
+            with Live(self.layout, refresh_per_second=2, console=live_console, screen=True) as live:
+                try:
+                    while self.running:
+                        # Update all stats
+                        self.update_stats(services)
+                        
+                        # Render all panels (each wrapped in try/except)
+                        self.layout["header"].update(self.make_header())
+                        self.layout["cpu_gpu"].update(self.make_cpu_gpu_panel())
+                        self.layout["memory"].update(self.make_memory_panel())
+                        self.layout["security"].update(self.make_security_panel())
+                        self.layout["footer"].update(self.make_footer())
+                        
+                        # Push update to Live renderer
+                        live.update(self.layout)
+                        
+                        # Sleep 3 seconds between data updates
+                        time.sleep(3)
+                        
+                except KeyboardInterrupt:
+                    self.running = False
+        except Exception as e:
+            # Restore stdout BEFORE printing error
+            sys.stdout = real_stdout
+            sys.stderr = real_stderr
+            print(f"[DASHBOARD] Rich Live failed: {e}")
+            print("[DASHBOARD] Falling back to simple text mode...")
+            self._run_text_fallback(services)
+            return
+        finally:
+            self._ping_running = False
+            # Restore stdout and stderr
+            sys.stdout = real_stdout
+            sys.stderr = real_stderr
+    
+    def _run_text_fallback(self, services):
+        """Simple text-mode dashboard fallback if Rich Live fails."""
+        try:
+            while self.running:
+                self.update_stats(services)
+                os.system('cls' if os.name == 'nt' else 'clear')
+                
+                cpu = self.stats.get('cpu_percent', 0)
+                ram = self.stats.get('ram_percent', 0)
+                gpu_temp = self.stats.get('gpu_temp', 0)
+                mode = self.stats.get('auto_mode', 'NORMAL')
+                ping = self.stats.get('ping_ms', 0)
+                
+                print("=" * 50)
+                print(f"  NOVAPULSE 2.2.1 | Mode: {mode}")
+                print("=" * 50)
+                print(f"  CPU:  {cpu:5.1f}%")
+                print(f"  RAM:  {ram:5.1f}%")
+                print(f"  GPU:  {gpu_temp}°C")
+                print(f"  Ping: {ping}ms")
+                print("=" * 50)
+                print("  Press Ctrl+C to exit")
+                
+                time.sleep(3)
+        except KeyboardInterrupt:
+            self.running = False
 
 
 if __name__ == "__main__":
-    # Teste
+    # Test
     dash = Dashboard()
     dash.run({})
 

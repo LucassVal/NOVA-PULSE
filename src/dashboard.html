@@ -285,6 +285,52 @@
             color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace; font-size: 22px;
             letter-spacing: 4px; font-weight: 800;
         }
+        /* ── NeoCortex Sub-Tab System ── */
+        .nc-subtab-bar {
+            display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 14px;
+            padding: 6px; background: rgba(0,0,0,0.3); border-radius: 10px;
+            border: 1px solid rgba(112,0,255,0.15);
+        }
+        .nc-subtab {
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+            color: var(--text-dim); padding: 6px 12px; border-radius: 6px;
+            font-weight: 800; font-size: 10px; cursor: pointer;
+            transition: all 0.15s ease; text-transform: uppercase; letter-spacing: 0.5px;
+            display: flex; align-items: center; gap: 5px; white-space: nowrap;
+        }
+        .nc-subtab:hover { background: rgba(112,0,255,0.08); color: var(--text-main); }
+        .nc-subtab.active {
+            background: linear-gradient(135deg, rgba(112,0,255,0.22), rgba(0,242,254,0.12));
+            border-color: var(--accent-purple); color: #fff;
+            box-shadow: inset 0 0 12px rgba(112,0,255,0.15);
+        }
+        .nc-badge {
+            display: inline-block; padding: 1px 6px; border-radius: 8px;
+            font-size: 8px; font-weight: 900; letter-spacing: 0.5px;
+        }
+        .nc-badge.ok { background: rgba(0,255,119,0.15); color: var(--success-neon); }
+        .nc-badge.warn { background: rgba(255,170,0,0.15); color: var(--warning-neon); }
+        .nc-badge.err { background: rgba(255,0,85,0.15); color: var(--danger-neon); }
+        .nc-badge.info { background: rgba(0,242,254,0.12); color: var(--accent-cyan); }
+        .nc-agent-card {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 8px; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px;
+        }
+        .nc-agent-name { font-weight: 800; font-size: 12px; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
+        .nc-agent-role { font-size: 10px; color: var(--text-dim); }
+        .nc-ticket-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 12px; background: rgba(0,0,0,0.25); border-radius: 6px;
+            border-left: 3px solid var(--accent-cyan); font-size: 11px;
+        }
+        .nc-ticket-row.done { border-left-color: var(--success-neon); opacity: 0.6; }
+        .nc-ticket-row.blocked { border-left-color: var(--danger-neon); }
+        .nc-ticket-row.wip { border-left-color: var(--warning-neon); }
+        .nc-log-entry {
+            font-family: 'JetBrains Mono'; font-size: 10px; color: var(--text-dim);
+            padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.03);
+            line-height: 1.6; word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -313,6 +359,7 @@
             { id:'power',label:'Power', icon:'🔋' },
             { id:'kernel',label:'Kernel', icon:'⚙️' },
             { id:'sched',label:'Scheduler', icon:'⚖️' },
+            { id:'nc',   label:'NeoCortex', icon:'🧬' },
         ];
 
         const fmt = (v, d=1) => (v===undefined||v===null) ? '--' : (typeof v==='number' ? v.toFixed(d) : v);
@@ -430,6 +477,18 @@
                 `TDP cap em 90% corta o pico de watts que gera calor sem ganho real de FPS/tokens.`,
                 `TinyLlama 1.1B Q5 cabe folgado; Phi-3.5 Mini 3.8B Q3 e o limite pratico dos 4GB.`,
             ];},
+            nc: ()=>[
+                `O NeoCortex V43 opera 13 dominios (00-99) com governanca DDD hierarquica P0-P3.`,
+                `Cascade Agents: T0 (Orchestrator), T1 (Intel/Pro), T2 (Executor/Flash), Q (Inquisitor).`,
+                `O MCP Server expoe 40+ tools para automacao de governanca, QA e deployment.`,
+                `Cada ticket segue o pipeline: TODO -> WIP -> QA -> DONE, com handoff obrigatorio.`,
+                `O Memory Ledger (Hub 08) persiste estado entre sessoes via WAL + World State.`,
+                `DeepSeek Flash e Pro dao inteligencia remota; Qwen local e o worker de baixo custo.`,
+                `R05 Never Delete: nada e apagado, tudo vai para 99_ARCHIVE com tag de decay.`,
+                `SSOT Headers (R117): 13 tags obrigatorias no topo de cada arquivo governado.`,
+                `O dashboard Pulse serve como frontend unificado: hardware + IA + governanca.`,
+                `A API FastAPI (:7743) expoe cascade, kanban, ledger, MCP e metricas de sistema.`,
+            ],
             igpu: (s,c)=>[
                 `A Iris Xe compartilha RAM do sistema — nao tem VRAM dedicada.`,
                 `Ideal para renderizar o desktop/DWM, liberando a RTX 3050 100% para IA.`,
@@ -1058,10 +1117,225 @@
             </div>
         );
 
+        // ── NEOCORTEX V43 INTEGRATION TAB ──────────────────────────────
+        const NC_API = 'http://127.0.0.1:7743';
+        const ncFetch = (path) => fetch(`${NC_API}${path}`).then(r=>r.json()).then(d=>d.data||d).catch(()=>null);
+
+        const NC_SUBS = [
+            { id:'nc-ov',    label:'Overview',   icon:'🧬' },
+            { id:'nc-cas',   label:'Cascade',    icon:'🎯' },
+            { id:'nc-kan',   label:'Kanban',     icon:'📌' },
+            { id:'nc-mcp',   label:'MCP Tools',  icon:'🛠️' },
+            { id:'nc-led',   label:'Ledger',     icon:'📜' },
+            { id:'nc-sys',   label:'System',     icon:'⚙️' },
+        ];
+
+        const NcOverviewSub = ({nc}) => {
+            const h = nc.health||{};
+            const ds = nc.deepseek||{};
+            const ol = nc.ollama||{};
+            const tk = nc.tickets||{};
+            return (
+                <div className="metrics-grid">
+                    <Widget title="NeoCortex Health" icon="🧬" span>
+                        <div className="primary-metric" style={{color:'var(--accent-purple)'}}>V43 <span className="metric-unit">ACTIVE</span></div>
+                        <div className="detail-list" style={{marginTop:'8px'}}>
+                            <Row l="API Endpoint" v={`${NC_API}`} c="c-cyan"/>
+                            <Row l="Ollama" v={<Pill on={ol.status==='ok'} on_label="ONLINE" off_label="OFFLINE"/>}/>
+                            <Row l="DeepSeek Key" v={<Pill on={h.deepseek!=='warn'} on_label="SET" off_label="MISSING"/>}/>
+                            <Row l="Tickets (WIP/Done)" v={`${tk.wip||0} / ${tk.done||0}`} c="c-yellow"/>
+                        </div>
+                    </Widget>
+                    <Widget title="DeepSeek Metrics" icon="💰">
+                        <div className="detail-list">
+                            <Row l="Balance" v={`$${fmt(ds.balance_usd,2)}`} c="c-green"/>
+                            <Row l="Session Calls" v={N(ds.session_calls)}/>
+                            <Row l="Prompt Tokens" v={N(ds.prompt_tokens)}/>
+                            <Row l="Cache Hit" v={N(ds.cache_hit_tokens)} c="c-cyan"/>
+                            <Row l="Est. Cost" v={`$${fmt(ds.estimated_cost_usd,4)}`} c="c-yellow"/>
+                        </div>
+                    </Widget>
+                    <Widget title="Ollama Models" icon="🤖">
+                        <div className="list-mono">
+                            {(ol.models||[]).map((m,i)=><div key={i}>&bull; {m}</div>)}
+                            {(!ol.models||ol.models.length===0)&&<div>No models loaded</div>}
+                        </div>
+                    </Widget>
+                </div>
+            );
+        };
+
+        const NcCascadeSub = ({nc}) => {
+            const cas = nc.cascade||{};
+            const agents = cas.agents||[];
+            const phases = cas.validation_phases||[];
+            return (
+                <div className="metrics-grid">
+                    <Widget title="Cascade Agents" icon="🎯" span>
+                        <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+                            {agents.map((a,i)=>(
+                                <div key={i} className="nc-agent-card">
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                        <span className="nc-agent-name">{a.id}</span>
+                                        <span className={`nc-badge ${a.status==='active'?'ok':'warn'}`}>{a.status}</span>
+                                    </div>
+                                    <div className="nc-agent-role">{a.role||a.name} &mdash; {a.model||'local'}</div>
+                                    <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
+                                        {(a.actions_allowed||[]).slice(0,5).map((act,j)=><span key={j} className="nc-badge info">{act}</span>)}
+                                    </div>
+                                </div>
+                            ))}
+                            {agents.length===0&&<div className="list-mono">No cascade agents found</div>}
+                        </div>
+                    </Widget>
+                    <Widget title="Validation Pipeline" icon="🛡️">
+                        <div className="detail-list">
+                            {phases.map((p,i)=><Row key={i} l={`Phase ${p.phase}: ${p.name}`} v={<Pill on={p.status==='ok'} on_label="PASS" off_label="FAIL"/>}/>)}
+                        </div>
+                    </Widget>
+                </div>
+            );
+        };
+
+        const NcKanbanSub = ({nc}) => {
+            const tickets = nc.kanbanTickets||[];
+            const groups = {todo:[],wip:[],done:[],blocked:[]};
+            tickets.forEach(t=>{
+                const s = (t.status||'').replace('%','').toLowerCase();
+                if(groups[s]) groups[s].push(t); else groups.wip.push(t);
+            });
+            const TRow = ({t}) => {
+                const s = (t.status||'').replace('%','').toLowerCase();
+                return (
+                    <div className={`nc-ticket-row ${s}`}>
+                        <span style={{fontWeight:700,color:'#fff'}}>{t.ticket_id}</span>
+                        <span style={{flex:1,margin:'0 10px',color:'var(--text-dim)'}}>{t.title}</span>
+                        <span className={`nc-badge ${s==='done'?'ok':s==='blocked'?'err':'warn'}`}>{t.priority||'P2'}</span>
+                    </div>
+                );
+            };
+            return (
+                <div className="metrics-grid">
+                    <Widget title={`WIP (${groups.wip.length})`} icon="🟡" span>
+                        <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+                            {groups.wip.map((t,i)=><TRow key={i} t={t}/>)}
+                            {groups.wip.length===0&&<div className="list-mono">No WIP tickets</div>}
+                        </div>
+                    </Widget>
+                    <Widget title={`TODO (${groups.todo.length})`} icon="🟢">
+                        <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+                            {groups.todo.map((t,i)=><TRow key={i} t={t}/>)}
+                        </div>
+                    </Widget>
+                    <Widget title={`DONE (${groups.done.length})`} icon="✅">
+                        <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+                            {groups.done.slice(0,8).map((t,i)=><TRow key={i} t={t}/>)}
+                        </div>
+                    </Widget>
+                </div>
+            );
+        };
+
+        const NcMcpSub = ({nc}) => {
+            const tools = nc.mcpTools||[];
+            const skills = nc.skills||[];
+            return (
+                <div className="metrics-grid">
+                    <Widget title={`MCP Tools (${tools.length})`} icon="🛠️" span>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+                            {tools.map((t,i)=>(
+                                <span key={i} className={`nc-badge ${t.status==='active'?'ok':t.status==='offline'?'err':'info'}`} style={{padding:'3px 8px',fontSize:'9px'}}>{t.id}</span>
+                            ))}
+                            {tools.length===0&&<div className="list-mono">MCP unavailable</div>}
+                        </div>
+                    </Widget>
+                    <Widget title={`Skills (${skills.length})`} icon="🎯">
+                        <div className="list-mono">
+                            {skills.slice(0,12).map((sk,i)=><div key={i}>&bull; {typeof sk==='string'?sk:(sk.name||sk.id||JSON.stringify(sk))}</div>)}
+                            {skills.length===0&&<div>No skills registered</div>}
+                        </div>
+                    </Widget>
+                </div>
+            );
+        };
+
+        const NcLedgerSub = ({nc}) => {
+            const history = nc.ledgerHistory||[];
+            const wal = nc.ledgerWal||[];
+            const session = nc.ledgerSession||{};
+            return (
+                <div className="metrics-grid">
+                    <Widget title="Action Log (WAL)" icon="📜" span>
+                        <div style={{maxHeight:'200px',overflowY:'auto'}}>
+                            {wal.slice(0,20).map((e,i)=><div key={i} className="nc-log-entry">{JSON.stringify(e).slice(0,120)}</div>)}
+                            {wal.length===0&&<div className="list-mono">No WAL entries</div>}
+                        </div>
+                    </Widget>
+                    <Widget title="History Ledger" icon="📈">
+                        <div style={{maxHeight:'160px',overflowY:'auto'}}>
+                            {history.slice(0,15).map((e,i)=><div key={i} className="nc-log-entry">{JSON.stringify(e).slice(0,120)}</div>)}
+                            {history.length===0&&<div className="list-mono">No history</div>}
+                        </div>
+                    </Widget>
+                    <Widget title="Session Summary" icon="📝">
+                        <div className="list-mono" style={{maxHeight:'120px',overflowY:'auto',whiteSpace:'pre-wrap'}}>
+                            {session.content_md?session.content_md.slice(0,600):'No session summary available.'}
+                        </div>
+                    </Widget>
+                </div>
+            );
+        };
+
+        const NcSystemSub = ({nc}) => {
+            const sys = nc.sysMetrics||{};
+            const lint = nc.linter||{};
+            return (
+                <div className="metrics-grid">
+                    <Widget title="System Resources" icon="⚙️" span>
+                        <div className="primary-metric cyan">{fmt(sys.cpu_pct)} <span className="metric-unit">% CPU</span></div>
+                        <Bar v={sys.cpu_pct||0} cls={barColor(sys.cpu_pct||0,[70,90])}/>
+                        <div className="detail-list" style={{marginTop:'8px'}}>
+                            <Row l="Cores / Threads" v={`${sys.cpu_cores||'--'} / ${sys.cpu_threads||'--'}`}/>
+                            <Row l="RAM" v={`${fmt(sys.ram_used_gb)} / ${fmt(sys.ram_total_gb)} GB (${fmt(sys.ram_pct)}%)`} c="c-cyan"/>
+                            <Row l="Disk" v={`${fmt(sys.disk_used_gb)} / ${fmt(sys.disk_total_gb)} GB (${fmt(sys.disk_pct)}%)`}/>
+                        </div>
+                    </Widget>
+                    <Widget title="Linter / QA" icon="🧹">
+                        <div className="detail-list">
+                            <Row l="Status" v={<Pill on={lint.status==='ok'} on_label="CLEAN" off_label="ERRORS"/>}/>
+                            <Row l="Errors" v={N(lint.errors||0)} c={lint.errors?'c-red':'c-green'}/>
+                        </div>
+                    </Widget>
+                </div>
+            );
+        };
+
+        const NeoCortexTab = ({nc}) => {
+            const [sub, setSub] = useState('nc-ov');
+            const PANELS_NC = {
+                'nc-ov': NcOverviewSub, 'nc-cas': NcCascadeSub, 'nc-kan': NcKanbanSub,
+                'nc-mcp': NcMcpSub, 'nc-led': NcLedgerSub, 'nc-sys': NcSystemSub,
+            };
+            const SubPanel = PANELS_NC[sub] || NcOverviewSub;
+            return (
+                <div>
+                    <div className="nc-subtab-bar">
+                        {NC_SUBS.map(t=>(
+                            <div key={t.id} className={`nc-subtab ${sub===t.id?'active':''}`} onClick={()=>setSub(t.id)}>
+                                <span>{t.icon}</span>{t.label}
+                            </div>
+                        ))}
+                    </div>
+                    <SubPanel nc={nc}/>
+                </div>
+            );
+        };
+
         const PANELS = {
             overview: Overview, cpu: CpuTab, gpu: GpuTab, igpu: IgpuTab, ram: RamTab,
             vmem: VmemTab, net: NetTab, nic: NicTab, usb: UsbTab, vpn: VpnTab, dns: DnsTab,
             block: BlockTab, oled: OledTab, power: PowerTab, kernel: KernelTab, sched: SchedTab,
+            nc: NeoCortexTab,
         };
 
         const App = () => {
@@ -1070,6 +1344,7 @@
             const [connected, setConnected] = useState(false);
             const [tab, setTab] = useState('overview');
             const [profile, setProfile] = useState('AI INFERENCE');
+            const [ncData, setNcData] = useState({});
 
             const applyProfile = (p) => {
                 setProfile(p);
@@ -1109,6 +1384,28 @@
                 return ()=>{ clearInterval(statInt); clearInterval(compInt); };
             }, []);
 
+            // NeoCortex API poller (only when NC tab is active)
+            useEffect(()=>{
+                if(tab!=='nc') return;
+                let alive=true;
+                const poll = async ()=>{
+                    const [health,ds,ol,cas,tickets,mcp,skills,hist,wal,sess,sys,lint] = await Promise.all([
+                        ncFetch('/api/health'), ncFetch('/api/deepseek/metrics'), ncFetch('/api/ollama/health'),
+                        ncFetch('/api/cascade/status'), ncFetch('/api/kanban/tickets'), ncFetch('/api/mcp/tools-catalog'),
+                        ncFetch('/api/skills'), ncFetch('/api/ledger/history'), ncFetch('/api/ledger/wal'),
+                        ncFetch('/api/ledger/session-summary'), ncFetch('/api/system/metrics'), ncFetch('/api/linter/status'),
+                    ]);
+                    if(!alive) return;
+                    setNcData({health:health||{},deepseek:ds||{},ollama:ol||{},cascade:cas||{},
+                        kanbanTickets:tickets||[],mcpTools:mcp||[],skills:skills||[],
+                        ledgerHistory:hist||[],ledgerWal:wal||[],ledgerSession:sess||{},
+                        sysMetrics:sys||{},linter:lint||{},tickets:health||{}});
+                };
+                poll();
+                const ncInt=setInterval(poll,8000);
+                return ()=>{alive=false;clearInterval(ncInt);};
+            }, [tab]);
+
             useEffect(()=>{
                 const thinking = !!stats && (stats.sched_contended || (stats.cpu_percent||0) > 80 || (stats.gpu_nvidia_percent||0) > 85);
                 document.body.classList.toggle('thinking', thinking);
@@ -1139,10 +1436,11 @@
                             if (t.id==='oled') dotCls = stats.oled_active?'':'off';
                             if (t.id==='vpn') dotCls = (comp.vpn&&comp.vpn.active)?'':'off';
                             if (t.id==='sched') dotCls = stats.sched_contended?'warn':'';
+                            if (t.id==='nc') dotCls = ncData.health?'':'';
                             return (
                                 <div key={t.id} className={`tab-btn ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
                                     <span>{t.icon}</span>{t.label}
-                                    {['oled','vpn','sched'].includes(t.id) && <span className={`dot ${dotCls}`}></span>}
+                                    {['oled','vpn','sched','nc'].includes(t.id) && <span className={`dot ${dotCls}`}></span>}
                                 </div>
                             );
                         })}
@@ -1150,7 +1448,7 @@
 
                     <div className="scroll-area">
                         <Curiosities facts={(CURIOSITIES[tab]||(()=>[]))(stats, comp)} tabKey={tab}/>
-                        <Panel s={stats} c={comp}/>
+                        <Panel s={stats} c={comp} nc={ncData}/>
                     </div>
                 </div>
             );

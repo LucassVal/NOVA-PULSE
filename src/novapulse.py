@@ -218,7 +218,12 @@ def main():
     
     # Initialize services
     services = {}
-    
+
+    # Decay/reversibility safety net: even on kill/crash, restore demoted
+    # process priorities and OLED brightness via atexit (idempotent).
+    import atexit
+    atexit.register(stop_all_services, services)
+
     # === STANDBY MEMORY CLEANER ===
     if config.get('standby_cleaner', {}).get('enabled', True):
         cleaner_config = config['standby_cleaner']
@@ -431,22 +436,41 @@ def main():
     print(f"{Fore.GREEN}[OK] NovaPulse stopped{Style.RESET_ALL}\n")
 
 
-def stop_all_services(services):
-    """Stop all running services cleanly."""
-    if 'cleaner' in services:
-        services['cleaner'].stop()
-    if 'smart_priority' in services:
-        services['smart_priority'].stop()
-    if 'auto_profiler' in services:
-        services['auto_profiler'].stop()
+_cleanup_done = False
 
-    if 'security_scanner' in services:
-        services['security_scanner'].stop()
-    if 'tray' in services:
-        try:
-            services['tray'].stop()
-        except Exception:
-            pass
+
+def stop_all_services(services):
+    """Stop all running services cleanly (graceful degradation + state restore).
+
+    Generic: stops ANY service exposing a .stop() method, so new modules
+    (oled_care, nvme_manager, dynamic_scheduler, etc.) are cleaned up without
+    needing to edit this list. Idempotent — safe to call from both the normal
+    shutdown path and the atexit handler.
+
+    Critical for decay/reversibility: dynamic_scheduler.stop() restores demoted
+    process priorities; oled_care.stop() restores screen brightness and is what
+    prevents the panel from being left dimmed if the app is killed.
+    """
+    global _cleanup_done
+    if _cleanup_done:
+        return
+    _cleanup_done = True
+
+    # Restore-critical modules first (priority/brightness state).
+    order = ['smart_priority', 'oled_care', 'auto_profiler', 'cleaner',
+             'security_scanner', 'nvme', 'tray']
+    seen = set()
+    for name in order + list(services.keys()):
+        if name in seen or name not in services:
+            continue
+        seen.add(name)
+        svc = services[name]
+        stop = getattr(svc, 'stop', None)
+        if callable(stop):
+            try:
+                stop()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

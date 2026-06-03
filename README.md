@@ -1,6 +1,6 @@
-# ⚡ NovaPulse 2.2.1 — Intelligent System Optimizer
+# ⚡ NovaPulse 2.5 — Intelligent System Optimizer
 
-![Version](https://img.shields.io/badge/version-2.2.1_GOLD-brightgreen?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.5_AI--WORKLOAD-brightgreen?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/platform-Windows_10%2F11-blue?style=for-the-badge&logo=windows)
 ![Python](https://img.shields.io/badge/python-3.10+-yellow?style=for-the-badge&logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/license-Private-red?style=for-the-badge)
@@ -453,6 +453,42 @@ pyinstaller novapulse.spec
 
 **Known Apps Auto-Lowered:**
 `chrome.exe`, `msedge.exe`, `firefox.exe`, `discord.exe`, `spotify.exe`, `steam.exe`, `epicgameslauncher.exe`, `onedrive.exe`, `dropbox.exe`
+
+---
+
+#### `modules/dynamic_scheduler.py` — Dynamic Scheduler v2.0 (ProBalance)
+
+| Detail | Value                                                                 |
+| ------ | --------------------------------------------------------------------- |
+| Role   | Contention-gated process orchestration (replaces static name-matching) |
+| Model  | Acts only when total CPU > 85% for ~2.8s (real contention)            |
+| Action | DEMOTES background hogs to BELOW_NORMAL + EcoQoS; never blanket-promotes |
+| Boost  | ABOVE_NORMAL only for the foreground window process                   |
+| Protected | `ollama`, `python`, `antigravity`, `code` (AI/IDE) — never lowered |
+
+> Rewritten in V2.5: the old model promoted any >15% burst to HIGH with no gate,
+> which is useless under sustained LLM load (everything bursts). Now follows the
+> correct Process Lasso / ProBalance approach: lower background under contention,
+> restore when it clears. Source: bitsum.com/how-probalance-works
+
+#### `modules/oled_care.py` — OLED Care (X3500PC burn-in protection) `NEW`
+
+| Detail | Value                                                            |
+| ------ | --------------------------------------------------------------- |
+| Role   | Burn-in protection for the OLED panel (image retention defense) |
+| Pixel Shift | Cycles desktop content on a timer (anti static-image)      |
+| Taskbar | Auto-hide + forced Dark Mode (taskbar is #1 burn-in source)    |
+| Idle | Dim/refresh after idle timeout via `GetLastInputInfo` + WMI brightness |
+
+#### `modules/extreme_ai_optimizer.py` — Extreme AI Optimizer (24 vectors) `NEW`
+
+| Detail | Value                                                              |
+| ------ | ----------------------------------------------------------------- |
+| Role   | The 24 extreme vectors for LLM-inference workloads                |
+| Net    | TCP autotuning default `normal` (not experimental)                |
+| Mem    | Aggressive compression skipped on 16GB+ (PageCombining kept)      |
+| Sec    | VBS+HVCI disable is opt-in (`confirm=True`) with security warning  |
+| AI     | WSL hard-limits, Defender LLM exclusion, port hardening, Flash Attn |
 
 ---
 

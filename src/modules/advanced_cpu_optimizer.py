@@ -5,7 +5,7 @@ C-States, Turbo Boost, Large Pages, and advanced optimizations
 import winreg
 import subprocess
 import ctypes
-from typing import Dict, Optional
+from typing import Dict
 
 
 class AdvancedCPUOptimizer:
@@ -29,7 +29,7 @@ class AdvancedCPUOptimizer:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data, 
@@ -39,7 +39,7 @@ class AdvancedCPUOptimizer:
             winreg.SetValueEx(key, value_name, 0, value_type, value_data)
             winreg.CloseKey(key)
             return True
-        except:
+        except Exception:
             return False
     
     def _run_powercfg(self, args: str) -> bool:
@@ -50,7 +50,7 @@ class AdvancedCPUOptimizer:
                 encoding='utf-8', errors='ignore'
             )
             return result.returncode == 0
-        except:
+        except Exception:
             return False
     
     def disable_c_states(self) -> bool:
@@ -125,12 +125,11 @@ class AdvancedCPUOptimizer:
         
         print("[CPU ADV] Optimizing processor scheduling...")
         
-        # Win32PrioritySeparation
-        # 38 = Short-quantum, foreground boost (best for gaming)
-        # 2 = Long-quantum, no boost (best for servers)
+        # Win32PrioritySeparation (Hex 2A = 42)
+        # Separates priority for foreground apps from background apps (LLM Inference focus)
         success = self._set_registry_value(
             r"SYSTEM\CurrentControlSet\Control\PriorityControl",
-            "Win32PrioritySeparation", 38
+            "Win32PrioritySeparation", 0x2a
         )
         
         if success:
@@ -217,6 +216,7 @@ class AdvancedCPUOptimizer:
         results['power_throttling'] = self.disable_power_throttling()
         results['interrupt'] = self.optimize_interrupt_affinity()
         results['svchost'] = self.set_svchost_splitting()
+        results['dynamic_ticks'] = self.disable_dynamic_ticks()
         
         success_count = sum(results.values())
         print(f"[CPU ADV] Result: {success_count}/{len(results)} optimizations applied")
@@ -226,6 +226,34 @@ class AdvancedCPUOptimizer:
     def get_status(self) -> Dict[str, any]:
         """Returns optimization status"""
         return {'applied': self.applied_changes}
+
+    def disable_dynamic_ticks(self) -> bool:
+        """Disable dynamic ticks for lower DPC latency"""
+        if not self.is_admin:
+            return False
+        print("[CPU ADV] Disabling Dynamic Ticks...")
+        try:
+            result = subprocess.run(
+                "bcdedit /set disabledynamictick yes",
+                shell=True, capture_output=True, text=True
+            )
+            success = result.returncode == 0
+            if success:
+                print("[CPU ADV] ✓ Dynamic Ticks disabled")
+                self.applied_changes['dynamic_ticks'] = True
+            return success
+        except Exception:
+            return False
+
+    def is_optimized(self) -> bool:
+        """Verifies if the system is already optimized by checking Win32PrioritySeparation"""
+        try:
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\PriorityControl")
+            val, _ = winreg.QueryValueEx(key, "Win32PrioritySeparation")
+            winreg.CloseKey(key)
+            return val == 0x2a
+        except Exception:
+            return False
 
 
 # Singleton

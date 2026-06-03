@@ -4,7 +4,6 @@ NTFS file system optimizations for better I/O
 """
 import subprocess
 import ctypes
-import winreg
 from typing import Dict, Tuple
 
 
@@ -19,7 +18,7 @@ class NTFSOptimizer:
         """Check admin privileges"""
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _run_fsutil(self, args: str) -> Tuple[bool, str]:
@@ -163,7 +162,7 @@ class NTFSOptimizer:
             )
             status['lastaccess'] = "Disabled" if "1" in result.stdout or "2" in result.stdout else "Enabled"
             
-        except:
+        except Exception:
             pass
         
         return status

@@ -2,7 +2,6 @@
 CPU power and frequency manager
 """
 import ctypes
-from ctypes import wintypes
 import subprocess
 
 class CPUPowerManager:
@@ -127,7 +126,7 @@ class CPUPowerManager:
                             current_limit = new_limit
                             
                     time.sleep(5)
-                except:
+                except Exception:
                     time.sleep(10)
 
         t = threading.Thread(target=thermal_loop, daemon=True)

@@ -4,7 +4,6 @@ Controls Hardware-Accelerated GPU Scheduling and other GPU options
 """
 import winreg
 import ctypes
-import subprocess
 from typing import Dict, Optional, Tuple
 
 
@@ -23,7 +22,7 @@ class GPUSchedulerController:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path: str, value_name: str, value_data, value_type=winreg.REG_DWORD) -> bool:
@@ -42,7 +41,7 @@ class GPUSchedulerController:
             value, _ = winreg.QueryValueEx(key, value_name)
             winreg.CloseKey(key)
             return value
-        except:
+        except Exception:
             return None
     
     def enable_hardware_accelerated_scheduling(self, enable: bool = True) -> bool:
@@ -127,13 +126,12 @@ class GPUSchedulerController:
             return False
         
         try:
-            compat_key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
             # Note: This sets for new apps, existing apps need individual configuration
             print("[GPU] ℹ Fullscreen Optimizations should be disabled per app")
             print("[GPU] ℹ Right-click .exe > Properties > Compatibility")
             self.applied_changes['fso'] = True
             return True
-        except:
+        except Exception:
             return False
     
     def enable_game_mode(self) -> bool:
@@ -163,7 +161,7 @@ class GPUSchedulerController:
                     print("[GPU] ✓ Game Mode enabled (HKLM)")
                     self.applied_changes['game_mode'] = True
                 return success
-            except:
+            except Exception:
                 print(f"[GPU] ✗ Game Mode: {e}")
                 return False
     
@@ -175,7 +173,8 @@ class GPUSchedulerController:
         Registry: HKCU\\Software\\Microsoft\\DirectX\\UserGpuPreferences
         Value: GpuPreference=2  (0=Auto, 1=Power Saving, 2=High Performance)
         """
-        import os, glob
+        import os
+        import glob
         import sys
         
         # Apps to force NVIDIA (expand as needed)
@@ -229,7 +228,7 @@ class GPUSchedulerController:
                     # Read existing global settings to preserve them
                     try:
                         current, _ = winreg.QueryValueEx(key, "DirectXUserGlobalSettings")
-                    except:
+                    except Exception:
                         current = ""
                     
                     # Add GpuPreference=2 if not already present
@@ -277,7 +276,7 @@ class GPUSchedulerController:
                                winreg.KEY_READ | winreg.KEY_SET_VALUE) as key:
                 try:
                     current, _ = winreg.QueryValueEx(key, "PhysxGpu")
-                except:
+                except Exception:
                     current = 0
                 
                 if current != 1:
@@ -339,8 +338,13 @@ class GPUSchedulerController:
             # NVIDIA 1000+ series supports HAGS
             supported = any(x in name.upper() for x in ['GTX 10', 'GTX 16', 'RTX'])
             return supported, name
-        except:
+        except Exception:
             return False, "GPU not detected"
+            
+    def is_optimized(self) -> bool:
+        """Verifies if the main optimization (HAGS) is already active"""
+        hags = self._get_registry_value(self.GPU_KEY, "HwSchMode")
+        return hags == 2
 
 
 # Singleton

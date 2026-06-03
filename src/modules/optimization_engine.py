@@ -2,8 +2,7 @@
 NovaPulse - Optimization Engine
 Central engine that orchestrates all optimization modules
 """
-import threading
-from typing import Dict, Optional, List
+from typing import Dict, List
 from dataclasses import dataclass
 from enum import Enum
 
@@ -42,39 +41,56 @@ class OptimizationEngine:
         self.applied_optimizations: Dict[str, bool] = {}
         self.requires_restart = False
         
-    def apply_all(self, level: OptimizationLevel = OptimizationLevel.BALANCED) -> Dict[str, OptimizationResult]:
+    def apply_all(self, level: OptimizationLevel = OptimizationLevel.BALANCED, interactive: bool = True, dry_run: bool = False) -> Dict[str, OptimizationResult]:
         """
         Apply all optimizations according to the level
+        If interactive is True, prompts the user before applying modules that require restart.
+        If dry_run is True, it only checks which modules would be applied and if they require restart.
         """
-        print(f"\n{'='*60}")
-        print(f"⚡ NovaPulse Optimization Engine")
-        print(f"Level: {level.value}")
-        print(f"{'='*60}\n")
+        if not dry_run:
+            print(f"\n{'='*60}")
+            print("⚡ NovaPulse Optimization Engine")
+            print(f"Level: {level.value}")
+            print(f"{'='*60}\n")
         
         results = {}
         
-        # Application order (important to avoid conflicts):
-        # 1. Power/CPU (base)
-        # 2. Memory (uses CPU settings)
-        # 3. Storage (uses memory settings)
-        # 4. GPU (independent)
-        # 5. Network (independent)
-        # 6. Timers (affects everything)
-        # 7. Process Control (uses all settings)
-        
+        def _should_apply(module_name: str, module_obj: any = None, requires_restart_flag: bool = False) -> bool:
+            if module_obj and hasattr(module_obj, 'is_optimized'):
+                try:
+                    if module_obj.is_optimized():
+                        if not dry_run:
+                            print(f"[✓] {module_name} is already active. Skipping.")
+                        return False
+                except Exception as e:
+                    if not dry_run:
+                        print(f"    [!] Warning checking {module_name} status: {e}")
+            
+            if dry_run:
+                return True # We return True so the engine records that it *would* apply it
+                
+            if not interactive:
+                return True
+            if requires_restart_flag:
+                print(f"\n[?] The '{module_name}' module applies kernel-level changes and REQUIRES a RESTART.")
+                choice = input(f"    Do you want to apply optimizations for {module_name}? (y/n): ").strip().lower()
+                return choice == 'y'
+            return True
+
         # === FASE 1: POWER/CPU ===
         try:
             from modules.core_parking import get_manager as get_parking
             parking = get_parking()
-            use_ultimate = level in [OptimizationLevel.AGGRESSIVE, OptimizationLevel.GAMING]
-            changes = parking.apply_all_optimizations(use_ultimate=use_ultimate)
-            results['core_parking'] = OptimizationResult(
-                module='Core Parking',
-                success=any(changes.values()),
-                changes=changes,
-                requires_restart=False,
-                message='Power scheme and core parking configured'
-            )
+            if _should_apply("Core Parking", parking, False):
+                use_ultimate = level in [OptimizationLevel.AGGRESSIVE, OptimizationLevel.GAMING]
+                changes = parking.apply_all_optimizations(use_ultimate=use_ultimate)
+                results['core_parking'] = OptimizationResult(
+                    module='Core Parking',
+                    success=any(changes.values()),
+                    changes=changes,
+                    requires_restart=False,
+                    message='Power scheme and core parking configured'
+                )
         except Exception as e:
             print(f"[ENGINE] ⚠ Core Parking: {e}")
         
@@ -82,16 +98,17 @@ class OptimizationEngine:
         try:
             from modules.memory_optimizer import get_optimizer as get_memory
             memory = get_memory()
-            gaming_mode = level in [OptimizationLevel.GAMING, OptimizationLevel.AGGRESSIVE]
-            changes = memory.apply_all_optimizations(gaming_mode=gaming_mode)
-            results['memory'] = OptimizationResult(
-                module='Memory Optimizer',
-                success=any(changes.values()),
-                changes=changes,
-                requires_restart=True,
-                message='Compression, Superfetch and paging optimized'
-            )
-            self.requires_restart = True
+            if _should_apply("Memory Optimizer", memory, True):
+                gaming_mode = level in [OptimizationLevel.GAMING, OptimizationLevel.AGGRESSIVE]
+                changes = memory.apply_all_optimizations(gaming_mode=gaming_mode)
+                results['memory'] = OptimizationResult(
+                    module='Memory Optimizer',
+                    success=any(changes.values()),
+                    changes=changes,
+                    requires_restart=True,
+                    message='Compression, Superfetch and paging optimized'
+                )
+                self.requires_restart = True
         except Exception as e:
             print(f"[ENGINE] ⚠ Memory Optimizer: {e}")
         
@@ -99,32 +116,34 @@ class OptimizationEngine:
         try:
             from modules.ntfs_optimizer import get_optimizer as get_ntfs
             ntfs = get_ntfs()
-            gaming_mode = level in [OptimizationLevel.GAMING, OptimizationLevel.AGGRESSIVE]
-            changes = ntfs.apply_all_optimizations(gaming_mode=gaming_mode)
-            results['ntfs'] = OptimizationResult(
-                module='NTFS Optimizer',
-                success=any(changes.values()),
-                changes=changes,
-                requires_restart=False,
-                message='File system optimized'
-            )
+            if _should_apply("NTFS Optimizer", ntfs, False):
+                gaming_mode = level in [OptimizationLevel.GAMING, OptimizationLevel.AGGRESSIVE]
+                changes = ntfs.apply_all_optimizations(gaming_mode=gaming_mode)
+                results['ntfs'] = OptimizationResult(
+                    module='NTFS Optimizer',
+                    success=any(changes.values()),
+                    changes=changes,
+                    requires_restart=False,
+                    message='File system optimized'
+                )
         except Exception as e:
             print(f"[ENGINE] ⚠ NTFS Optimizer: {e}")
         
         # === FASE 4: GPU ===
         try:
             from modules.gpu_scheduler import get_controller as get_gpu
-            gpu = get_gpu()  # FIXED: was using wrong variable name
-            changes = gpu.apply_all_optimizations()
-            results['gpu'] = OptimizationResult(
-                module='GPU Scheduler',
-                success=any(changes.values()),
-                changes=changes,
-                requires_restart=True,
-                message='HAGS and GPU priority configured'
-            )
-            if changes.get('hags'):
-                self.requires_restart = True
+            gpu = get_gpu()
+            if _should_apply("GPU Scheduler", gpu, True):
+                changes = gpu.apply_all_optimizations()
+                results['gpu'] = OptimizationResult(
+                    module='GPU Scheduler',
+                    success=any(changes.values()),
+                    changes=changes,
+                    requires_restart=True,
+                    message='HAGS and GPU priority configured'
+                )
+                if changes.get('hags'):
+                    self.requires_restart = True
         except Exception as e:
             print(f"[ENGINE] ⚠ GPU Scheduler: {e}")
         
@@ -133,14 +152,15 @@ class OptimizationEngine:
             try:
                 from modules.cuda_optimizer import get_optimizer as get_cuda
                 cuda = get_cuda()
-                changes = cuda.apply_all_optimizations()
-                results['cuda'] = OptimizationResult(
-                    module='CUDA Optimizer',
-                    success=any(changes.values()),
-                    changes=changes,
-                    requires_restart=False,
-                    message='CUDA, PhysX and hardware acceleration configured'
-                )
+                if _should_apply("CUDA Optimizer", cuda, False):
+                    changes = cuda.apply_all_optimizations()
+                    results['cuda'] = OptimizationResult(
+                        module='CUDA Optimizer',
+                        success=any(changes.values()),
+                        changes=changes,
+                        requires_restart=False,
+                        message='CUDA, PhysX and hardware acceleration configured'
+                    )
             except Exception as e:
                 print(f"[ENGINE] ⚠ CUDA Optimizer: {e}")
         
@@ -148,15 +168,16 @@ class OptimizationEngine:
         try:
             from modules.mmcss_optimizer import get_optimizer as get_mmcss
             mmcss = get_mmcss()
-            gaming_focused = level in [OptimizationLevel.GAMING]
-            changes = mmcss.apply_all_optimizations(gaming_focused=gaming_focused)
-            results['mmcss'] = OptimizationResult(
-                module='MMCSS Optimizer',
-                success=any(changes.values()),
-                changes=changes,
-                requires_restart=False,
-                message='Multimedia scheduler optimized'
-            )
+            if _should_apply("MMCSS Optimizer", mmcss, False):
+                gaming_focused = level in [OptimizationLevel.GAMING]
+                changes = mmcss.apply_all_optimizations(gaming_focused=gaming_focused)
+                results['mmcss'] = OptimizationResult(
+                    module='MMCSS Optimizer',
+                    success=any(changes.values()),
+                    changes=changes,
+                    requires_restart=False,
+                    message='Multimedia scheduler optimized'
+                )
         except Exception as e:
             print(f"[ENGINE] ⚠ MMCSS Optimizer: {e}")
         
@@ -164,15 +185,16 @@ class OptimizationEngine:
         try:
             from modules.network_stack_optimizer import get_optimizer as get_network
             network = get_network()
-            gaming_mode = level in [OptimizationLevel.GAMING, OptimizationLevel.AGGRESSIVE]
-            changes = network.apply_all_optimizations(gaming_mode=gaming_mode)
-            results['network'] = OptimizationResult(
-                module='Network Stack',
-                success=any(changes.values()),
-                changes=changes,
-                requires_restart=False,
-                message='TCP/IP stack optimized'
-            )
+            if _should_apply("Network Stack", network, False):
+                gaming_mode = level in [OptimizationLevel.GAMING, OptimizationLevel.AGGRESSIVE]
+                changes = network.apply_all_optimizations(gaming_mode=gaming_mode)
+                results['network'] = OptimizationResult(
+                    module='Network Stack',
+                    success=any(changes.values()),
+                    changes=changes,
+                    requires_restart=False,
+                    message='TCP/IP stack optimized'
+                )
         except Exception as e:
             print(f"[ENGINE] ⚠ Network Stack: {e}")
         
@@ -180,14 +202,15 @@ class OptimizationEngine:
         try:
             from modules.usb_optimizer import get_optimizer as get_usb
             usb = get_usb()
-            changes = usb.apply_all_optimizations()
-            results['usb'] = OptimizationResult(
-                module='USB Optimizer',
-                success=any(changes.values()),
-                changes=changes,
-                requires_restart=False,
-                message='USB polling and buffers optimized'
-            )
+            if _should_apply("USB Optimizer", usb, False):
+                changes = usb.apply_all_optimizations()
+                results['usb'] = OptimizationResult(
+                    module='USB Optimizer',
+                    success=any(changes.values()),
+                    changes=changes,
+                    requires_restart=False,
+                    message='USB polling and buffers optimized'
+                )
         except Exception as e:
             print(f"[ENGINE] ⚠ USB Optimizer: {e}")
         
@@ -196,15 +219,16 @@ class OptimizationEngine:
             try:
                 from modules.irq_optimizer import get_optimizer as get_irq
                 irq = get_irq()
-                changes = irq.apply_all_optimizations()
-                results['irq'] = OptimizationResult(
-                    module='IRQ Affinity',
-                    success=any(changes.values()),
-                    changes=changes,
-                    requires_restart=True,
-                    message='MSI mode and IRQ affinity configured'
-                )
-                self.requires_restart = True
+                if _should_apply("IRQ Affinity", irq, True):
+                    changes = irq.apply_all_optimizations()
+                    results['irq'] = OptimizationResult(
+                        module='IRQ Affinity',
+                        success=any(changes.values()),
+                        changes=changes,
+                        requires_restart=True,
+                        message='MSI mode and IRQ affinity configured'
+                    )
+                    self.requires_restart = True
             except Exception as e:
                 print(f"[ENGINE] ⚠ IRQ Optimizer: {e}")
         
@@ -213,16 +237,17 @@ class OptimizationEngine:
             try:
                 from modules.hpet_controller import get_controller as get_hpet
                 hpet = get_hpet()
-                aggressive = level == OptimizationLevel.AGGRESSIVE
-                changes = hpet.apply_all_optimizations(aggressive=aggressive)
-                results['hpet'] = OptimizationResult(
-                    module='HPET Controller',
-                    success=any(changes.values()),
-                    changes=changes,
-                    requires_restart=True,
-                    message='HPET and timers optimized'
-                )
-                self.requires_restart = True
+                if _should_apply("HPET Controller", hpet, True):
+                    aggressive = level == OptimizationLevel.AGGRESSIVE
+                    changes = hpet.apply_all_optimizations(aggressive=aggressive)
+                    results['hpet'] = OptimizationResult(
+                        module='HPET Controller',
+                        success=any(changes.values()),
+                        changes=changes,
+                        requires_restart=True,
+                        message='HPET and timers optimized'
+                    )
+                    self.requires_restart = True
             except Exception as e:
                 print(f"[ENGINE] ⚠ HPET Controller: {e}")
         
@@ -231,15 +256,16 @@ class OptimizationEngine:
             try:
                 from modules.advanced_cpu_optimizer import get_optimizer as get_adv_cpu
                 adv_cpu = get_adv_cpu()
-                changes = adv_cpu.apply_all_optimizations()
-                results['advanced_cpu'] = OptimizationResult(
-                    module='Advanced CPU',
-                    success=any(changes.values()),
-                    changes=changes,
-                    requires_restart=True,
-                    message='C-States, Turbo Boost, scheduling optimized'
-                )
-                self.requires_restart = True
+                if _should_apply("Advanced CPU", adv_cpu, True):
+                    changes = adv_cpu.apply_all_optimizations()
+                    results['advanced_cpu'] = OptimizationResult(
+                        module='Advanced CPU',
+                        success=any(changes.values()),
+                        changes=changes,
+                        requires_restart=True,
+                        message='C-States, Turbo Boost, scheduling optimized'
+                    )
+                    self.requires_restart = True
             except Exception as e:
                 print(f"[ENGINE] ⚠ Advanced CPU: {e}")
         
@@ -248,42 +274,53 @@ class OptimizationEngine:
             try:
                 from modules.advanced_storage_optimizer import get_optimizer as get_adv_storage
                 adv_storage = get_adv_storage()
-                changes = adv_storage.apply_all_optimizations()
-                results['advanced_storage'] = OptimizationResult(
-                    module='Advanced Storage',
-                    success=any(changes.values()),
-                    changes=changes,
-                    requires_restart=False,
-                    message='Write cache, queue depth, large pages optimized'
-                )
+                if _should_apply("Advanced Storage", adv_storage, False):
+                    changes = adv_storage.apply_all_optimizations()
+                    results['advanced_storage'] = OptimizationResult(
+                        module='Advanced Storage',
+                        success=any(changes.values()),
+                        changes=changes,
+                        requires_restart=False,
+                        message='Write cache, queue depth, large pages optimized'
+                    )
             except Exception as e:
                 print(f"[ENGINE] ⚠ Advanced Storage: {e}")
         
-        # === FASE 12: Process Controller ===
+        # === FASE 12: Dynamic Scheduler (Replaces Process Controller) ===
         try:
-            from modules.process_controller import get_controller as get_process
-            process = get_process()
-            process.start()
-            
-            if level == OptimizationLevel.GAMING:
-                gaming_results = process.apply_gaming_preset()
-                results['process'] = OptimizationResult(
-                    module='Process Controller',
-                    success=True,
-                    changes=gaming_results,
-                    requires_restart=False,
-                    message='Process control active with gaming preset'
-                )
-            else:
-                results['process'] = OptimizationResult(
-                    module='Process Controller',
+            from modules.dynamic_scheduler import get_scheduler
+            scheduler = get_scheduler()
+            if _should_apply("Dynamic Scheduler", scheduler, False):
+                scheduler.start()
+                
+                results['scheduler'] = OptimizationResult(
+                    module='Dynamic Scheduler',
                     success=True,
                     changes={'monitoring_active': True},
                     requires_restart=False,
-                    message='Process control active'
+                    message='Heuristic process control active'
                 )
         except Exception as e:
-            print(f"[ENGINE] ⚠ Process Controller: {e}")
+            print(f"[ENGINE] ⚠ Dynamic Scheduler: {e}")
+            
+        # === PHASE 13: EXTREME AI VECTORS ===
+        if level in [OptimizationLevel.AGGRESSIVE, OptimizationLevel.GAMING]:
+            try:
+                from modules.extreme_ai_optimizer import get_optimizer as get_extreme
+                extreme = get_extreme()
+                if _should_apply("Extreme AI Vectors", extreme, True):
+                    changes = extreme.apply_all_optimizations()
+                    results['extreme_ai'] = OptimizationResult(
+                        module='Extreme AI Vectors',
+                        success=any(changes.values()),
+                        changes=changes,
+                        requires_restart=True,
+                        message='WSL limits, TCP experimental, Affinity, Defender & VBS applied'
+                    )
+                    self.requires_restart = True
+            except Exception as e:
+                print(f"[ENGINE] ⚠ Extreme AI: {e}")
+        
         
         # === SUMMARY ===
         self._print_summary(results)
@@ -307,7 +344,8 @@ class OptimizationEngine:
         print(f"\nResult: {success}/{total} modules applied successfully")
         
         if self.requires_restart:
-            print(f"\n⚠️  RESTART REQUIRED to apply some changes")
+            print("\n⚠️  RESTART REQUIRED to apply some changes")
+            print("   Please reboot your system when you are ready.")
         
         print(f"{'='*60}\n")
     
@@ -325,25 +363,31 @@ class OptimizationEngine:
         try:
             from modules.core_parking import get_manager
             modules_status['core_parking'] = get_manager().get_status()
-        except:
+        except Exception:
             pass
         
         try:
             from modules.memory_optimizer import get_optimizer
             modules_status['memory'] = get_optimizer().get_status()
-        except:
+        except Exception:
             pass
         
         try:
             from modules.gpu_scheduler import get_controller
             modules_status['gpu'] = get_controller().get_status()
-        except:
+        except Exception:
             pass
         
         try:
             from modules.hpet_controller import get_controller
             modules_status['hpet'] = get_controller().get_status()
-        except:
+        except Exception:
+            pass
+            
+        try:
+            from modules.extreme_ai_optimizer import get_optimizer
+            modules_status['extreme_ai'] = get_optimizer().applied_changes
+        except Exception:
             pass
         
         status['modules'] = modules_status

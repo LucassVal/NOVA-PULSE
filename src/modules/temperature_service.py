@@ -4,7 +4,6 @@ Multiple methods for CPU/GPU temperature reading with fallbacks
 """
 import time
 import threading
-import subprocess
 
 class TemperatureService:
     """Thread-safe temperature service with multiple reading methods"""
@@ -29,23 +28,23 @@ class TemperatureService:
         try:
             import wmi
             self._wmi_root = wmi.WMI()
-        except:
+        except Exception:
             pass
             
         try:
             import wmi
             self._wmi_thermal = wmi.WMI(namespace="root\\wmi")
-        except:
+        except Exception:
             pass
             
         try:
             import wmi
             self._wmi_ohw = wmi.WMI(namespace="root\\OpenHardwareMonitor")
-        except:
+        except Exception:
             try:
                 import wmi
                 self._wmi_ohw = wmi.WMI(namespace="root\\LibreHardwareMonitor")
-            except:
+            except Exception:
                 pass
     
     def _init_nvidia(self):
@@ -55,7 +54,7 @@ class TemperatureService:
             pynvml.nvmlInit()
             if pynvml.nvmlDeviceGetCount() > 0:
                 self._nvidia_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-        except:
+        except Exception:
             pass
     
     def _get_cached(self, key):
@@ -88,7 +87,7 @@ class TemperatureService:
                             temp = float(sensor.Value)
                             if temp > 0:
                                 break
-            except:
+            except Exception:
                 pass
         
         # Method 2: WMI Win32_TemperatureProbe (some systems)
@@ -99,7 +98,7 @@ class TemperatureService:
                         temp = float(probe.CurrentReading) / 10.0
                         if temp > 0:
                             break
-            except:
+            except Exception:
                 pass
         
         # Method 3: ACPI Thermal Zone (MSAcpi_ThermalZoneTemperature)
@@ -119,7 +118,7 @@ class TemperatureService:
                     if max_temp > 0:
                         # Use directly - DPTF zones typically report die temperature
                         temp = max_temp
-            except:
+            except Exception:
                 pass
         
         # Method 4: Use NVIDIA GPU as reference (laptops share cooling)
@@ -157,7 +156,7 @@ class TemperatureService:
             try:
                 import pynvml
                 temp = float(pynvml.nvmlDeviceGetTemperature(self._nvidia_handle, 0))
-            except:
+            except Exception:
                 pass
         
         # Fallback: OpenHardwareMonitor
@@ -169,7 +168,7 @@ class TemperatureService:
                         if 'gpu' in name and 'nvidia' in sensor.Parent.lower():
                             temp = float(sensor.Value)
                             break
-            except:
+            except Exception:
                 pass
         
         self._set_cached('gpu_temp', temp)
@@ -194,7 +193,7 @@ class TemperatureService:
                             temp = float(sensor.Value)
                             if temp > 0:
                                 break
-            except:
+            except Exception:
                 pass
         
         self._set_cached('intel_gpu_temp', temp)

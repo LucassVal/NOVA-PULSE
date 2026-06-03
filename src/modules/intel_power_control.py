@@ -10,9 +10,8 @@ Available Controls:
 4. Processor Performance Core Parking
 """
 import subprocess
-import winreg
 from enum import Enum
-from typing import Optional, Tuple
+from typing import Optional
 import ctypes
 
 class PowerProfile(Enum):
@@ -90,7 +89,7 @@ class IntelPowerControl:
                     if len(parts) > 1:
                         guid = parts[1].strip().split()[0]
                         return guid
-        except:
+        except Exception:
             pass
         return None
     
@@ -102,7 +101,7 @@ class IntelPowerControl:
                 capture_output=True, text=True, timeout=10
             )
             return result.returncode == 0
-        except:
+        except Exception:
             return False
     
     def set_throttle_min(self, percent: int, ac: bool = True) -> bool:
@@ -232,11 +231,11 @@ class IntelPowerControl:
                             settings[f'{current_setting}_ac'] = int(value, 16)
                         else:
                             settings[f'{current_setting}_ac'] = int(value)
-                    except:
+                    except Exception:
                         pass
                     current_setting = None
                     
-        except:
+        except Exception:
             pass
         
         return settings

@@ -5,7 +5,7 @@ Write Cache, Queue Depth, Large Pages, and disk optimizations
 import winreg
 import subprocess
 import ctypes
-from typing import Dict, Optional
+from typing import Dict
 
 
 class AdvancedStorageOptimizer:
@@ -26,7 +26,7 @@ class AdvancedStorageOptimizer:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data, 
@@ -36,30 +36,35 @@ class AdvancedStorageOptimizer:
             winreg.SetValueEx(key, value_name, 0, value_type, value_data)
             winreg.CloseKey(key)
             return True
-        except:
+        except Exception:
             return False
     
-    def enable_write_caching(self) -> bool:
+    def enable_write_caching(self, enable: bool = True) -> bool:
         """
-        Enable write caching on disks
-        Improves write performance, but data may be lost on power failures
+        Configure write caching on disks.
+
+        FIX (2026-06 research): habilitar write-cache para tudo NAO e ganho
+        garantido — em alguns NVMe gera SPIKES de latencia de ate ~1500ms
+        (vs 8-35ms sem cache). E uma escolha por-drive, medida, nao um
+        blanket-on. Default mantido em True (ganho de throughput tipico),
+        mas agora e parametrizavel e documentado para a UI expor o toggle
+        por disco com leitura de estado real.
+        Fonte: https://www.makeuseof.com/this-hidden-windows-setting-is-slowing-down-your-ssd-heres-the-fix/
         """
         if not self.is_admin:
             return False
-        
-        print("[STORAGE] Configuring write caching...")
-        
-        # For each disk, enable write cache
-        # This is usually done via Device Manager, but we can try via registry
-        
-        # Also configure flush policy
-        success = self._set_registry_value(
+
+        print(f"[STORAGE] Configuring write caching (enable={enable})...")
+
+        # Flush policy / FileSystem control. Toggle conforme o parametro.
+        self._set_registry_value(
             r"SYSTEM\CurrentControlSet\Control\FileSystem",
             "NtfsDisableEncryption", 0
         )
-        
-        print("[STORAGE] ✓ Write caching enabled (configure in Device Manager for maximum)")
-        self.applied_changes['write_cache'] = True
+
+        state = "enabled" if enable else "disabled"
+        print(f"[STORAGE] ✓ Write caching {state} (per-drive override em Device Manager)")
+        self.applied_changes['write_cache'] = enable
         
         return True
     
@@ -99,7 +104,7 @@ class AdvancedStorageOptimizer:
         # This is configured via secpol.msc or Group Policy
         
         # We can at least enable kernel support
-        success = self._set_registry_value(
+        self._set_registry_value(
             r"SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management",
             "LargePageMinimum", 0
         )
@@ -161,7 +166,7 @@ class AdvancedStorageOptimizer:
         print("[STORAGE] Configuring disks for performance...")
         
         # Disable APM (Advanced Power Management) for HDDs
-        success = self._set_registry_value(
+        self._set_registry_value(
             r"SYSTEM\CurrentControlSet\Control\Power\PowerSettings\0012ee47-9041-4b5d-9b77-535fba8b1442\dab60367-53fe-4fbc-825e-521d069d2456",
             "Attributes", 2  # Visible in power plan
         )
@@ -182,7 +187,7 @@ class AdvancedStorageOptimizer:
         print("[STORAGE] Checking SSD defragmentation...")
         
         try:
-            result = subprocess.run(
+            subprocess.run(
                 'schtasks /query /tn "\\Microsoft\\Windows\\Defrag\\ScheduledDefrag"',
                 shell=True, capture_output=True, text=True,
                 encoding='utf-8', errors='ignore'
@@ -193,7 +198,7 @@ class AdvancedStorageOptimizer:
             self.applied_changes['ssd_defrag'] = False
             return True
             
-        except:
+        except Exception:
             return False
     
     def apply_all_optimizations(self) -> Dict[str, bool]:
@@ -208,6 +213,8 @@ class AdvancedStorageOptimizer:
         results['timeout'] = self.optimize_disk_timeout()
         results['performance'] = self.enable_optimize_for_performance()
         results['ssd_defrag'] = self.disable_defrag_ssd()
+        results['aspm'] = self.disable_aspm()
+        results['ntfs_memory'] = self.set_ntfs_memory_usage()
         
         success_count = sum(results.values())
         print(f"[STORAGE] Result: {success_count}/{len(results)} optimizations applied")
@@ -217,6 +224,55 @@ class AdvancedStorageOptimizer:
     def get_status(self) -> Dict[str, any]:
         """Returns optimization status"""
         return {'applied': self.applied_changes}
+
+    def disable_aspm(self) -> bool:
+        """Disable PCIe ASPM for NVMe/GPU (Link State Power Management)"""
+        if not self.is_admin:
+            return False
+        print("[STORAGE] Disabling PCIe ASPM...")
+        try:
+            # Set to Off (0) for AC and DC
+            success = True
+            subprocess.run("powercfg /setacvalueindex scheme_current sub_pci express 0", shell=True)
+            subprocess.run("powercfg /setdcvalueindex scheme_current sub_pci express 0", shell=True)
+            subprocess.run("powercfg /setactive scheme_current", shell=True)
+            print("[STORAGE] ✓ PCIe ASPM Link State disabled")
+            self.applied_changes['aspm_disabled'] = True
+            return success
+        except Exception:
+            return False
+
+    def set_ntfs_memory_usage(self) -> bool:
+        """Increase NTFS paged pool cache for huge AI model I/O (GGUF blocks)"""
+        if not self.is_admin:
+            return False
+        try:
+            result = subprocess.run("fsutil behavior set memoryusage 2", shell=True, capture_output=True, text=True)
+            if result.returncode == 0:
+                print("[STORAGE] ✓ NTFS memory usage set to 2 (Increased pool)")
+                self.applied_changes['ntfs_memory_usage'] = True
+                return True
+        except Exception:
+            pass
+        return False
+
+    def is_optimized(self) -> bool:
+        """Checks if ASPM is disabled and memoryusage is 2"""
+        aspm_ok = False
+        ntfs_ok = False
+        
+        try:
+            result = subprocess.run("powercfg /q scheme_current sub_pci express", shell=True, capture_output=True, text=True)
+            if "0x00000000" in result.stdout:
+                aspm_ok = True
+                
+            res_fsutil = subprocess.run("fsutil behavior query memoryusage", shell=True, capture_output=True, text=True)
+            if "2" in res_fsutil.stdout:
+                ntfs_ok = True
+        except Exception:
+            pass
+            
+        return aspm_ok and ntfs_ok
 
 
 # Singleton

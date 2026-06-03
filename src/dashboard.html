@@ -1,1329 +1,678 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NovaPulse 2.2.1</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaPulse - Extreme AI Optimization</title>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel for JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
     <style>
-      /* ═══════════════════════════════════════════
-           NOVAPULSE GLASSMORPHISM DESIGN SYSTEM
-           ═══════════════════════════════════════════ */
-
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
-
-      :root {
-        --bg-primary: #0a0a1a;
-        --bg-secondary: #12122a;
-        --glass: rgba(255, 255, 255, 0.04);
-        --glass-border: rgba(255, 255, 255, 0.08);
-        --glass-hover: rgba(255, 255, 255, 0.07);
-        --accent-blue: #00d4ff;
-        --accent-purple: #8b5cf6;
-        --accent-green: #22c55e;
-        --accent-yellow: #eab308;
-        --accent-red: #ef4444;
-        --accent-orange: #f97316;
-        --text-primary: #ffffff;
-        --text-secondary: rgba(255, 255, 255, 0.55);
-        --text-dim: rgba(255, 255, 255, 0.3);
-        --glow-blue: 0 0 20px rgba(0, 212, 255, 0.15);
-        --glow-purple: 0 0 20px rgba(139, 92, 246, 0.15);
-      }
-
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        font-family:
-          "Inter",
-          -apple-system,
-          BlinkMacSystemFont,
-          sans-serif;
-        background: var(--bg-primary);
-        color: var(--text-primary);
-        overflow: hidden;
-        height: 100vh;
-        user-select: none;
-      }
-
-      /* Background gradient animation */
-      body::before {
-        content: "";
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background:
-          radial-gradient(
-            ellipse at 20% 0%,
-            rgba(139, 92, 246, 0.08) 0%,
-            transparent 50%
-          ),
-          radial-gradient(
-            ellipse at 80% 100%,
-            rgba(0, 212, 255, 0.06) 0%,
-            transparent 50%
-          ),
-          radial-gradient(
-            ellipse at 50% 50%,
-            rgba(139, 92, 246, 0.03) 0%,
-            transparent 70%
-          );
-        pointer-events: none;
-        z-index: 0;
-      }
-
-      /* ─── GLASS CARD ─── */
-      .glass {
-        background: var(--glass);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid var(--glass-border);
-        border-radius: 16px;
-        transition: all 0.3s ease;
-      }
-      .glass:hover {
-        background: var(--glass-hover);
-        border-color: rgba(255, 255, 255, 0.12);
-      }
-
-      /* ─── LAYOUT ─── */
-      .app {
-        position: relative;
-        z-index: 1;
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        height: 100vh;
-        padding: 12px;
-        gap: 12px;
-      }
-
-      /* ─── HEADER ─── */
-      .header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 20px;
-      }
-
-      .header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .logo {
-        font-size: 22px;
-        font-weight: 700;
-        background: linear-gradient(
-          135deg,
-          var(--accent-blue),
-          var(--accent-purple)
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: -0.5px;
-      }
-
-      .logo-icon {
-        font-size: 20px;
-        animation: pulse 2s ease-in-out infinite;
-      }
-
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
+        :root {
+            --bg-color: #020204;
+            --glass-bg: rgba(12, 12, 20, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --glass-blur: blur(30px);
+            --accent-cyan: #00f2fe;
+            --accent-purple: #7000ff;
+            --accent-glow: rgba(0, 242, 254, 0.35);
+            --danger-neon: #ff0055;
+            --warning-neon: #ffaa00;
+            --success-neon: #00ff77;
+            --text-main: #f0f0f5;
+            --text-dim: #8b92a5;
         }
-        50% {
-          opacity: 0.5;
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(112, 0, 255, 0.1), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(0, 242, 254, 0.08), transparent 30%),
+                radial-gradient(circle at 50% 90%, rgba(255, 0, 85, 0.05), transparent 40%);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
-      }
 
-      .version {
-        font-size: 11px;
-        color: var(--text-dim);
-        font-family: "JetBrains Mono", monospace;
-        padding: 2px 8px;
-        border: 1px solid var(--glass-border);
-        border-radius: 6px;
-      }
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            box-shadow: 0 15px 35px 0 rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
 
-      .header-center {
-        display: flex;
-        gap: 20px;
-        align-items: center;
-      }
+        .glass-panel:hover {
+            border-color: rgba(0, 242, 254, 0.2);
+            box-shadow: 0 15px 40px 0 rgba(0, 242, 254, 0.05);
+        }
 
-      .header-stat {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        color: var(--text-secondary);
-      }
-      .header-stat .value {
-        color: var(--text-primary);
-        font-weight: 600;
-        font-family: "JetBrains Mono", monospace;
-      }
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 16px;
+            gap: 16px;
+        }
 
-      .mode-badge {
-        font-size: 11px;
-        font-weight: 600;
-        padding: 4px 12px;
-        border-radius: 20px;
-        background: rgba(34, 197, 94, 0.15);
-        color: var(--accent-green);
-        border: 1px solid rgba(34, 197, 94, 0.3);
-        letter-spacing: 0.5px;
-      }
-      .mode-badge.idle {
-        background: rgba(234, 179, 8, 0.15);
-        color: var(--accent-yellow);
-        border-color: rgba(234, 179, 8, 0.3);
-      }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 24px;
+            flex-shrink: 0;
+            background: linear-gradient(90deg, rgba(12,12,20,0.8), rgba(20,20,40,0.6));
+        }
 
-      /* ─── MAIN GRID ─── */
-      .main {
-        display: grid;
-        grid-template-columns: 1.3fr 1fr 0.7fr;
-        grid-template-rows: 1fr 1fr;
-        gap: 12px;
-        min-height: 0;
-      }
+        .header-title {
+            font-weight: 900;
+            font-size: 24px;
+            background: linear-gradient(135deg, #fff, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
 
-      .card {
-        padding: 16px 18px;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-        overflow: hidden;
-      }
+        .header-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-cyan);
+            background: rgba(0, 242, 254, 0.05);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            font-weight: 700;
+        }
 
-      .card-title {
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        color: var(--text-secondary);
-        margin-bottom: 14px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .card-title .icon {
-        font-size: 14px;
-      }
+        .status-dot {
+            width: 8px; height: 8px;
+            background-color: var(--success-neon);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--success-neon);
+            animation: pulse 1.5s infinite;
+        }
 
-      /* ─── PROCESSOR CARD (spans 2 rows) ─── */
-      .card-cpu {
-        grid-row: 1 / 3;
-      }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 119, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(0, 255, 119, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 119, 0); }
+        }
 
-      .cpu-top {
-        display: flex;
-        gap: 20px;
-        align-items: flex-start;
-        margin-bottom: 16px;
-      }
+        .controls-row {
+            display: flex;
+            gap: 16px;
+            flex-shrink: 0;
+        }
 
-      /* Circular Gauge */
-      .gauge-container {
-        position: relative;
-        width: 120px;
-        height: 120px;
-        flex-shrink: 0;
-      }
-      .gauge-container.small {
-        width: 80px;
-        height: 80px;
-      }
+        /* Profiles Bar */
+        .profiles-bar {
+            display: flex;
+            gap: 8px;
+            flex: 2;
+        }
+        
+        .profile-btn {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 800;
+            letter-spacing: 1px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+        
+        .profile-btn:hover {
+            background: rgba(0, 242, 254, 0.05);
+            color: var(--text-main);
+        }
+        
+        .profile-btn.active {
+            background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(112, 0, 255, 0.15));
+            border-color: var(--accent-cyan);
+            color: #fff;
+            box-shadow: inset 0 0 15px rgba(0, 242, 254, 0.1);
+        }
 
-      .gauge-svg {
-        transform: rotate(-90deg);
-      }
+        /* Filters Bar */
+        .filters-bar {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            justify-content: flex-end;
+        }
 
-      .gauge-bg {
-        fill: none;
-        stroke: rgba(255, 255, 255, 0.06);
-      }
-      .gauge-fill {
-        fill: none;
-        stroke-linecap: round;
-        transition:
-          stroke-dashoffset 0.8s ease,
-          stroke 0.5s ease;
-      }
+        .filter-btn {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-dim);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
 
-      .gauge-label {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-      }
-      .gauge-label .gauge-value {
-        font-size: 26px;
-        font-weight: 700;
-        font-family: "JetBrains Mono", monospace;
-        line-height: 1;
-      }
-      .gauge-label .gauge-unit {
-        font-size: 10px;
-        color: var(--text-secondary);
-        font-weight: 500;
-      }
-      .gauge-container.small .gauge-label .gauge-value {
-        font-size: 18px;
-      }
+        .filter-btn:hover { border-color: rgba(255,255,255,0.3); color: #fff; }
+        .filter-btn.active { background: #fff; color: #000; border-color: #fff; }
 
-      .cpu-details {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
+        /* Scroll Area */
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding-right: 8px;
+        }
 
-      .stat-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 12px;
-      }
-      .stat-row .label {
-        color: var(--text-secondary);
-      }
-      .stat-row .value {
-        font-family: "JetBrains Mono", monospace;
-        font-weight: 500;
-      }
+        /* Metric Grid (Dynamic) */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
 
-      /* Per-Core Bars */
-      .cores-grid {
-        display: flex;
-        gap: 4px;
-        align-items: flex-end;
-        height: 50px;
-        margin-top: 8px;
-        padding: 8px 0;
-      }
+        .widget {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            position: relative;
+        }
 
-      .core-bar-container {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 3px;
-        height: 100%;
-      }
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 10px;
+        }
 
-      .core-bar-track {
-        width: 100%;
-        flex: 1;
-        background: rgba(255, 255, 255, 0.04);
-        border-radius: 3px;
-        position: relative;
-        overflow: hidden;
-      }
+        .widget-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
-      .core-bar-fill {
-        position: absolute;
-        bottom: 0;
-        width: 100%;
-        border-radius: 3px;
-        transition:
-          height 0.5s ease,
-          background 0.5s ease;
-      }
+        .widget-actions {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .action-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+        .action-btn:hover { color: var(--accent-cyan); }
 
-      .core-label {
-        font-size: 8px;
-        color: var(--text-dim);
-        font-family: "JetBrains Mono", monospace;
-      }
+        .primary-metric {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 32px;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        
+        .primary-metric.cyan { color: var(--accent-cyan); text-shadow: 0 0 10px rgba(0,242,254,0.3); }
+        .primary-metric.purple { color: #b088ff; text-shadow: 0 0 10px rgba(112,0,255,0.4); }
+        .primary-metric.danger { color: var(--danger-neon); text-shadow: 0 0 10px rgba(255,0,85,0.4); }
+        
+        .metric-unit { font-size: 14px; color: var(--text-dim); font-weight: 600; }
 
-      /* Chart Area */
-      .chart-container {
-        flex: 1;
-        min-height: 0;
-        margin-top: 8px;
-        position: relative;
-      }
-      .chart-container canvas {
-        width: 100% !important;
-        height: 100% !important;
-      }
+        /* Bars */
+        .bar-wrap { margin-top: 4px; }
+        .bar-label { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: var(--text-dim); margin-bottom: 6px; }
+        .bar-container { width: 100%; height: 6px; background: rgba(0, 0, 0, 0.6); border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bg-cyan { background: linear-gradient(90deg, #005c97, var(--accent-cyan)); }
+        .bg-purple { background: linear-gradient(90deg, #3a1c71, var(--accent-purple)); }
+        .bg-danger { background: linear-gradient(90deg, #ff0844, var(--danger-neon)); }
+        .bg-warning { background: linear-gradient(90deg, #f6d365, var(--warning-neon)); }
+        .bg-success { background: linear-gradient(90deg, #0ba360, var(--success-neon)); }
 
-      /* ─── GPU CARD ─── */
-      .gpu-section {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-      }
+        /* Core Grid */
+        .core-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .core-box {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 6px;
+            padding: 8px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .core-id { font-size: 9px; font-weight: 800; color: var(--text-dim); }
+        .core-usage { font-family: 'JetBrains Mono'; font-size: 12px; font-weight: 700; color: #fff; }
+        .core-freq { font-family: 'JetBrains Mono'; font-size: 9px; color: var(--accent-cyan); }
+        
+        /* Details list */
+        .detail-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: auto;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+        }
+        .d-lbl { color: var(--text-dim); font-weight: 600; text-transform: uppercase; }
+        .d-val { font-family: 'JetBrains Mono'; font-weight: 700; color: #fff; }
+        .c-green { color: var(--success-neon); }
+        .c-red { color: var(--danger-neon); }
+        .c-cyan { color: var(--accent-cyan); }
+        .c-yellow { color: var(--warning-neon); }
 
-      .gpu-adapter {
-        padding: 10px 12px;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.04);
-      }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 
-      .gpu-name {
-        font-size: 12px;
-        font-weight: 600;
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .gpu-name .badge {
-        font-size: 9px;
-        padding: 1px 6px;
-        border-radius: 4px;
-        font-weight: 600;
-      }
-      .badge-nvidia {
-        background: rgba(118, 185, 0, 0.15);
-        color: #76b900;
-        border: 1px solid rgba(118, 185, 0, 0.3);
-      }
-      .badge-intel {
-        background: rgba(0, 122, 204, 0.15);
-        color: #0071c5;
-        border: 1px solid rgba(0, 122, 204, 0.3);
-      }
+        .loader {
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; color: var(--accent-cyan);
+            font-family: 'JetBrains Mono', monospace; font-size: 24px;
+            letter-spacing: 4px; font-weight: 800;
+        }
 
-      .gpu-stats {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-      }
-
-      .gpu-stat {
-        font-size: 11px;
-        display: flex;
-        justify-content: space-between;
-      }
-      .gpu-stat .label {
-        color: var(--text-secondary);
-      }
-      .gpu-stat .value {
-        font-family: "JetBrains Mono", monospace;
-        font-weight: 500;
-      }
-
-      /* Progress Bar */
-      .progress-bar {
-        height: 4px;
-        background: rgba(255, 255, 255, 0.06);
-        border-radius: 2px;
-        margin-top: 6px;
-        overflow: hidden;
-      }
-      .progress-fill {
-        height: 100%;
-        border-radius: 2px;
-        transition:
-          width 0.8s ease,
-          background 0.5s ease;
-      }
-
-      /* ─── MEMORY CARD ─── */
-      .memory-main {
-        display: flex;
-        gap: 16px;
-        align-items: flex-start;
-      }
-
-      .memory-details {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-
-      /* ─── SECURITY CARD (spans 2 rows) ─── */
-      .card-security {
-        grid-row: 1 / 3;
-      }
-
-      .security-section {
-        margin-bottom: 14px;
-      }
-
-      .section-label {
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: 1px;
-        color: var(--text-dim);
-        margin-bottom: 8px;
-        text-transform: uppercase;
-      }
-
-      .security-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 11px;
-        padding: 4px 0;
-      }
-      .security-item .label {
-        color: var(--text-secondary);
-      }
-      .security-item .value {
-        font-family: "JetBrains Mono", monospace;
-        font-weight: 500;
-      }
-
-      .status-dot {
-        display: inline-block;
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        margin-right: 4px;
-      }
-      .status-dot.green {
-        background: var(--accent-green);
-        box-shadow: 0 0 6px var(--accent-green);
-      }
-      .status-dot.red {
-        background: var(--accent-red);
-        box-shadow: 0 0 6px var(--accent-red);
-      }
-      .status-dot.yellow {
-        background: var(--accent-yellow);
-        box-shadow: 0 0 6px var(--accent-yellow);
-      }
-
-      .divider {
-        height: 1px;
-        background: var(--glass-border);
-        margin: 10px 0;
-      }
-
-      /* ─── OPTIMIZATIONS CARD ─── */
-      .opt-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 4px;
-      }
-      .opt-item {
-        font-size: 11px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        padding: 3px 0;
-      }
-      .opt-item .check {
-        color: var(--accent-green);
-        font-size: 10px;
-      }
-      .opt-item .name {
-        color: var(--text-secondary);
-      }
-      .opt-item .val {
-        color: var(--accent-blue);
-        font-family: "JetBrains Mono", monospace;
-        font-size: 10px;
-        font-weight: 500;
-      }
-
-      /* ─── FOOTER ─── */
-      .footer {
-        padding: 10px 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      .footer-stats {
-        display: flex;
-        gap: 24px;
-      }
-
-      .footer-stat {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 11px;
-        color: var(--text-secondary);
-      }
-      .footer-stat .value {
-        color: var(--text-primary);
-        font-family: "JetBrains Mono", monospace;
-        font-weight: 500;
-      }
-      .footer-stat .value.green {
-        color: var(--accent-green);
-      }
-      .footer-stat .value.blue {
-        color: var(--accent-blue);
-      }
-      .footer-stat .value.purple {
-        color: var(--accent-purple);
-      }
-
-      .footer-brand {
-        font-size: 10px;
-        color: var(--text-dim);
-        font-family: "JetBrains Mono", monospace;
-      }
-
-      /* Color utilities */
-      .green {
-        color: var(--accent-green) !important;
-      }
-      .yellow {
-        color: var(--accent-yellow) !important;
-      }
-      .red {
-        color: var(--accent-red) !important;
-      }
-      .blue {
-        color: var(--accent-blue) !important;
-      }
-      .purple {
-        color: var(--accent-purple) !important;
-      }
-      .orange {
-        color: var(--accent-orange) !important;
-      }
-
-      /* Temp indicator styles */
-      .temp-cool {
-        color: var(--accent-blue);
-      }
-      .temp-good {
-        color: var(--accent-green);
-      }
-      .temp-warm {
-        color: var(--accent-yellow);
-      }
-      .temp-hot {
-        color: var(--accent-red);
-      }
-
-      /* Scrollbar */
-      ::-webkit-scrollbar {
-        width: 4px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: var(--glass-border);
-        border-radius: 2px;
-      }
+        .btn-refresh {
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            color: var(--accent-cyan);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        .btn-refresh:active { background: var(--accent-cyan); color: #000; }
+        
+        .collapsed-widget {
+            padding: 12px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        .collapsed-widget .primary-metric { font-size: 16px; margin: 0; }
     </style>
-  </head>
-  <body>
-    <div class="app">
-      <!-- ═══ HEADER ═══ -->
-      <div class="header glass">
-        <div class="header-left">
-          <span class="logo-icon">⚡</span>
-          <span class="logo">NOVAPULSE</span>
-          <span class="version">v2.2.1</span>
-        </div>
-        <div class="header-center">
-          <div class="header-stat">
-            <span>Mode</span>
-            <span class="mode-badge" id="modeBadge">ACTIVE</span>
-          </div>
-          <div class="header-stat">
-            <span>Uptime</span>
-            <span class="value" id="uptime">00:00:00</span>
-          </div>
-          <div class="header-stat">
-            <span>Modules</span>
-            <span class="value blue">13/13</span>
-          </div>
-        </div>
-        <div class="header-stat">
-          <span>Ping</span>
-          <span class="value" id="pingValue">...</span>
-        </div>
-      </div>
+</head>
+<body>
+    <div id="root"></div>
 
-      <!-- ═══ MAIN GRID ═══ -->
-      <div class="main">
-        <!-- PROCESSOR (spans 2 rows) -->
-        <div class="card glass card-cpu">
-          <div class="card-title"><span class="icon">🖥️</span> PROCESSOR</div>
-          <div class="cpu-top">
-            <div class="gauge-container">
-              <svg
-                class="gauge-svg"
-                viewBox="0 0 120 120"
-                width="120"
-                height="120"
-              >
-                <circle
-                  class="gauge-bg"
-                  cx="60"
-                  cy="60"
-                  r="52"
-                  stroke-width="8"
-                />
-                <circle
-                  class="gauge-fill"
-                  id="cpuGauge"
-                  cx="60"
-                  cy="60"
-                  r="52"
-                  stroke-width="8"
-                  stroke="var(--accent-green)"
-                  stroke-dasharray="326.73"
-                  stroke-dashoffset="326.73"
-                />
-              </svg>
-              <div class="gauge-label">
-                <div class="gauge-value" id="cpuPercent">0</div>
-                <div class="gauge-unit">%</div>
-              </div>
-            </div>
-            <div class="cpu-details">
-              <div class="stat-row">
-                <span class="label">Frequency</span>
-                <span class="value" id="cpuFreq">0.00 GHz</span>
-              </div>
-              <div class="stat-row">
-                <span class="label">Temperature</span>
-                <span class="value" id="cpuTemp">0°C</span>
-              </div>
-              <div class="stat-row">
-                <span class="label">Governor Cap</span>
-                <span class="value yellow" id="cpuCap">80%</span>
-              </div>
-              <div class="stat-row">
-                <span class="label">Max Turbo</span>
-                <span class="value" id="cpuMaxFreq">0.00 GHz</span>
-              </div>
-            </div>
-          </div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
 
-          <div class="card-title" style="margin-bottom: 6px; font-size: 10px">
-            <span class="icon">⚙️</span> CORE UTILIZATION
-          </div>
-          <div class="cores-grid" id="coresGrid"></div>
+        const PROFILES = [
+            { id: 'AI INFERENCE', desc: 'Max VRAM allocation, AVX-512 prioritization.' },
+            { id: 'EXTREME GAMING', desc: 'Max GPU/CPU priority, latency optimized.' },
+            { id: 'DATA ANALYSIS', desc: 'Max RAM I/O, storage throughput optimized.' },
+            { id: 'SILENT WORK', desc: 'Low power target, zero-rpm fans, max efficiency.' },
+            { id: 'MAX POWER', desc: '100% TDP unlocked, ignore thermal limits.' }
+        ];
 
-          <div
-            class="card-title"
-            style="margin-bottom: 4px; margin-top: 10px; font-size: 10px"
-          >
-            <span class="icon">📊</span> CPU HISTORY
-          </div>
-          <div class="chart-container">
-            <canvas id="cpuChart"></canvas>
-          </div>
-        </div>
+        const FILTERS = ['ALL', 'COMPUTE', 'MEMORY', 'IO_NET', 'SECURITY'];
 
-        <!-- GPU -->
-        <div class="card glass">
-          <div class="card-title">
-            <span class="icon">🎮</span> GPU ADAPTERS
-          </div>
-          <div class="gpu-section">
-            <!-- NVIDIA -->
-            <div class="gpu-adapter" id="nvidiaCard">
-              <div class="gpu-name">
-                <span class="badge badge-nvidia">NVIDIA</span>
-                <span id="nvidiaName">...</span>
-              </div>
-              <div class="gpu-stats">
-                <div class="gpu-stat">
-                  <span class="label">Load</span>
-                  <span class="value" id="gpuLoad">0%</span>
-                </div>
-                <div class="gpu-stat">
-                  <span class="label">Temp</span>
-                  <span class="value" id="gpuTemp">0°C</span>
-                </div>
-                <div class="gpu-stat">
-                  <span class="label">Clock</span>
-                  <span class="value" id="gpuClock">0 MHz</span>
-                </div>
-                <div class="gpu-stat">
-                  <span class="label">VRAM</span>
-                  <span class="value" id="gpuVram">0 / 0 MB</span>
-                </div>
-              </div>
-              <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  id="gpuVramBar"
-                  style="width: 0%; background: var(--accent-green)"
-                ></div>
-              </div>
-            </div>
+        const App = () => {
+            const [stats, setStats] = useState(null);
+            const [connected, setConnected] = useState(false);
+            const [activeProfile, setActiveProfile] = useState('AI INFERENCE');
+            const [activeFilter, setActiveFilter] = useState('ALL');
+            const [collapsed, setCollapsed] = useState({});
 
-            <!-- Intel -->
-            <div class="gpu-adapter" id="intelCard">
-              <div class="gpu-name">
-                <span class="badge badge-intel">INTEL</span>
-                <span id="intelName">...</span>
-              </div>
-              <div class="gpu-stats">
-                <div class="gpu-stat">
-                  <span class="label">Type</span>
-                  <span class="value blue">iGPU</span>
-                </div>
-                <div class="gpu-stat">
-                  <span class="label">Status</span>
-                  <span class="value green">Active</span>
-                </div>
-              </div>
-            </div>
-          </div>
+            const toggleCollapse = (id) => {
+                setCollapsed(prev => ({...prev, [id]: !prev[id]}));
+            };
 
-          <div
-            class="card-title"
-            style="margin-top: 12px; margin-bottom: 4px; font-size: 10px"
-          >
-            <span class="icon">📊</span> GPU HISTORY
-          </div>
-          <div class="chart-container">
-            <canvas id="gpuChart"></canvas>
-          </div>
-        </div>
+            const applyProfile = (profileId) => {
+                setActiveProfile(profileId);
+                if (window.pywebview && window.pywebview.api) {
+                    window.pywebview.api.apply_optimization_profile(profileId).then(res => {
+                        console.log("Profile applied:", res);
+                        if (res.requires_restart) {
+                            alert("Profile applied successfully. A system restart is required for some kernel changes.");
+                        } else {
+                            // alert(`Profile ${profileId} applied successfully.`);
+                        }
+                        triggerRefresh();
+                    }).catch(err => console.error("Error applying profile:", err));
+                }
+            };
 
-        <!-- SECURITY & PRIVACY (spans 2 rows) -->
-        <div class="card glass card-security">
-          <div class="card-title">
-            <span class="icon">🛡️</span> SECURITY & PRIVACY
-          </div>
+            const triggerRefresh = () => {
+                if (window.pywebview && window.pywebview.api) {
+                    window.pywebview.api.get_stats().then(data => setStats(enrichMockData(data)));
+                }
+            };
 
-          <div class="security-section">
-            <div class="section-label">SECURITY SHIELD</div>
-            <div class="security-item">
-              <span class="label">Status</span>
-              <span class="value" id="shieldStatus"
-                ><span class="status-dot green"></span> SCANNING</span
-              >
-            </div>
-            <div class="security-item">
-              <span class="label">Threats</span>
-              <span class="value" id="threatCount">0 flagged</span>
-            </div>
-            <div class="security-item">
-              <span class="label">Processes</span>
-              <span class="value" id="processCount">0 scanned</span>
-            </div>
-            <div class="security-item">
-              <span class="label">Connections</span>
-              <span class="value" id="connectionCount">0 monitored</span>
-            </div>
-            <div class="security-item">
-              <span class="label">Last Scan</span>
-              <span class="value" id="lastScan" style="color: var(--text-dim)"
-                >Pending...</span
-              >
-            </div>
-          </div>
+            const enrichMockData = (data) => {
+                // The backend (html_dashboard.py) now provides all these fields natively.
+                // We just pass it through.
+                return data;
+            };
 
-          <div class="divider"></div>
+            useEffect(() => {
+                const initApi = () => {
+                    if (window.pywebview && window.pywebview.api) {
+                        setConnected(true);
+                        const poll = () => {
+                            window.pywebview.api.get_stats().then(data => {
+                                setStats(enrichMockData(data));
+                            }).catch(err => console.error(err));
+                        };
+                        poll();
+                        const interval = setInterval(poll, 1500);
+                        return () => clearInterval(interval);
+                    } else {
+                        // Dev mode mock fallback
+                        if (window.location.protocol === 'file:' && !window.pywebview) {
+                            setConnected(true);
+                            const mockInterval = setInterval(() => {
+                                setStats(enrichMockData({
+                                    cpu_percent: Math.random() * 100,
+                                    cpu_temp: 65 + Math.random() * 20,
+                                    ram_percent: 60 + Math.random() * 10,
+                                    gpu_nvidia_percent: Math.random() * 100,
+                                    uptime_str: '01:23:45'
+                                }));
+                            }, 1500);
+                            return () => clearInterval(mockInterval);
+                        }
+                        setTimeout(initApi, 100);
+                    }
+                };
+                initApi();
+                window.addEventListener('pywebviewready', initApi);
+            }, []);
 
-          <div class="security-section">
-            <div class="section-label">PRIVACY SHIELD</div>
-            <div class="security-item">
-              <span class="label">Privacy Score</span>
-              <span class="value" id="privacyScore">0%</span>
-            </div>
-            <div class="security-item">
-              <span class="label">Domains Blocked</span>
-              <span class="value green" id="domainsBlocked">21</span>
-            </div>
-            <div class="security-item">
-              <span class="label">Telemetry</span>
-              <span class="value green"
-                ><span class="status-dot green"></span>BLOCKED</span
-              >
-            </div>
-            <div class="security-item">
-              <span class="label">Defender Data</span>
-              <span class="value green"
-                ><span class="status-dot green"></span>PRIVATE</span
-              >
-            </div>
-            <div class="security-item">
-              <span class="label">Advertising ID</span>
-              <span class="value green"
-                ><span class="status-dot green"></span>DISABLED</span
-              >
-            </div>
-            <div class="security-item">
-              <span class="label">Activity History</span>
-              <span class="value green"
-                ><span class="status-dot green"></span>DISABLED</span
-              >
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="security-section">
-            <div class="section-label">NETWORK</div>
-            <div class="security-item">
-              <span class="label">Ping</span>
-              <span class="value" id="netPing">...</span>
-            </div>
-            <div class="security-item">
-              <span class="label">DNS</span>
-              <span class="value blue"
-                ><span class="status-dot green"></span>AdGuard</span
-              >
-            </div>
-            <div class="security-item">
-              <span class="label">QoS</span>
-              <span class="value green"
-                ><span class="status-dot green"></span>Active</span
-              >
-            </div>
-            <div class="security-item">
-              <span class="label">Nagle</span>
-              <span class="value green"
-                ><span class="status-dot green"></span>OFF</span
-              >
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="security-section">
-            <div class="section-label">BOOT OPTIMIZATIONS</div>
-            <div class="opt-grid" id="optGrid"></div>
-          </div>
-        </div>
-
-        <!-- MEMORY -->
-        <div class="card glass">
-          <div class="card-title"><span class="icon">💾</span> MEMORY</div>
-          <div class="memory-main">
-            <div class="gauge-container small">
-              <svg class="gauge-svg" viewBox="0 0 80 80" width="80" height="80">
-                <circle
-                  class="gauge-bg"
-                  cx="40"
-                  cy="40"
-                  r="34"
-                  stroke-width="6"
-                />
-                <circle
-                  class="gauge-fill"
-                  id="ramGauge"
-                  cx="40"
-                  cy="40"
-                  r="34"
-                  stroke-width="6"
-                  stroke="var(--accent-blue)"
-                  stroke-dasharray="213.63"
-                  stroke-dashoffset="213.63"
-                />
-              </svg>
-              <div class="gauge-label">
-                <div class="gauge-value" id="ramPercent">0</div>
-                <div class="gauge-unit">%</div>
-              </div>
-            </div>
-            <div class="memory-details">
-              <div class="stat-row">
-                <span class="label">Used</span>
-                <span class="value" id="ramUsed">0 GB</span>
-              </div>
-              <div class="stat-row">
-                <span class="label">Total</span>
-                <span class="value" id="ramTotal">0 GB</span>
-              </div>
-              <div class="stat-row">
-                <span class="label">Cleaned</span>
-                <span class="value green" id="ramCleaned">+0 MB</span>
-              </div>
-              <div class="stat-row">
-                <span class="label">Cleanups</span>
-                <span class="value" id="ramCleanups">0</span>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="card-title"
-            style="margin-top: 12px; margin-bottom: 4px; font-size: 10px"
-          >
-            <span class="icon">📊</span> RAM HISTORY
-          </div>
-          <div class="chart-container">
-            <canvas id="ramChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ FOOTER ═══ -->
-      <div class="footer glass">
-        <div class="footer-stats">
-          <div class="footer-stat">
-            🎯 <span>Priorities</span>
-            <span class="value green" id="prioHigh">↑0</span>
-            <span class="value yellow" id="prioLow">↓0</span>
-          </div>
-          <div class="footer-stat">
-            🧹 <span>RAM freed</span>
-            <span class="value green" id="footerRam">+0 MB</span>
-          </div>
-          <div class="footer-stat">
-            🚫 <span>Ads blocked</span>
-            <span class="value purple" id="adsBlocked">0</span>
-          </div>
-          <div class="footer-stat">
-            📡 <span>Ping</span>
-            <span class="value blue" id="footerPing">...</span>
-          </div>
-        </div>
-        <div class="footer-brand">
-          NovaPulse 2.2.1 • Intelligent System Optimization
-        </div>
-      </div>
-    </div>
-
-    <script>
-      // ═══════════════════════════════════════════
-      //  NOVAPULSE JAVASCRIPT ENGINE
-      // ═══════════════════════════════════════════
-
-      // Chart.js setup
-      const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 500 },
-        scales: {
-          x: { display: false },
-          y: {
-            min: 0,
-            max: 100,
-            grid: { color: "rgba(255,255,255,0.03)" },
-            ticks: {
-              display: false,
-            },
-          },
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: { enabled: false },
-        },
-        elements: {
-          point: { radius: 0 },
-          line: { tension: 0.4, borderWidth: 2 },
-        },
-      };
-
-      function createGradient(ctx, color1, color2) {
-        const g = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
-        g.addColorStop(0, color1);
-        g.addColorStop(1, color2);
-        return g;
-      }
-
-      const emptyData = Array(60).fill(0);
-      const emptyLabels = Array(60).fill("");
-
-      // CPU Chart
-      const cpuCtx = document.getElementById("cpuChart").getContext("2d");
-      const cpuChart = new Chart(cpuCtx, {
-        type: "line",
-        data: {
-          labels: [...emptyLabels],
-          datasets: [
-            {
-              data: [...emptyData],
-              borderColor: "#00d4ff",
-              backgroundColor: "rgba(0, 212, 255, 0.08)",
-              fill: true,
-            },
-          ],
-        },
-        options: { ...chartOptions },
-      });
-
-      // GPU Chart
-      const gpuCtx = document.getElementById("gpuChart").getContext("2d");
-      const gpuChart = new Chart(gpuCtx, {
-        type: "line",
-        data: {
-          labels: [...emptyLabels],
-          datasets: [
-            {
-              data: [...emptyData],
-              borderColor: "#76b900",
-              backgroundColor: "rgba(118, 185, 0, 0.08)",
-              fill: true,
-            },
-          ],
-        },
-        options: { ...chartOptions },
-      });
-
-      // RAM Chart
-      const ramCtx = document.getElementById("ramChart").getContext("2d");
-      const ramChart = new Chart(ramCtx, {
-        type: "line",
-        data: {
-          labels: [...emptyLabels],
-          datasets: [
-            {
-              data: [...emptyData],
-              borderColor: "#8b5cf6",
-              backgroundColor: "rgba(139, 92, 246, 0.08)",
-              fill: true,
-            },
-          ],
-        },
-        options: { ...chartOptions },
-      });
-
-      // ─── GAUGE HELPERS ───
-      function updateGauge(elementId, value, maxVal, radius) {
-        const circumference = 2 * Math.PI * radius;
-        const offset = circumference - (value / maxVal) * circumference;
-        const el = document.getElementById(elementId);
-        el.setAttribute("stroke-dashoffset", offset);
-
-        // Color based on value
-        let color;
-        if (value < 50) color = "var(--accent-green)";
-        else if (value < 80) color = "var(--accent-yellow)";
-        else color = "var(--accent-red)";
-        el.setAttribute("stroke", color);
-      }
-
-      function getTempClass(temp) {
-        if (temp < 60) return "temp-cool";
-        if (temp < 75) return "temp-good";
-        if (temp < 85) return "temp-warm";
-        return "temp-hot";
-      }
-
-      function getTempIcon(temp) {
-        if (temp < 60) return "❄️";
-        if (temp < 75) return "✅";
-        if (temp < 85) return "⚠️";
-        return "🔥";
-      }
-
-      function colorForValue(val) {
-        if (val < 50) return "var(--accent-green)";
-        if (val < 80) return "var(--accent-yellow)";
-        return "var(--accent-red)";
-      }
-
-      // ─── INITIALIZE CORE BARS ───
-      function initCores(count) {
-        const grid = document.getElementById("coresGrid");
-        grid.innerHTML = "";
-        for (let i = 0; i < count; i++) {
-          grid.innerHTML += `
-                <div class="core-bar-container">
-                    <div class="core-bar-track">
-                        <div class="core-bar-fill" id="core${i}" style="height:0%;background:var(--accent-green)"></div>
-                    </div>
-                    <span class="core-label">C${i}</span>
-                </div>`;
-        }
-      }
-
-      // ─── LOAD BOOT INFO ───
-      async function loadBootInfo() {
-        try {
-          const info = await pywebview.api.get_boot_info();
-          const grid = document.getElementById("optGrid");
-          grid.innerHTML = "";
-          info.optimizations.forEach((opt) => {
-            grid.innerHTML += `
-                    <div class="opt-item">
-                        <span class="check">✓</span>
-                        <span class="name">${opt.name}</span>
-                        <span class="val">${opt.status}</span>
-                    </div>`;
-          });
-        } catch (e) {
-          console.log("Boot info not ready yet");
-        }
-      }
-
-      // ─── MAIN UPDATE LOOP ───
-      let coresInitialized = false;
-
-      async function updateDashboard() {
-        try {
-          const s = await pywebview.api.get_stats();
-          const h = await pywebview.api.get_history();
-
-          // CPU Gauge
-          document.getElementById("cpuPercent").textContent = Math.round(
-            s.cpu_percent,
-          );
-          updateGauge("cpuGauge", s.cpu_percent, 100, 52);
-
-          // CPU Details
-          document.getElementById("cpuFreq").textContent =
-            `${s.cpu_freq_ghz.toFixed(2)} GHz`;
-          document.getElementById("cpuMaxFreq").textContent =
-            `${s.cpu_freq_max_ghz.toFixed(2)} GHz`;
-
-          const tempEl = document.getElementById("cpuTemp");
-          tempEl.textContent = `${Math.round(s.cpu_temp)}°C ${getTempIcon(s.cpu_temp)}`;
-          tempEl.className = `value ${getTempClass(s.cpu_temp)}`;
-
-          document.getElementById("cpuCap").textContent = `${s.cpu_limit}%`;
-
-          // Mode badge
-          const badge = document.getElementById("modeBadge");
-          badge.textContent = s.auto_mode;
-          badge.className = `mode-badge ${s.auto_mode === "IDLE" ? "idle" : ""}`;
-
-          // Per-Core bars
-          if (s.cpu_cores && s.cpu_cores.length > 0) {
-            if (!coresInitialized) {
-              initCores(s.cpu_cores.length);
-              coresInitialized = true;
+            if (!connected || !stats) {
+                return <div className="loader">INITIALIZING NOVAPULSE 2.4 KERNEL...</div>;
             }
-            s.cpu_cores.forEach((val, i) => {
-              const bar = document.getElementById(`core${i}`);
-              if (bar) {
-                bar.style.height = `${val}%`;
-                bar.style.background = colorForValue(val);
-              }
-            });
-          }
 
-          // GPU
-          if (s.has_nvidia) {
-            document.getElementById("nvidiaName").textContent =
-              s.gpu_nvidia_name.replace("NVIDIA ", "");
-            const loadEl = document.getElementById("gpuLoad");
-            loadEl.textContent = `${s.gpu_nvidia_percent}%`;
-            loadEl.className = `value ${s.gpu_nvidia_percent < 60 ? "green" : s.gpu_nvidia_percent < 90 ? "yellow" : "red"}`;
+            const getBarColor = (val, thresholds) => {
+                if (val >= thresholds[1]) return 'bg-danger';
+                if (val >= thresholds[0]) return 'bg-warning';
+                return 'bg-cyan';
+            };
 
-            const gtEl = document.getElementById("gpuTemp");
-            gtEl.textContent = `${s.gpu_nvidia_temp}°C`;
-            gtEl.className = `value ${getTempClass(s.gpu_nvidia_temp)}`;
+            // Widget Builder Helper
+            const Widget = ({ id, title, icon, category, children, mainValue, mainUnit }) => {
+                if (activeFilter !== 'ALL' && category !== activeFilter) return null;
+                
+                const isCollapsed = collapsed[id];
+                
+                if (isCollapsed) {
+                    return (
+                        <div className="glass-panel collapsed-widget" onClick={() => toggleCollapse(id)}>
+                            <div className="widget-title"><span style={{fontSize:'14px'}}>{icon}</span> {title}</div>
+                            <div className="primary-metric" style={{fontSize: '18px'}}>
+                                {mainValue} <span className="metric-unit" style={{fontSize: '10px'}}>{mainUnit}</span>
+                            </div>
+                        </div>
+                    );
+                }
 
-            document.getElementById("gpuClock").textContent =
-              `${s.gpu_nvidia_clock_mhz} MHz`;
-            document.getElementById("gpuVram").textContent =
-              `${s.gpu_nvidia_mem_used} / ${s.gpu_nvidia_mem_total} MB`;
+                return (
+                    <div className="glass-panel widget">
+                        <div className="widget-header">
+                            <span className="widget-title"><span style={{fontSize:'14px'}}>{icon}</span> {title}</span>
+                            <div className="widget-actions">
+                                <button className="btn-refresh" onClick={triggerRefresh}>SYNC</button>
+                                <button className="action-btn" onClick={() => toggleCollapse(id)}>▼</button>
+                            </div>
+                        </div>
+                        {children}
+                    </div>
+                );
+            };
 
-            const vramPct =
-              s.gpu_nvidia_mem_total > 0
-                ? (s.gpu_nvidia_mem_used / s.gpu_nvidia_mem_total) * 100
-                : 0;
-            const vramBar = document.getElementById("gpuVramBar");
-            vramBar.style.width = `${vramPct}%`;
-            vramBar.style.background = colorForValue(vramPct);
-          }
+            return (
+                <div className="app-container">
+                    <header className="glass-panel header">
+                        <div className="header-title">NOVAPULSE <span style={{color:'var(--accent-cyan)'}}>2.4</span></div>
+                        <div className="header-status">
+                            <div className="status-dot"></div>
+                            QWEN AUDIT LOCK • {stats.uptime_str || '00:00:00'}
+                        </div>
+                    </header>
 
-          if (s.has_intel) {
-            document.getElementById("intelName").textContent =
-              s.gpu_intel_name.replace("Intel(R) ", "");
-          }
+                    <div className="controls-row">
+                        <div className="glass-panel profiles-bar">
+                            {PROFILES.map(p => (
+                                <div 
+                                    key={p.id} 
+                                    className={`profile-btn ${activeProfile === p.id ? 'active' : ''}`}
+                                    onClick={() => applyProfile(p.id)}
+                                >
+                                    {p.id}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="glass-panel filters-bar" style={{padding: '8px'}}>
+                            {FILTERS.map(f => (
+                                <button 
+                                    key={f}
+                                    className={`filter-btn ${activeFilter === f ? 'active' : ''}`}
+                                    onClick={() => setActiveFilter(f)}
+                                >
+                                    {f}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
-          // RAM
-          document.getElementById("ramPercent").textContent = Math.round(
-            s.ram_percent,
-          );
-          updateGauge("ramGauge", s.ram_percent, 100, 34);
-          document.getElementById("ramUsed").textContent =
-            `${s.ram_used_gb} GB`;
-          document.getElementById("ramTotal").textContent =
-            `${s.ram_total_gb} GB`;
-          document.getElementById("ramCleaned").textContent =
-            `+${s.ram_cleaned_mb} MB`;
-          document.getElementById("ramCleanups").textContent = s.ram_cleanups;
+                    <div className="scroll-area">
+                        <div className="metrics-grid">
+                            
+                            {/* CPU Widget */}
+                            <Widget id="cpu" title="CPU PACKAGE (i5-11300H)" icon="🧠" category="COMPUTE" mainValue={stats.cpu_percent?.toFixed(1)} mainUnit="%">
+                                <div className="primary-metric cyan">
+                                    {stats.cpu_percent?.toFixed(1)} <span className="metric-unit">% LOAD</span>
+                                </div>
+                                <div className="bar-wrap">
+                                    <div className="bar-container"><div className={`bar-fill ${getBarColor(stats.cpu_percent, [70, 90])}`} style={{width: `${stats.cpu_percent}%`}}></div></div>
+                                </div>
+                                <div className="core-grid">
+                                    {stats.cpu_cores && stats.cpu_cores.map((u, i) => (
+                                        <div key={i} className="core-box">
+                                            <span className="core-id">C{i}</span>
+                                            <span className="core-usage" style={{color: u > 80 ? 'var(--danger-neon)' : u > 50 ? 'var(--warning-neon)' : 'var(--success-neon)'}}>{u.toFixed(0)}%</span>
+                                            <span className="core-freq">{stats.cpu_core_freqs_ghz[i]}GHz</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="detail-list" style={{marginTop: '12px'}}>
+                                    <div className="detail-row"><span className="d-lbl">Package Temp</span><span className={`d-val ${stats.cpu_temp > 85 ? 'c-red' : 'c-cyan'}`}>{stats.cpu_temp?.toFixed(1)} °C</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Power Draw</span><span className="d-val c-yellow">{stats.cpu_power_w} W</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Core Voltage</span><span className="d-val">{stats.cpu_voltage} V</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Freq Max</span><span className="d-val">{stats.cpu_freq_max_ghz?.toFixed(2)} GHz</span></div>
+                                </div>
+                            </Widget>
 
-          // Security
-          const threats = s.security_threats;
-          const threatEl = document.getElementById("threatCount");
-          threatEl.textContent = `${threats} flagged`;
-          threatEl.className = `value ${threats === 0 ? "green" : "red"}`;
+                            {/* GPU NVIDIA */}
+                            <Widget id="gpu_nv" title="NVIDIA RTX 3050" icon="🎮" category="COMPUTE" mainValue={stats.gpu_nvidia_percent?.toFixed(1)} mainUnit="%">
+                                <div className="primary-metric purple">
+                                    {stats.gpu_nvidia_percent?.toFixed(1)} <span className="metric-unit">% LOAD</span>
+                                </div>
+                                <div className="bar-wrap">
+                                    <div className="bar-container"><div className={`bar-fill bg-purple`} style={{width: `${stats.gpu_nvidia_percent}%`}}></div></div>
+                                </div>
+                                <div className="detail-list" style={{marginTop: '16px'}}>
+                                    <div className="detail-row"><span className="d-lbl">Temperature</span><span className={`d-val ${stats.gpu_nvidia_temp > 80 ? 'c-red' : 'c-cyan'}`}>{stats.gpu_nvidia_temp} °C</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Core Clock</span><span className="d-val c-yellow">{stats.gpu_nvidia_clock_mhz} MHz</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Power Draw</span><span className="d-val">{stats.gpu_nvidia_power_w} W</span></div>
+                                    <div className="detail-row"><span className="d-lbl">VRAM Used</span><span className="d-val c-cyan">{stats.gpu_nvidia_mem_used} / {stats.gpu_nvidia_mem_total} MB</span></div>
+                                </div>
+                            </Widget>
 
-          document.getElementById("processCount").textContent =
-            `${s.security_processes} scanned`;
-          document.getElementById("connectionCount").textContent =
-            `${s.security_connections} monitored`;
-          document.getElementById("lastScan").textContent =
-            s.security_last_scan || "Pending...";
+                            {/* GPU INTEL */}
+                            <Widget id="gpu_int" title="INTEL IRIS XE" icon="📺" category="COMPUTE" mainValue={stats.gpu_intel_percent?.toFixed(1)} mainUnit="%">
+                                <div className="primary-metric" style={{color: '#aaa'}}>
+                                    {stats.gpu_intel_percent?.toFixed(1)} <span className="metric-unit">% LOAD</span>
+                                </div>
+                                <div className="bar-wrap">
+                                    <div className="bar-container"><div className={`bar-fill bg-cyan`} style={{width: `${stats.gpu_intel_percent}%`}}></div></div>
+                                </div>
+                                <div className="detail-list" style={{marginTop: '16px'}}>
+                                    <div className="detail-row"><span className="d-lbl">Temperature</span><span className="d-val c-cyan">{stats.gpu_intel_temp?.toFixed(1)} °C</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Core Clock</span><span className="d-val">{stats.gpu_intel_clock_mhz} MHz</span></div>
+                                    <div className="detail-row"><span className="d-lbl">HAGS Scheduler</span><span className="d-val c-green">ACTIVE</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Shared VRAM</span><span className="d-val">{stats.gpu_intel_vram_used} / {stats.gpu_intel_vram_total} MB</span></div>
+                                </div>
+                            </Widget>
 
-          const privScoreEl = document.getElementById("privacyScore");
-          privScoreEl.textContent = `${s.privacy_score}%`;
-          privScoreEl.className = `value ${s.privacy_score >= 80 ? "green" : s.privacy_score >= 50 ? "yellow" : "red"}`;
+                            {/* RAM */}
+                            <Widget id="ram" title="PHYSICAL MEMORY" icon="🧠" category="MEMORY" mainValue={stats.ram_percent?.toFixed(1)} mainUnit="%">
+                                <div className="primary-metric cyan">
+                                    {stats.ram_percent?.toFixed(1)} <span className="metric-unit">% USED</span>
+                                </div>
+                                <div className="bar-wrap">
+                                    <div className="bar-container"><div className={`bar-fill ${getBarColor(stats.ram_percent, [75, 90])}`} style={{width: `${stats.ram_percent}%`}}></div></div>
+                                </div>
+                                <div className="detail-list" style={{marginTop: '16px'}}>
+                                    <div className="detail-row"><span className="d-lbl">Allocation</span><span className="d-val c-cyan">{stats.ram_used_gb} / {stats.ram_total_gb} GB</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Compression</span><span className="d-val c-green">ON ({stats.ram_compression_ratio})</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Page Faults/s</span><span className="d-val c-yellow">{stats.ram_page_faults}</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Active Cleanups</span><span className="d-val">{stats.ram_cleanups}</span></div>
+                                </div>
+                            </Widget>
 
-          document.getElementById("domainsBlocked").textContent =
-            s.blocked_domains;
+                            {/* SWAP / NVME */}
+                            <Widget id="swap" title="NVME SWAP (PAGEFILE)" icon="💽" category="MEMORY" mainValue={stats.swap_percent?.toFixed(1)} mainUnit="%">
+                                <div className="primary-metric" style={{color: 'var(--warning-neon)'}}>
+                                    {stats.swap_percent?.toFixed(1)} <span className="metric-unit">% USED</span>
+                                </div>
+                                <div className="bar-wrap">
+                                    <div className="bar-container"><div className={`bar-fill bg-warning`} style={{width: `${stats.swap_percent}%`}}></div></div>
+                                </div>
+                                <div className="detail-list" style={{marginTop: '16px'}}>
+                                    <div className="detail-row"><span className="d-lbl">Allocation</span><span className="d-val">{stats.swap_used_gb} / {stats.swap_total_gb} GB</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Read Speed</span><span className="d-val c-cyan">{stats.disk_read_mbps} MB/s</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Write Speed</span><span className="d-val c-cyan">{stats.disk_write_mbps} MB/s</span></div>
+                                    <div className="detail-row"><span className="d-lbl">IOPS (R/W)</span><span className="d-val">{stats.disk_read_iops} / {stats.disk_write_iops}</span></div>
+                                </div>
+                            </Widget>
 
-          // Network/Ping
-          const pingStr = s.ping_ms > 0 ? `${s.ping_ms}ms` : "...";
-          const pingColor =
-            s.ping_ms < 30 ? "green" : s.ping_ms < 80 ? "yellow" : "red";
+                            {/* OS KERNEL */}
+                            <Widget id="kernel" title="OS KERNEL METRICS" icon="⚙️" category="COMPUTE" mainValue={stats.threads_total} mainUnit="THD">
+                                <div className="primary-metric">
+                                    {stats.threads_total} <span className="metric-unit">THREADS</span>
+                                </div>
+                                <div className="detail-list" style={{marginTop: '16px'}}>
+                                    <div className="detail-row"><span className="d-lbl">Context Switches</span><span className="d-val">{stats.ctx_switches?.toLocaleString()}</span></div>
+                                    <div className="detail-row"><span className="d-lbl">HW Interrupts</span><span className="d-val">{stats.interrupts?.toLocaleString()}</span></div>
+                                    <div className="detail-row"><span className="d-lbl">System Calls</span><span className="d-val">{stats.syscalls?.toLocaleString()}</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Open Handles</span><span className="d-val">{stats.handles_total?.toLocaleString()}</span></div>
+                                </div>
+                            </Widget>
 
-          let pingDelta = "";
-          if (s.ping_baseline > 0 && s.ping_ms > 0) {
-            const diff = s.ping_baseline - s.ping_ms;
-            if (diff > 0) pingDelta = ` (-${diff}ms)`;
-          }
+                            {/* NETWORK */}
+                            <Widget id="network" title="NETWORK QOS" icon="🌐" category="IO_NET" mainValue={stats.ping_ms} mainUnit="ms">
+                                <div className="primary-metric" style={{color: stats.ping_ms < 50 ? 'var(--success-neon)' : 'var(--warning-neon)'}}>
+                                    {stats.ping_ms} <span className="metric-unit">ms PING</span>
+                                </div>
+                                <div className="detail-list" style={{marginTop: '16px'}}>
+                                    <div className="detail-row"><span className="d-lbl">Download</span><span className="d-val c-cyan">{stats.net_down_kbps} KB/s</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Upload</span><span className="d-val c-purple">{stats.net_up_kbps} KB/s</span></div>
+                                    <div className="detail-row"><span className="d-lbl">TCP Conns</span><span className="d-val">{stats.tcp_connections}</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Nagle Auth</span><span className="d-val c-red">DISABLED</span></div>
+                                </div>
+                            </Widget>
 
-          document.getElementById("pingValue").innerHTML =
-            `<span class="${pingColor}">${pingStr}${pingDelta}</span>`;
-          document.getElementById("netPing").innerHTML =
-            `<span class="${pingColor}">${pingStr}${pingDelta}</span>`;
-          document.getElementById("footerPing").textContent = pingStr;
+                            {/* SECURITY / PRIVACY */}
+                            <Widget id="security" title="SECURITY & PRIVACY" icon="🛡️" category="SECURITY" mainValue={stats.privacy_score} mainUnit="%">
+                                <div className="primary-metric c-green">
+                                    {stats.privacy_score} <span className="metric-unit">% SAFE</span>
+                                </div>
+                                <div className="detail-list" style={{marginTop: '16px'}}>
+                                    <div className="detail-row"><span className="d-lbl">Ads Blocked</span><span className="d-val c-yellow">{stats.ads_blocked?.toLocaleString()}</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Telemetry</span><span className="d-val c-green">SINKHOLED</span></div>
+                                    <div className="detail-row"><span className="d-lbl">RPC Ports</span><span className="d-val c-red">BLOCKED (135/139/445)</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Defender I/O</span><span className="d-val c-cyan">EXCLUSIONS APPLIED</span></div>
+                                </div>
+                            </Widget>
 
-          // Uptime
-          document.getElementById("uptime").textContent = s.uptime_str;
+                            {/* PROCESS SCHEDULER */}
+                            <Widget id="scheduler" title="DYNAMIC SCHEDULER" icon="⚖️" category="COMPUTE" mainValue={stats.priority_high} mainUnit="HI">
+                                <div className="primary-metric c-purple">
+                                    {stats.priority_high} <span className="metric-unit">HIGH PRIO</span>
+                                </div>
+                                <div className="detail-list" style={{marginTop: '16px'}}>
+                                    <div className="detail-row"><span className="d-lbl">Low Prio (Yield)</span><span className="d-val">{stats.priority_low}</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Timer Resolution</span><span className="d-val c-cyan">0.5 ms</span></div>
+                                    <div className="detail-row"><span className="d-lbl">HPET State</span><span className="d-val c-red">DISABLED</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Affinity</span><span className="d-val c-green">CORES 0-3 ISOLATED</span></div>
+                                </div>
+                            </Widget>
 
-          // Footer
-          document.getElementById("prioHigh").textContent =
-            `↑${s.priority_high}`;
-          document.getElementById("prioLow").textContent = `↓${s.priority_low}`;
-          document.getElementById("footerRam").textContent =
-            `+${s.ram_cleaned_mb} MB`;
+                            {/* POWER */}
+                            <Widget id="power" title="ACPI POWER MATRIX" icon="🔋" category="IO_NET" mainValue={stats.battery_percent} mainUnit="%">
+                                <div className="primary-metric" style={{color: stats.power_plugged ? 'var(--success-neon)' : 'var(--warning-neon)'}}>
+                                    {stats.battery_percent} <span className="metric-unit">% BATT</span>
+                                </div>
+                                <div className="detail-list" style={{marginTop: '16px'}}>
+                                    <div className="detail-row"><span className="d-lbl">Power Source</span><span className={`d-val ${stats.power_plugged ? 'c-green' : 'c-yellow'}`}>{stats.power_plugged ? 'AC ADAPTER' : 'BATTERY'}</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Core Parking</span><span className="d-val c-red">DISABLED</span></div>
+                                    <div className="detail-row"><span className="d-lbl">C-States</span><span className="d-val c-red">DISABLED</span></div>
+                                    <div className="detail-row"><span className="d-lbl">Thermal Throttle</span><span className={`d-val ${stats.cpu_temp > 85 ? 'c-red' : 'c-green'}`}>{stats.cpu_temp > 85 ? 'ACTIVE' : 'INACTIVE'}</span></div>
+                                </div>
+                            </Widget>
 
-          const adsStr =
-            s.ads_blocked >= 1000
-              ? `${(s.ads_blocked / 1000).toFixed(1)}K`
-              : s.ads_blocked;
-          document.getElementById("adsBlocked").textContent = adsStr;
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
-          // Charts
-          if (h.cpu && h.cpu.length > 0) {
-            cpuChart.data.labels = h.cpu.map(() => "");
-            cpuChart.data.datasets[0].data = h.cpu;
-            cpuChart.update("none");
-          }
-          if (h.gpu && h.gpu.length > 0) {
-            gpuChart.data.labels = h.gpu.map(() => "");
-            gpuChart.data.datasets[0].data = h.gpu;
-            gpuChart.update("none");
-          }
-          if (h.ram && h.ram.length > 0) {
-            ramChart.data.labels = h.ram.map(() => "");
-            ramChart.data.datasets[0].data = h.ram;
-            ramChart.update("none");
-          }
-        } catch (e) {
-          console.log("Update error:", e);
-        }
-      }
-
-      // ─── INITIALIZE ───
-      window.addEventListener("pywebviewready", function () {
-        loadBootInfo();
-        updateDashboard();
-        setInterval(updateDashboard, 2000);
-      });
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
-  </body>
+</body>
 </html>

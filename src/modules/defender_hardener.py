@@ -33,7 +33,7 @@ def is_admin():
     """Check if running with Administrator privileges."""
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
+    except Exception:
         return False
 
 
@@ -136,7 +136,7 @@ class DefenderHardener:
                 capture_output=True, text=True, timeout=10
             )
             return result.stdout.strip() or "Windows"
-        except:
+        except Exception:
             return "Windows"
 
     def _step1_realtime_protection(self):
@@ -378,7 +378,7 @@ class DefenderHardener:
                 capture_output=True, text=True, timeout=10
             )
             return result.stdout.strip().lower() == 'true'
-        except:
+        except Exception:
             return False
 
 

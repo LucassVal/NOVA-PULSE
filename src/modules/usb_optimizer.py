@@ -5,7 +5,7 @@ Optimizes USB device polling rate (mouse, keyboard)
 import winreg
 import ctypes
 import subprocess
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 class USBPollingOptimizer:
@@ -28,7 +28,7 @@ class USBPollingOptimizer:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data, value_type=winreg.REG_DWORD):
@@ -47,7 +47,7 @@ class USBPollingOptimizer:
             value, _ = winreg.QueryValueEx(key, value_name)
             winreg.CloseKey(key)
             return value
-        except:
+        except Exception:
             return None
     
     def set_mouse_polling_rate(self, rate_hz: int = 1000) -> bool:
@@ -202,7 +202,7 @@ class USBPollingOptimizer:
             for line in lines:
                 if line.strip():
                     devices.append({'raw': line.strip()})
-        except:
+        except Exception:
             pass
         return devices
     

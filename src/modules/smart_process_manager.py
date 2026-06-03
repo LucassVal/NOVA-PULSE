@@ -1,5 +1,4 @@
 # === I/O Priority API (ctypes) ===
-from ctypes import wintypes
 import ctypes
 import threading
 import psutil
@@ -23,7 +22,7 @@ class SmartProcessManager:
             self.kernel32 = ctypes.WinDLL('kernel32.dll')
             self.ProcessIoPriority = 33
             self.api_available = True
-        except:
+        except Exception:
             self.api_available = False
             print("[WARN] I/O Priority API not available")
         
@@ -93,7 +92,8 @@ class SmartProcessManager:
         
     def start(self):
         """Start intelligent monitoring"""
-        if self.running: return
+        if self.running:
+            return
         self.running = True
         self.thread = threading.Thread(target=self._monitoring_loop, daemon=True)
         self.thread.start()
@@ -103,7 +103,8 @@ class SmartProcessManager:
     
     def stop(self):
         self.running = False
-        if self.thread: self.thread.join(timeout=5)
+        if self.thread:
+            self.thread.join(timeout=5)
     
     def _monitoring_loop(self):
         while self.running:
@@ -118,12 +119,16 @@ class SmartProcessManager:
         try:
             for proc in psutil.process_iter(['pid', 'name', 'username']):
                 try:
-                    if proc.pid in self.adjusted_pids: continue
+                    if proc.pid in self.adjusted_pids:
+                        continue
                     name = proc.info['name']
                     name_lower = name.lower() if name else ''
-                    if name_lower in self.system_processes: continue
-                    if not proc.info['username']: continue
-                    if 'SYSTEM' in proc.info['username'].upper(): continue
+                    if name_lower in self.system_processes:
+                        continue
+                    if not proc.info['username']:
+                        continue
+                    if 'SYSTEM' in proc.info['username'].upper():
+                        continue
                     if name_lower in self.high_priority_apps:
                         self._set_high_priority(proc)
                         self._high_count += 1
@@ -139,18 +144,20 @@ class SmartProcessManager:
     
     def _set_io_priority(self, pid, priority):
         """Set I/O priority via native API"""
-        if not self.api_available: return False
+        if not self.api_available:
+            return False
         try:
             PROCESS_SET_INFORMATION = 0x0200
             handle = self.kernel32.OpenProcess(PROCESS_SET_INFORMATION, False, pid)
-            if not handle: return False
+            if not handle:
+                return False
             prio = ctypes.c_int(priority)
             self.ntdll.NtSetInformationProcess(
                 handle, self.ProcessIoPriority, ctypes.byref(prio), ctypes.sizeof(prio)
             )
             self.kernel32.CloseHandle(handle)
             return True
-        except:
+        except Exception:
             return False
 
     def _set_high_priority(self, proc):
@@ -158,20 +165,23 @@ class SmartProcessManager:
             proc.nice(psutil.HIGH_PRIORITY_CLASS)
             self._set_io_priority(proc.pid, IO_PRIORITY.High)
             print(f"[PRIORITY] ⭐ HIGH → {proc.info['name']}")
-        except: pass
+        except Exception:
+            pass
     
     def _set_low_priority(self, proc):
         try:
             proc.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
             self._set_io_priority(proc.pid, IO_PRIORITY.VeryLow)
             print(f"[PRIORITY] 🔽 LOW → {proc.info['name']}")
-        except: pass
+        except Exception:
+            pass
     
     def _cleanup_dead_pids(self):
         try:
             alive = {p.pid for p in psutil.process_iter()}
             self.adjusted_pids = self.adjusted_pids.intersection(alive)
-        except: pass
+        except Exception:
+            pass
     
     def get_stats(self):
         """Return priority adjustment stats"""

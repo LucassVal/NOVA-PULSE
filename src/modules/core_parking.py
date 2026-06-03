@@ -2,10 +2,9 @@
 NovaPulse - Core Parking Manager
 Controls CPU core parking (Core Parking)
 """
-import winreg
 import ctypes
 import subprocess
-from typing import Dict, Optional
+from typing import Dict
 
 
 class CoreParkingManager:
@@ -32,7 +31,7 @@ class CoreParkingManager:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _run_powercfg(self, args: str) -> bool:
@@ -45,7 +44,7 @@ class CoreParkingManager:
                 text=True
             )
             return result.returncode == 0
-        except:
+        except Exception:
             return False
     
     def _set_power_setting(self, setting_guid: str, value: int, ac: bool = True) -> bool:
@@ -236,7 +235,7 @@ class CoreParkingManager:
                 status['power_scheme'] = "Balanced"
             else:
                 status['power_scheme'] = result.stdout.strip()
-        except:
+        except Exception:
             status['power_scheme'] = "Unknown"
         
         return status

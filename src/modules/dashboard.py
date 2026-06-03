@@ -141,7 +141,7 @@ class Dashboard:
         try:
             freq = psutil.cpu_freq()
             self._cpu_max_ghz = freq.max / 1000 if freq and freq.max else 0
-        except:
+        except Exception:
             self._cpu_max_ghz = 0
     
     def make_header(self):
@@ -249,9 +249,9 @@ class Dashboard:
         # === ACTIVE PER-CORE MONITORING (COMPACT) ===
         cores_usage = psutil.cpu_percent(percpu=True)
         try:
-            cores_freq = psutil.cpu_freq(percpu=True)
-        except:
-            cores_freq = []
+            psutil.cpu_freq(percpu=True)
+        except Exception:
+            pass
             
         table.add_row("[bold white]Active Cores[/bold white]", "[dim]Real-Time Utilization[/dim]")
         
@@ -302,12 +302,12 @@ class Dashboard:
                 gpu_color = "red"
                 usage_desc = "[MAX]"
             
-            gpu_bar = self._make_bar(usage, 15, gpu_color) # Smaller bar
+            self._make_bar(usage, 15, gpu_color) # Smaller bar
             
             # Temp
             temp = self.stats['gpu_nvidia_temp']
-            temp_desc = "NORMAL"
-            if temp > 80: temp_desc = "HOT"
+            if temp > 80:
+                pass
             
             # Limpa o nome redundante (remove 'NVIDIA ' se já tiver no inicio)
             gpu_name = self.stats['gpu_nvidia_name'].replace("NVIDIA ", "")
@@ -391,7 +391,7 @@ class Dashboard:
         if cpu_temp >= 85:
             table.add_row("  CPU Thermal", f"[red]⚠️ THROTTLE ({cpu_temp:.0f}°C)[/red]")
         else:
-            table.add_row("  CPU Thermal", f"[green]✓[/green] OK")
+            table.add_row("  CPU Thermal", "[green]✓[/green] OK")
         
         # NovaPulse Features
         table.add_row("[bold white]NOVAPULSE[/bold white]", "")
@@ -536,11 +536,11 @@ class Dashboard:
                         high_count += 1
                     elif p_nice in LOW_PRIOS:
                         low_count += 1
-                except:
+                except Exception:
                     pass
             self._cached_priority_high = high_count
             self._cached_priority_low = low_count
-        except:
+        except Exception:
             pass
     
     def update_stats(self, services):
@@ -580,9 +580,9 @@ class Dashboard:
                 try:
                     clock = pynvml.nvmlDeviceGetClockInfo(self.nvidia_handle, pynvml.NVML_CLOCK_GRAPHICS)
                     self.stats['gpu_nvidia_clock_mhz'] = clock
-                except:
+                except Exception:
                     pass
-            except:
+            except Exception:
                 pass
         
         # GPU Power Limit
@@ -667,7 +667,7 @@ class Dashboard:
             shield = self.stats.get('shield_status', ('⚪', 'white', 'IDLE'))
             shield_emoji, shield_color, shield_label = shield
             table.add_row("[bold white]SECURITY SHIELD[/bold white]", "")
-            table.add_row(f"  Status", f"[{shield_color}]{shield_emoji} {shield_label}[/{shield_color}]")
+            table.add_row("  Status", f"[{shield_color}]{shield_emoji} {shield_label}[/{shield_color}]")
             
             # Security Scanner Results
             threats = self.stats.get('security_threats', 0)

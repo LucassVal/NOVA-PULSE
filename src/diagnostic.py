@@ -324,7 +324,7 @@ def run_diagnostics():
         mem = psutil.virtual_memory()
         ram_gb = mem.total / (1024**3)
         results.append(f"[OK]   RAM: {ram_gb:.1f} GB")
-    except:
+    except Exception:
         results.append("[FAIL] RAM: Could not detect")
     
     # GPU NVIDIA
@@ -340,7 +340,7 @@ def run_diagnostics():
             results.append(f"[OK]   GPU NVIDIA: {name}")
         else:
             results.append("[FAIL] GPU NVIDIA: Not detected")
-    except:
+    except Exception:
         results.append("[FAIL] GPU NVIDIA: Not available")
     
     # GPU Intel
@@ -351,7 +351,7 @@ def run_diagnostics():
             if 'intel' in gpu.Name.lower():
                 results.append(f"[OK]   GPU Intel: {gpu.Name}")
                 break
-    except:
+    except Exception:
         pass
     
     # Disk
@@ -363,7 +363,7 @@ def run_diagnostics():
                 total_gb = usage.total / (1024**3)
                 free_gb = usage.free / (1024**3)
                 results.append(f"[OK]   Disk {part.mountpoint} {part.fstype}: {total_gb:.0f}GB total, {free_gb:.0f}GB free")
-    except:
+    except Exception:
         pass
     
     results.append("")
@@ -395,7 +395,7 @@ def run_diagnostics():
             results.append("[OK]   RAM Cleanup API (ntdll.NtSetSystemInformation)")
         else:
             results.append("[FAIL] RAM Cleanup API")
-    except:
+    except Exception:
         results.append("[FAIL] RAM Cleanup API")
     
     # Timer Resolution
@@ -405,7 +405,7 @@ def run_diagnostics():
             results.append("[OK]   Timer Resolution API (ntdll.NtSetTimerResolution)")
         else:
             results.append("[FAIL] Timer Resolution API")
-    except:
+    except Exception:
         results.append("[FAIL] Timer Resolution API")
     
     # PowerCfg
@@ -415,7 +415,7 @@ def run_diagnostics():
             results.append("[OK]   PowerCfg (CPU Power Control)")
         else:
             results.append("[FAIL] PowerCfg")
-    except:
+    except Exception:
         results.append("[FAIL] PowerCfg")
     
     # BCDEdit (boot config)
@@ -425,7 +425,7 @@ def run_diagnostics():
             results.append("[OK]   BCDEdit (Boot Configuration)")
         else:
             results.append("[FAIL] BCDEdit (requires admin)")
-    except:
+    except Exception:
         results.append("[FAIL] BCDEdit")
     
     # Network Adapter
@@ -437,7 +437,7 @@ def run_diagnostics():
             results.append(f"[OK]   Network Adapter: {result.stdout.strip()}")
         else:
             results.append("[FAIL] Network Adapter: Not found")
-    except:
+    except Exception:
         results.append("[WARN] Network Adapter: Not checked")
     
     # Hosts file writable
@@ -447,7 +447,7 @@ def run_diagnostics():
             results.append("[OK]   Hosts File: Writable (telemetry blocking ready)")
         else:
             results.append("[WARN] Hosts File: Read-only (run as admin for telemetry blocking)")
-    except:
+    except Exception:
         results.append("[WARN] Hosts File: Cannot check")
     
     results.append("")

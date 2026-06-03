@@ -17,7 +17,6 @@ We flag threats but never delete files — the user decides.
 """
 import psutil
 import os
-import subprocess
 import winreg
 import threading
 import time
@@ -207,7 +206,7 @@ class SecurityScanner:
                     try:
                         proc = psutil.Process(conn.pid)
                         proc_name = proc.name()
-                    except:
+                    except Exception:
                         pass
                 
                 entry = {
@@ -227,7 +226,7 @@ class SecurityScanner:
                     entry['reason'] = f'Unknown process connecting to port {remote_port}'
                     suspicious.append(entry)
                     
-            except:
+            except Exception:
                 continue
         
         self.scan_results['network'] = {
@@ -300,7 +299,7 @@ class SecurityScanner:
                     except OSError:
                         break
                 winreg.CloseKey(key)
-            except:
+            except Exception:
                 continue
         
         # Check Startup folder
@@ -357,7 +356,7 @@ class SecurityScanner:
                     try:
                         proc = psutil.Process(conn.pid)
                         proc_name = proc.name()
-                    except:
+                    except Exception:
                         pass
                 
                 entry = {
@@ -374,7 +373,7 @@ class SecurityScanner:
                         entry['reason'] = f'Unknown process listening on port {port}'
                         suspicious.append(entry)
                         
-            except:
+            except Exception:
                 continue
         
         self.scan_results['ports'] = {
@@ -434,12 +433,12 @@ class SecurityScanner:
             
             if self.threats_found == 0:
                 self.status = 'clean'
-                print(f"\n[SECURITY] 🛡️ System is CLEAN — No threats detected")
+                print("\n[SECURITY] 🛡️ System is CLEAN — No threats detected")
             else:
                 self.status = 'threats_found'
                 print(f"\n[SECURITY] ⚠ {self.threats_found} items flagged for review")
             
-            print(f"[SECURITY] ═══════════════════════════════════════\n")
+            print("[SECURITY] ═══════════════════════════════════════\n")
             
             return self.threats_found
     
@@ -524,7 +523,7 @@ class SecurityScanner:
         if self.status == 'scanning':
             return ('🟡', 'yellow', 'SCANNING')
         elif self.status == 'threats_found':
-            return (f'🔴', 'red', f'{self.threats_found} THREATS')
+            return ('🔴', 'red', f'{self.threats_found} THREATS')
         elif self.status == 'clean':
             return ('🟢', 'green', 'PROTECTED')
         else:
@@ -552,16 +551,16 @@ if __name__ == "__main__":
     print(f"Shield: {scanner.get_shield_status()}")
     
     if scanner.scan_results['processes']['suspicious']:
-        print(f"\n⚠ Suspicious Processes:")
+        print("\n⚠ Suspicious Processes:")
         for p in scanner.scan_results['processes']['suspicious']:
             print(f"  - {p['name']} (PID:{p['pid']}) — {p['reason']}")
     
     if scanner.scan_results['network']['suspicious']:
-        print(f"\n⚠ Suspicious Connections:")
+        print("\n⚠ Suspicious Connections:")
         for c in scanner.scan_results['network']['suspicious']:
             print(f"  - {c['process']} → {c['remote_ip']}:{c['remote_port']} — {c['reason']}")
     
     if scanner.scan_results['ports']['suspicious']:
-        print(f"\n⚠ Unusual Ports:")
+        print("\n⚠ Unusual Ports:")
         for p in scanner.scan_results['ports']['suspicious']:
             print(f"  - Port {p['port']} ({p['process']}) — {p['reason']}")

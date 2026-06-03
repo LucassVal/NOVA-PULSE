@@ -3,7 +3,6 @@ History Logger - CSV Cleanup Log
 Saves history of all cleanup operations
 """
 import csv
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -56,7 +55,7 @@ class HistoryLogger:
             with open(self.events_log, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
                 writer.writerow([timestamp, event_type, details])
-        except:
+        except Exception:
             pass
     
     def get_cleanup_stats(self) -> dict:
@@ -78,7 +77,7 @@ class HistoryLogger:
                     stats['total_freed_mb'] = sum(float(r['freed_mb']) for r in rows)
                     stats['avg_freed_mb'] = stats['total_freed_mb'] / stats['total_cleanups']
                     stats['last_cleanup'] = rows[-1]['timestamp']
-        except:
+        except Exception:
             pass
         
         return stats

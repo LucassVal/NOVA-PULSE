@@ -24,7 +24,7 @@ from colorama import init, Fore, Style
 # Core Modules
 from modules.standby_cleaner import StandbyMemoryCleaner
 from modules.cpu_power import CPUPowerManager
-from modules.smart_process_manager import SmartProcessManager
+from modules.dynamic_scheduler import DynamicScheduler
 from modules.dashboard import Dashboard  # Rich console fallback
 try:
     from modules.html_dashboard import HtmlDashboard
@@ -32,9 +32,9 @@ try:
 except ImportError:
     HTML_DASHBOARD_AVAILABLE = False
 from modules.nvme_manager import NVMeManager
+from modules.oled_care import OledCare
 
 # Detection Modules
-from modules.temperature_service import get_service as get_temp_service
 
 # Optimizer Modules
 from modules.network_qos import NetworkQoSManager
@@ -43,7 +43,7 @@ from modules.services_optimizer import WindowsServicesOptimizer
 from modules.gamebar_optimizer import GameBarOptimizer
 
 # NovaPulse Core
-from modules.auto_profiler import AutoProfiler, get_profiler, SystemMode
+from modules.auto_profiler import get_profiler
 from modules.history_logger import get_logger as get_history_logger
 from modules.tray_icon import SystemTrayIcon
 
@@ -76,7 +76,7 @@ def is_admin():
     """Check if running as administrator"""
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
+    except Exception:
         return False
 
 
@@ -97,7 +97,7 @@ def load_config():
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
-    except Exception as e:
+    except Exception:
         print(f"{Fore.YELLOW}[WARN] Config not found, using defaults{Style.RESET_ALL}")
         return get_default_config()
 
@@ -191,7 +191,7 @@ def main():
     # Load configuration
     print(f"{Fore.CYAN}[INFO] Loading configuration...{Style.RESET_ALL}")
     config = load_config()
-    rlog.log("BOOT", "config", f"Configuration loaded from config.yaml")
+    rlog.log("BOOT", "config", "Configuration loaded from config.yaml")
     
     # === NOVAPULSE 2.2.1: OPTIMIZATION ENGINE ===
     if OPTIMIZATION_ENGINE_AVAILABLE:
@@ -231,11 +231,20 @@ def main():
         services['cleaner'].start()
         rlog.log("MODULE", "standby_cleaner", f"Started (threshold={threshold}MB, interval={interval}s)")
     
-    # === SMART PROCESS MANAGER ===
-    services['smart_priority'] = SmartProcessManager()
+    # === DYNAMIC SCHEDULER ===
+    services['smart_priority'] = DynamicScheduler()
     services['smart_priority'].start()
-    print(f"{Fore.GREEN}[OK] Smart Process Priority active{Style.RESET_ALL}")
-    rlog.log("MODULE", "smart_process_manager", "Started — auto priority management active")
+    print(f"{Fore.GREEN}[OK] Dynamic Scheduler active{Style.RESET_ALL}")
+    rlog.log("MODULE", "dynamic_scheduler", "Started — dynamic heuristic control active")
+
+    # === OLED CARE (X3500PC OLED panel burn-in protection) ===
+    oled_cfg = config.get('oled_care', {})
+    if oled_cfg.get('enabled', True):
+        services['oled_care'] = OledCare(oled_cfg)
+        services['oled_care'].apply_static_protections()
+        services['oled_care'].start()
+        print(f"{Fore.GREEN}[OK] OLED Care active (burn-in protection){Style.RESET_ALL}")
+        rlog.log("MODULE", "oled_care", "Started — pixel-shift + taskbar-dim + idle-refresh")
     
     # === CPU POWER MANAGER ===
     services['cpu_power'] = CPUPowerManager()
@@ -381,7 +390,7 @@ def main():
         if tray.start():
             services['tray'] = tray
             rlog.log("MODULE", "tray_icon", "System tray icon active")
-    except:
+    except Exception:
         pass
     
     # === DASHBOARD ===
@@ -436,14 +445,14 @@ def stop_all_services(services):
     if 'tray' in services:
         try:
             services['tray'].stop()
-        except:
+        except Exception:
             pass
 
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
+    except Exception:
         import traceback
         print(f"\n{Fore.RED}═══ FATAL ERROR ═══{Style.RESET_ALL}")
         print(f"{Fore.RED}An unhandled exception occurred:{Style.RESET_ALL}")

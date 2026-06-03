@@ -104,7 +104,7 @@ class AutoProfiler:
         self.thread = threading.Thread(target=self._monitoring_loop, daemon=True,
                                        name='NovaPulse-AutoProfiler')
         self.thread.start()
-        print(f"[AUTO] NovaPulse Auto-Profiler v2.2 started")
+        print("[AUTO] NovaPulse Auto-Profiler v2.2 started")
         print(f"[AUTO] → ACTIVE: CPU cap {self.active_cpu_cap}% (always)")
         print(f"[AUTO] → IDLE:   CPU cap {self.idle_cpu_cap}% (after {self.idle_timeout}s inactivity)")
         print(f"[AUTO] → Check every {self.check_interval}s")
@@ -167,7 +167,7 @@ class AutoProfiler:
             for callback in self.on_mode_change_callbacks:
                 try:
                     callback(new_mode)
-                except:
+                except Exception:
                     pass
         except Exception as e:
             print(f"[AUTO] Error applying mode: {e}")

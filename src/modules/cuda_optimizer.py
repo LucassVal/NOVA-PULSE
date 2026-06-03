@@ -6,7 +6,7 @@ import os
 import winreg
 import subprocess
 import ctypes
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 try:
     import pynvml
@@ -47,13 +47,13 @@ class CUDAOptimizer:
             try:
                 pynvml.nvmlInit()
                 self.gpu_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-            except:
+            except Exception:
                 self.nvidia_available = False
     
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_env_var(self, name, value, system=True):
@@ -70,7 +70,7 @@ class CUDAOptimizer:
             winreg.CloseKey(key)
             os.environ[name] = value
             return True
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data,
@@ -80,7 +80,7 @@ class CUDAOptimizer:
             winreg.SetValueEx(key, value_name, 0, value_type, value_data)
             winreg.CloseKey(key)
             return True
-        except:
+        except Exception:
             return False
     
     def set_cuda_environment(self) -> Dict[str, bool]:
@@ -145,7 +145,7 @@ class CUDAOptimizer:
             self._set_registry_value(nv_key, "PowerMizerEnable", 1)
             self._set_registry_value(nv_key, "PowerMizerLevel", 1)
             self._set_registry_value(nv_key, "PowerMizerLevelAC", 1)
-        except:
+        except Exception:
             pass
         self.applied_changes['power_mgmt'] = prefer_max_performance
         return success
@@ -156,7 +156,7 @@ class CUDAOptimizer:
             return 0
         try:
             return pynvml.nvmlDeviceGetTemperature(self.gpu_handle, pynvml.NVML_TEMPERATURE_GPU)
-        except:
+        except Exception:
             return 0
     
     def get_gpu_power_limit(self) -> Tuple[int, int, int]:
@@ -167,7 +167,7 @@ class CUDAOptimizer:
             current = pynvml.nvmlDeviceGetPowerManagementLimit(self.gpu_handle) // 1000
             constraints = pynvml.nvmlDeviceGetPowerManagementLimitConstraints(self.gpu_handle)
             return (current, constraints[0] // 1000, constraints[1] // 1000)
-        except:
+        except Exception:
             return (0, 0, 0)
     
     def set_gpu_power_limit(self, watts) -> bool:
@@ -203,6 +203,41 @@ class CUDAOptimizer:
             if max_limit > 0:
                 self.set_gpu_power_limit(max_limit)
         return False
+        
+    def enforce_nvidia_smi_hardware_locks(self) -> bool:
+        """
+        Enforce hardware-level locks using nvidia-smi directly.
+        This is critical for the RTX 3050 Laptop to bypass VBIOS lockouts.
+        - Persistent Mode (-pm 1)
+        - Locked GPU Clocks (-lgc 1200,1500)
+        """
+        if not self.is_admin:
+            print("[CUDA/SMI] ⚠ Requires Administrator rights to apply hardware locks.")
+            return False
+            
+        print("\n[CUDA/SMI] Enforcing Deep Hardware Locks via nvidia-smi...")
+        success = True
+        
+        # 1. Persistent Mode
+        try:
+            subprocess.run(["nvidia-smi", "-pm", "1"], check=True, capture_output=True)
+            print("[CUDA/SMI] ✓ Persistent Mode Enabled (Zero wake-up latency)")
+            self.applied_changes['smi_persistent_mode'] = True
+        except Exception as e:
+            print(f"[CUDA/SMI] ⚠ Failed to set Persistent Mode: {e}")
+            success = False
+            
+        # 2. Hard Clock Limits (Thermal wall prevention)
+        try:
+            # For RTX 3050 Laptop (50W), 1200-1500MHz is the sweet spot for inference
+            subprocess.run(["nvidia-smi", "-lgc", "1200,1500"], check=True, capture_output=True)
+            print("[CUDA/SMI] ✓ GPU Clocks Locked to 1200MHz - 1500MHz (Thermal stability)")
+            self.applied_changes['smi_clock_lock'] = True
+        except Exception as e:
+            print(f"[CUDA/SMI] ⚠ Failed to lock GPU Clocks: {e}")
+            success = False
+            
+        return success
     
     # =========================================================================
     # ADVANCED NVIDIA OPTIMIZATIONS
@@ -331,6 +366,7 @@ class CUDAOptimizer:
         results = {}
         # Basic optimizations
         results['cuda_env'] = bool(self.set_cuda_environment())
+        results['smi_hardware_locks'] = self.enforce_nvidia_smi_hardware_locks()
         results['physx'] = self.force_physx_dedicated_gpu()
         results['gpu_preference'] = self.set_gpu_preference_global()
         results['hw_accel'] = self.enable_hardware_acceleration()
@@ -363,6 +399,44 @@ class CUDAOptimizer:
             status['gpu_temp'] = self.get_gpu_temp()
             status['power_limit'] = self.get_gpu_power_limit()
         return status
+
+    def restore_defaults(self) -> bool:
+        """
+        Restore GPU settings to default to allow clean shutdown.
+        - Unlocks clocks
+        - Reverts power management to adaptive
+        """
+        if not self.is_admin:
+            return False
+            
+        print("\n[CUDA/SMI] Restoring default GPU settings...")
+        success = True
+        
+        # 1. Reset Clocks
+        try:
+            subprocess.run(["nvidia-smi", "-rgc"], check=True, capture_output=True)
+            print("[CUDA/SMI] ✓ GPU Clocks Unlocked")
+        except Exception as e:
+            print(f"[CUDA/SMI] ⚠ Failed to unlock GPU Clocks: {e}")
+            success = False
+            
+        # 2. Reset Power Management to Adaptive
+        nv_key = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000"
+        self._set_registry_value(nv_key, "PerfLevelSrc", 0) # Adaptive
+        
+        print("[CUDA/SMI] ✓ Default power management restored")
+        return success
+
+    def is_optimized(self) -> bool:
+        """Verifies if the NVIDIA GPU is already locked (Persistent Mode active)"""
+        try:
+            # Quick check if persistent mode is active via SMI
+            result = subprocess.run(["nvidia-smi", "-q", "-d", "PERFORMANCE"], capture_output=True, text=True)
+            if "Persistent Mode" in result.stdout and "Enabled" in result.stdout:
+                return True
+        except Exception:
+            pass
+        return False
 
 
 # Singleton

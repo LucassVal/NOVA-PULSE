@@ -5,8 +5,6 @@ Specific optimizations for solid state drives (NVMe/SATA SSD)
 import subprocess
 import threading
 import time
-import ctypes
-import sys
 
 class NVMeManager:
     def __init__(self, config=None):
@@ -37,6 +35,28 @@ class NVMeManager:
         except Exception as e:
             print(f"[NVMe] Error optimizing NTFS: {e}")
 
+    def apply_native_nvme_driver_tweak(self):
+        """Enable the native StorNVMe IO path tweak (Win Server 2025-derived).
+
+        NEW (2026-06 research): ajusta o IoLatencyCap/queue behavior do driver
+        nativo StorNVMe, reduzindo latencia e elevando IOPS — ganho real para
+        I/O pesado de pagefile durante offload de tensores LLM. Reversivel.
+        Fonte: https://pureinfotech.com/windows-11-nvme-registry-tweak-ssd-performance/
+        """
+        try:
+            print("[NVMe] Applying native StorNVMe IO tweak...")
+            # IoLatencyCap=0 remove o cap artificial de latencia de IO no driver.
+            subprocess.run([
+                'reg', 'add',
+                r'HKLM\SYSTEM\CurrentControlSet\Services\stornvme\Parameters\Device',
+                '/v', 'IoLatencyCap', '/t', 'REG_DWORD', '/d', '0', '/f'
+            ], capture_output=True)
+            print("[NVMe] ✓ StorNVMe IoLatencyCap=0 (reboot to apply)")
+            return True
+        except Exception as e:
+            print(f"[NVMe] Error applying StorNVMe tweak: {e}")
+            return False
+
     def apply_power_optimizations(self):
         """Prevent SSD from entering sleep (Avoids APST Lag)"""
         try:
@@ -65,7 +85,8 @@ class NVMeManager:
 
     def start_periodic_trim(self):
         """Start periodic TRIM thread"""
-        if self.running: return
+        if self.running:
+            return
         
         self.running = True
         
@@ -77,7 +98,8 @@ class NVMeManager:
             while self.running:
                 # Wait for interval (default 24h)
                 for _ in range(int(self.trim_interval / 10)):
-                    if not self.running: break
+                    if not self.running:
+                        break
                     time.sleep(10)
                 
                 if self.running:

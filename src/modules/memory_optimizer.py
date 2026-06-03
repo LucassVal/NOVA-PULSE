@@ -7,7 +7,6 @@ V4: Compression + Deduplication + File Cache Limit + Working Set Trim
 import winreg
 import ctypes
 import subprocess
-import os
 import psutil
 from typing import Dict, Optional
 
@@ -33,7 +32,7 @@ class MemoryOptimizerPro:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path: str, value_name: str, value_data, value_type=winreg.REG_DWORD) -> bool:
@@ -52,7 +51,7 @@ class MemoryOptimizerPro:
             value, _ = winreg.QueryValueEx(key, value_name)
             winreg.CloseKey(key)
             return value
-        except:
+        except Exception:
             return None
     
     def _run_service_cmd(self, service: str, action: str) -> bool:
@@ -63,7 +62,7 @@ class MemoryOptimizerPro:
                 shell=True, capture_output=True, text=True
             )
             return result.returncode == 0 or "1062" in result.stderr  # 1062 = already stopped
-        except:
+        except Exception:
             return False
     
     def disable_memory_compression(self) -> bool:
@@ -93,7 +92,7 @@ class MemoryOptimizerPro:
                 self.applied_changes['compression'] = False
                 return True
             else:
-                print(f"[MEMORY] ℹ Compression may already be disabled")
+                print("[MEMORY] ℹ Compression may already be disabled")
                 return True
         except Exception as e:
             print(f"[MEMORY] ✗ Error disabling compression: {e}")
@@ -112,22 +111,38 @@ class MemoryOptimizerPro:
             print("[MEMORY] ✓ Memory compression re-enabled")
             self.applied_changes['compression'] = True
             return True
-        except:
+        except Exception:
             return False
     
     def configure_superfetch(self, mode: int = 0) -> bool:
         """
         Configure SysMain (formerly Superfetch)
-        
+
         Modes:
         0 = Disabled (best for SSDs)
         1 = Boot only
         2 = Applications only
         3 = Boot + Applications (Windows default)
+
+        FIX (2026-06 research): em sistemas com >= 16GB RAM o SysMain e
+        BENEFICO (preload + standby cache) e nao causa pressao de memoria.
+        So vale desligar em maquinas com < 8GB. Se o caller pedir mode=0 (OFF)
+        numa maquina 16GB+, promovemos para mode=2 (apps only) para preservar
+        o cache util sem o custo de boot prefetch em SSD.
+        Fonte: https://cyberraiden.wordpress.com/2025/07/27/windows-memory-management-in-the-windows-10-and-windows-11/
         """
         if not self.is_admin:
             return False
-        
+
+        try:
+            import psutil as _ps
+            total_gb = _ps.virtual_memory().total / (1024 ** 3)
+        except Exception:
+            total_gb = 16
+        if mode == 0 and total_gb >= 16:
+            print(f"[MEMORY] {total_gb:.0f}GB RAM: SysMain e benefico, mantendo apps-only (mode 2) em vez de OFF.")
+            mode = 2
+
         success = self._set_registry_value(
             self.PREFETCH_KEY,
             "EnableSuperfetch",
@@ -431,6 +446,51 @@ class MemoryOptimizerPro:
         
         return 0
     
+    def disable_visual_fx(self) -> bool:
+        """
+        Disable DWM animations (VisualFXSetting = 2) to reclaim 200MB-400MB VRAM
+        """
+        if not self.is_admin:
+            return False
+        
+        key_path = r"Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects"
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE)
+            winreg.SetValueEx(key, "VisualFXSetting", 0, winreg.REG_DWORD, 2)
+            winreg.CloseKey(key)
+            print("[MEMORY] ✓ Visual FX disabled (Best Performance) - VRAM reclaimed")
+            self.applied_changes['visual_fx'] = True
+            return True
+        except Exception as e:
+            print(f"[MEMORY] ✗ Error disabling Visual FX: {e}")
+            return False
+            
+    def is_optimized(self) -> bool:
+        """Check if memory optimizations are already applied"""
+        status = self.get_status()
+        
+        # Check Paging Executive (must be 1 to keep kernel in RAM)
+        paging = status.get('paging_executive')
+        if paging != 1:
+            return False
+            
+        # Check Superfetch (should be 0)
+        superfetch = status.get('superfetch')
+        if superfetch != 0:
+            return False
+            
+        # Check visual fx in CURRENT_USER
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects", 0, winreg.KEY_READ)
+            vfx, _ = winreg.QueryValueEx(key, "VisualFXSetting")
+            winreg.CloseKey(key)
+            if vfx != 2:
+                return False
+        except Exception:
+            return False
+            
+        return True
+    
     def apply_all_optimizations(self, gaming_mode: bool = False) -> Dict[str, bool]:
         """
         Apply all memory optimizations.
@@ -459,6 +519,7 @@ class MemoryOptimizerPro:
         # === Stage 3: Endgame (runtime optimizations) ===
         results['file_cache'] = self.limit_file_cache(512)        # Cap invisible cache
         results['trim'] = self.trim_working_sets() > 0            # Force idle procs to release RAM
+        results['visual_fx'] = self.disable_visual_fx()           # Free VRAM from DWM
         
         success_count = sum(1 for v in results.values() if v)
         print(f"[MEMORY] Result: {success_count}/{len(results)} optimizations applied")
@@ -477,7 +538,7 @@ class MemoryOptimizerPro:
                 shell=True, capture_output=True, text=True
             )
             status['compression'] = "Enabled" if "True" in result.stdout else "Disabled"
-        except:
+        except Exception:
             status['compression'] = "Unknown"
         
         status['superfetch'] = self._get_registry_value(self.PREFETCH_KEY, "EnableSuperfetch")

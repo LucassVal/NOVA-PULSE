@@ -3,8 +3,6 @@ Network QoS Manager - Ping Booster + DNS Security
 Prioritizes online gaming traffic + secure DNS with ad blocking
 """
 import subprocess
-import threading
-import time
 
 class NetworkQoSManager:
     """Manages QoS policies and secure DNS"""
@@ -126,7 +124,7 @@ class NetworkQoSManager:
             '''
             subprocess.run(['powershell', '-Command', cmd], capture_output=True, timeout=10)
             print("[NET] ✓ Nagle disabled (micro-lag reduced)")
-        except:
+        except Exception:
             pass
     
     def _optimize_network_buffer(self):
@@ -137,7 +135,7 @@ class NetworkQoSManager:
             netsh int tcp set global rss=enabled
             '''
             subprocess.run(['cmd', '/c', cmd], capture_output=True, timeout=10)
-        except:
+        except Exception:
             pass
     
     def restore_default_dns(self):
@@ -156,7 +154,7 @@ class NetworkQoSManager:
                 subprocess.run(['powershell', '-Command', reset_cmd], 
                               capture_output=True, timeout=10)
                 print("[NET] DNS restored to automatic DHCP")
-        except:
+        except Exception:
             pass
     
     def get_current_dns(self):
@@ -166,7 +164,7 @@ class NetworkQoSManager:
             result = subprocess.run(['powershell', '-Command', cmd], 
                                     capture_output=True, text=True, timeout=5)
             return result.stdout.strip()
-        except:
+        except Exception:
             return "Unknown"
 
 

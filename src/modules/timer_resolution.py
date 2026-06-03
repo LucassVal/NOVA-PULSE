@@ -32,7 +32,7 @@ class TimerResolutionOptimizer:
             )
             
             return current.value / 10000  # Convert to ms
-        except:
+        except Exception:
             return 15.625  # Default Windows
     
     def set_resolution(self, resolution_100ns):

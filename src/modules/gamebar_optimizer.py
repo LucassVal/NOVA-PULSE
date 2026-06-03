@@ -2,7 +2,6 @@
 Game Bar / Xbox DVR Disabler
 Disables Xbox Game Bar and Game DVR for better gaming performance
 """
-import subprocess
 import winreg
 
 class GameBarOptimizer:
@@ -67,7 +66,7 @@ class GameBarOptimizer:
             
             try:
                 key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path, 0, winreg.KEY_SET_VALUE)
-            except:
+            except Exception:
                 key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, key_path)
             
             # Force exclusive fullscreen
@@ -111,7 +110,7 @@ class GameBarOptimizer:
         # Fullscreen optimizations requires admin
         try:
             self.disable_fullscreen_optimizations()
-        except:
+        except Exception:
             pass
         
         print(f"[GAMEBAR] ✓ {len(self.changes_made)} optimizations applied")
@@ -134,7 +133,7 @@ class GameBarOptimizer:
             value, _ = winreg.QueryValueEx(key, "GameDVR_Enabled")
             status['game_dvr'] = 'disabled' if value == 0 else 'enabled'
             winreg.CloseKey(key)
-        except:
+        except Exception:
             pass
         
         return status

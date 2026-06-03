@@ -6,7 +6,7 @@ Complements network_qos.py
 import winreg
 import subprocess
 import ctypes
-from typing import Dict, Optional
+from typing import Dict
 
 
 class NetworkStackOptimizer:
@@ -31,7 +31,7 @@ class NetworkStackOptimizer:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data, value_type=winreg.REG_DWORD):
@@ -40,7 +40,7 @@ class NetworkStackOptimizer:
             winreg.SetValueEx(key, value_name, 0, value_type, value_data)
             winreg.CloseKey(key)
             return True
-        except Exception as e:
+        except Exception:
             return False
     
     def _run_netsh(self, args: str) -> bool:
@@ -50,7 +50,7 @@ class NetworkStackOptimizer:
                 shell=True, capture_output=True, text=True
             )
             return result.returncode == 0
-        except:
+        except Exception:
             return False
     
     def set_congestion_control(self, algorithm: str = "ctcp") -> bool:
@@ -267,6 +267,7 @@ class NetworkStackOptimizer:
         results['ttl'] = self.optimize_default_ttl()
         results['afd'] = self.optimize_afd_buffers()
         results['throttling'] = self.disable_network_throttling()
+        results['adapter_advanced'] = self.optimize_adapter_advanced()
         
         success_count = sum(results.values())
         print(f"[NETSTACK] Result: {success_count}/{len(results)} optimizations applied")
@@ -286,9 +287,51 @@ class NetworkStackOptimizer:
                 status['rss'] = "enabled" in output.split("rss")[1][:50]
             if "ecn" in output:
                 status['ecn'] = "enabled" in output.split("ecn")[1][:50]
-        except:
+        except Exception:
             pass
         return status
+
+    def optimize_adapter_advanced(self) -> bool:
+        """
+        Configure advanced adapter settings (Roaming, MIMO Power Save, Throughput Booster)
+        for extreme low-latency local LLM interactions
+        """
+        if not self.is_admin:
+            return False
+            
+        print("[NETSTACK] Configuring Advanced Adapter Settings via PowerShell...")
+        try:
+            # We use PowerShell NetAdapterAdvancedProperty to force these properties on all Wi-Fi adapters
+            ps_script = '''
+            $adapters = Get-NetAdapter | Where-Object {$_.InterfaceDescription -match "Wi-Fi" -or $_.InterfaceDescription -match "Wireless"}
+            foreach ($adapter in $adapters) {
+                # Roaming Aggressiveness -> Lowest (1)
+                Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Roaming Aggressiveness" -DisplayValue "1. Lowest" -ErrorAction SilentlyContinue
+                Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Roaming aggressiveness" -DisplayValue "1. Lowest" -ErrorAction SilentlyContinue
+                
+                # MIMO Power Save Mode -> No SMPS (Disable power saving on antennas)
+                Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "MIMO Power Save Mode" -DisplayValue "No SMPS" -ErrorAction SilentlyContinue
+                
+                # Throughput Booster -> Enabled
+                Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Throughput Booster" -DisplayValue "Enabled" -ErrorAction SilentlyContinue
+                
+                # Interrupt Moderation -> Disabled
+                Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Interrupt Moderation" -DisplayValue "Disabled" -ErrorAction SilentlyContinue
+            }
+            '''
+            result = subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True)
+            success = result.returncode == 0
+            if success:
+                print("[NETSTACK] ✓ Adapter Roaming, MIMO SMPS, Throughput and Interrupts optimized")
+                self.applied_changes['adapter_advanced'] = True
+            return success
+        except Exception:
+            return False
+
+    def is_optimized(self) -> bool:
+        """Verifies if basic settings like ECN are active"""
+        status = self.get_status()
+        return status.get('ecn', False) and status.get('rss', False)
 
 
 # Singleton

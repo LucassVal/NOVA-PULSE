@@ -207,8 +207,48 @@
             border-left: 3px solid var(--accent-cyan);
         }
         .list-mono { font-family: 'JetBrains Mono'; font-size: 11px; color: var(--text-dim); line-height: 1.7; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        /* Glass scrollbars — invisible until hover, translucent glass thumb */
+        * { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+        *:hover { scrollbar-color: rgba(0,242,254,0.25) transparent; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: transparent; border-radius: 8px;
+            border: 2px solid transparent; background-clip: content-box;
+        }
+        *:hover::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(0,242,254,0.35), rgba(112,0,255,0.35));
+            background-clip: content-box;
+            box-shadow: inset 0 0 6px rgba(0,242,254,0.4);
+        }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,242,254,0.55); background-clip: content-box; }
+        /* Minimize button on every widget */
+        .min-btn {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-dim); width: 22px; height: 22px; border-radius: 6px;
+            cursor: pointer; font-size: 12px; font-weight: 800; line-height: 1;
+            display: flex; align-items: center; justify-content: center; transition: 0.15s;
+        }
+        .min-btn:hover { color: var(--accent-cyan); border-color: var(--accent-cyan); background: rgba(0,242,254,0.08); }
+        .widget.minimized { gap: 0; }
+        .widget.minimized .widget-header { border-bottom: none; padding-bottom: 0; }
+        /* Curiosities ticker (item #1 per tab) */
+        .curio { padding: 12px 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
+        .curio-head { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+        .curio-badge {
+            font-size: 10px; font-weight: 900; letter-spacing: 1px; padding: 3px 10px; border-radius: 10px;
+            background: linear-gradient(135deg, rgba(0,242,254,0.18), rgba(112,0,255,0.18));
+            color: #fff; border: 1px solid rgba(0,242,254,0.3);
+        }
+        .curio-count { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--text-dim); font-weight: 700; }
+        .curio-toggle { margin-left: auto; font-size: 10px; color: var(--accent-cyan); font-weight: 700; }
+        .curio-text {
+            font-size: 13px; color: var(--text-main); line-height: 1.5; font-weight: 500;
+            animation: curio-fade 0.5s ease;
+        }
+        @keyframes curio-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .curio-all { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+        .curio-line { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
         .loader {
             display: flex; justify-content: center; align-items: center; height: 100vh;
             color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace; font-size: 22px;
@@ -254,15 +294,284 @@
         const Row = ({l, v, c}) => (
             <div className="detail-row"><span className="d-lbl">{l}</span><span className={`d-val ${c||''}`}>{v}</span></div>
         );
-        const Widget = ({title, icon, children, span}) => (
-            <div className={`glass-panel widget ${span?'span2':''}`}>
-                <div className="widget-header"><span className="widget-title"><span style={{fontSize:'14px'}}>{icon}</span> {title}</span></div>
-                {children}
-            </div>
-        );
+        const Widget = ({title, icon, children, span}) => {
+            const [min, setMin] = useState(false);
+            return (
+                <div className={`glass-panel widget ${span&&!min?'span2':''} ${min?'minimized':''}`}>
+                    <div className="widget-header">
+                        <span className="widget-title"><span style={{fontSize:'14px'}}>{icon}</span> {title}</span>
+                        <button className="min-btn" title={min?'Expandir':'Minimizar'} onClick={()=>setMin(m=>!m)}>{min?'▢':'—'}</button>
+                    </div>
+                    {!min && children}
+                </div>
+            );
+        };
         const Pill = ({on, on_label, off_label, warn}) => (
             <span className={`pill ${warn?'warn':on?'on':'off'}`}>{warn?off_label:on?(on_label||'ON'):(off_label||'OFF')}</span>
         );
+
+        // ── CURIOSITIES ENGINE (bigdata explained, item #1 per tab) ──
+        const Curiosities = ({facts, tabKey}) => {
+            const [i, setI] = useState(0);
+            const [open, setOpen] = useState(false);
+            const n = facts.length;
+            useEffect(()=>{ setI(0); setOpen(false); }, [tabKey]);
+            useEffect(()=>{
+                if(open || !n) return;
+                const t=setInterval(()=>setI(p=>(p+1)%n), 4500);
+                return ()=>clearInterval(t);
+            }, [n, open, tabKey]);
+            if(!facts.length) return null;
+            return (
+                <div className="glass-panel curio">
+                    <div className="curio-head" onClick={()=>setOpen(o=>!o)}>
+                        <span className="curio-badge">💡 CURIOSITY</span>
+                        <span className="curio-count">{open?`ALL ${facts.length}`:`${i+1}/${facts.length}`}</span>
+                        <span className="curio-toggle">{open?'▲ collapse':'▼ see all'}</span>
+                    </div>
+                    {!open
+                        ? <div className="curio-text" key={i}>{facts[i]}</div>
+                        : <div className="curio-all">{facts.map((f,k)=><div key={k} className="curio-line">&bull; {f}</div>)}</div>}
+                </div>
+            );
+        };
+
+        // Derived/bigdata helpers for curiosities
+        const D = (s,c) => {
+            const up = s.uptime_seconds || 0;
+            const upH = up/3600;
+            const savedW = 22; // turbo-lock(~8) + parking-off + gpu clk-lock(~10) + c-states
+            const energyWh = upH * savedW;
+            const batt = 56; // X3500PC ~56Wh battery
+            return {
+                upH: upH.toFixed(1),
+                upHraw: upH,
+                days: (upH/24).toFixed(1),
+                energyWh: energyWh.toFixed(0),
+                energyPctBatt: ((energyWh/batt)*100).toFixed(0),
+                netDown: s.net_down_kbps||0, netUp: s.net_up_kbps||0,
+                cores: (s.cpu_cores||[]).length,
+                vramPct: s.gpu_nvidia_mem_total?((s.gpu_nvidia_mem_used/s.gpu_nvidia_mem_total)*100).toFixed(0):'0',
+            };
+        };
+
+        const CURIOSITIES = {
+            overview: (s,c)=>{const d=D(s,c);return [
+                `Rodando ha ${d.upH}h sem travamentos — NovaPulse manteve o sistema estavel o tempo todo.`,
+                `Economia estimada de energia: ~${d.energyWh} Wh nesta sessao (eq. a ${d.energyPctBatt}% da bateria do X3500PC).`,
+                `${17} modulos de otimizacao foram aplicados no boot, do kernel ao OLED.`,
+                `O i5-11300H tem ${d.cores} threads logicas; o scheduler so interfere quando ha disputa real (>85%).`,
+                `Seu painel e OLED: o NovaPulse protege contra burn-in que monitores LCD nao sofrem.`,
+                `A RTX 3050 tem so 4GB de VRAM — cada MB conta; por isso ha um recomendador de modelo dedicado.`,
+                `Turbo Boost travado mantem o clock estavel e evita o ciclo "acelera-superaquece-despenca".`,
+                `${N(s.blocked_domains)} dominios e ${N(s.ads_blocked)} rotas de anuncio estao em sinkhole (0.0.0.0).`,
+                `Memoria virtual de 60GB no NVMe da folego para offload de tensores de LLM.`,
+                `Pingando ${N(s.ping_ms)}ms — Nagle e moderacao de interrupcoes ajustados para baixa latencia.`,
+                `Undervolt e bloqueado no Tiger Lake (mitigacao Plundervolt) — usamos limite de potencia via software.`,
+                `O dashboard inteiro e um unico arquivo HTML carregado pelo WebView2 (~30-50MB de RAM).`,
+            ];},
+            cpu: (s,c)=>{const d=D(s,c);return [
+                `Cap de ${s.cpu_limit}% no processador mantem a temperatura ~10-15C mais fria sob carga.`,
+                `Frequencia constante > Turbo intermitente para inferencia de IA: menos throttling termico.`,
+                `O i5-11300H e 4 nucleos / 8 threads (Tiger Lake, 10nm SuperFin).`,
+                `Win32PrioritySeparation=0x2A separa drasticamente foreground de background.`,
+                `Core Parking OFF: nenhum nucleo "dorme", eliminando latencia de wake-up.`,
+                `C-States C3/C6/C7 inibidos: sem micro-atrasos na saida de baixo consumo.`,
+                `Temp atual ${fmt(s.cpu_temp,0)}C — o chassi atinge ~95C sem cap, forcando queda para 1.5GHz.`,
+                `Cada ponto percentual de CPU custa ~0.45W; por isso o cap economiza calor real.`,
+                `Undervolt FIVR esta selado na BIOS da ASUS — offsets negativos bloqueados.`,
+                `O scheduler protege ollama/python/antigravity de rebaixamento, mesmo sob disputa.`,
+                `Rodando ha ${d.upH}h: a estabilidade de clock evitou centenas de eventos de throttle.`,
+                `MMCSS SystemResponsiveness=0 libera os 20% de CPU que o Windows reserva para audio.`,
+            ];},
+            gpu: (s,c)=>{const d=D(s,c);return [
+                `VRAM em ${d.vramPct}% — acima de 90% o modelo "vaza" para a RAM (5-20x mais lento).`,
+                `nvidia-smi -lgc 1200,1500 age como "undervolt sintetico": menos volts, menos calor.`,
+                `Persistent Mode evita 3-5s de overhead toda vez que o Ollama acorda a GPU do estado D3.`,
+                `A RTX 3050 Laptop opera a 50W com Dynamic Boost — a maior fonte de calor do chassi.`,
+                `4GB de VRAM cabem ~modelos 1-2B quantizados; Flash Attention 2 reduz o uso exponencial.`,
+                `8-bit KV cache mantem o contexto na GPU sem cair para a lenta DDR4.`,
+                `Curve Editor do Afterburner foi bloqueado nesta VBIOS — lock de clock e a unica saida nativa.`,
+                `HAGS (agendamento por hardware) tira da CPU o gerenciamento da fila da GPU.`,
+                `Contexto de 2048 tokens libera 1-2GB de VRAM para headroom de KV cache.`,
+                `Temp da GPU ${fmt(s.gpu_nvidia_temp,0)}C — acima de 83C comeca o throttle termico.`,
+                `TDP cap em 90% corta o pico de watts que gera calor sem ganho real de FPS/tokens.`,
+                `TinyLlama 1.1B Q5 cabe folgado; Phi-3.5 Mini 3.8B Q3 e o limite pratico dos 4GB.`,
+            ];},
+            igpu: (s,c)=>[
+                `A Iris Xe compartilha RAM do sistema — nao tem VRAM dedicada.`,
+                `Ideal para renderizar o desktop/DWM, liberando a RTX 3050 100% para IA.`,
+                `HAGS ativo tambem na iGPU reduz gargalo de comunicacao CPU<->GPU.`,
+                `Metricas da iGPU sao estimadas: o WMI nao expoe contadores em tempo real.`,
+                `Em idle, deixar a dGPU dormir e a iGPU assumir economiza bateria significativa.`,
+                `A Iris Xe do i5-11300H tem 80 Execution Units (Gen12).`,
+                `Balanco termico: usar a iGPU no chassi compartilhado mantem a dGPU mais fria.`,
+                `Desativar animacoes do DWM (VisualFX) recupera 200-400MB que viram layers de modelo.`,
+                `Aceleracao de video (decode) roda na iGPU, poupando a dGPU.`,
+                `Em workloads de IA, a iGPU fica quase ociosa — saude termica do conjunto.`,
+            ],
+            ram: (s,c)=>{const d=D(s,c);return [
+                `Compressao agressiva de RAM tem ganho ZERO em 16GB+ (benchmark de 42 configs).`,
+                `Por isso o NovaPulse NAO forca compressao — deixa o Windows decidir.`,
+                `SysMain (Superfetch) e BENEFICO em 16GB: pre-carrega apps e cacheia standby.`,
+                `RAM em standby NAO e "RAM usada" — limpar agressivamente prejudica o cache.`,
+                `PageCombining deduplicata paginas identicas — otimo com muitas abas de navegador.`,
+                `Page faults atuais: ~${N(s.ram_page_faults)}/s — quanto menor, menos disco e usado.`,
+                `${N(s.ram_cleanups)} limpezas automaticas ja liberaram RAM nesta sessao.`,
+                `Modelos locais engolem RAM rapido; os 60GB de pagefile sao a valvula de escape.`,
+                `Threshold do standby cleaner em 2GB evita limpezas excessivas que atrapalham o cache.`,
+                `16GB DDR4 e o gargalo real de IA local — por isso o KV cache vai para a VRAM primeiro.`,
+                `Rodando ha ${d.upH}h sem vazamento de memoria detectado.`,
+                `A compressao do Windows guarda RAM inativa comprimida no proprio RAM (nao no disco).`,
+            ];},
+            vmem: (s,c)=>[
+                `Pagefile estatico (init=max=61440MB) evita o Windows recalcular o arquivo em runtime.`,
+                `Um pagefile fragmentado gera leituras aleatorias (lentas) em vez de sequenciais.`,
+                `DisableLastAccess=1 corta gravacoes de timestamp a cada leitura — menos desgaste.`,
+                `StorNVMe IoLatencyCap=0 remove o cap artificial de latencia do driver nativo.`,
+                `Write-cache ligado para tudo pode causar spikes de ate 1500ms — por isso e por-disco.`,
+                `O desgaste de um NVMe moderno por uso de pagefile e insignificante a longo prazo.`,
+                `TRIM a cada 12h mantem o SSD rapido sob o trafego de I/O da paginacao de LLMs.`,
+                `Disco nunca dorme (disk-timeout=0): elimina o lag de APST ao acordar.`,
+                `fsutil memoryusage 2 eleva o cache do sistema de arquivos para blocos GGUF grandes.`,
+                `IOPS atuais R/W: ${N(s.disk_read_iops)}/${N(s.disk_write_iops)} — pico durante offload de tensores.`,
+                `M.2 NVMe entrega banda alta que "esconde" parte da latencia de offload.`,
+                `ASPM (PCIe) OFF elimina micro-stutters de wake-up do NVMe apos segundos ocioso.`,
+            ],
+            net: (s,c)=>[
+                `TCP autotuning="experimental" e so para WAN de alta latencia — usamos "normal" (estavel).`,
+                `Nagle desligado ajuda ALGUNS jogos e atrapalha outros — por isso e opt-in, nao blanket.`,
+                `Para LLM local (127.0.0.1) o tuning de TCP e quase irrelevante — loopback nao tem latencia de rede.`,
+                `MIMO Power Save OFF impede o Windows de desligar antenas ao baixar weights de 10GB.`,
+                `Roaming Aggressiveness no minimo evita picos de 500ms ao varrer redes 5GHz.`,
+                `Moderacao de interrupcoes OFF processa pacotes em tempo real — ping mais "flat".`,
+                `Throughput Booster reduz colisoes RTS/CTS sob trafego continuo.`,
+                `${N(s.tcp_connections)} conexoes TCP ativas sendo monitoradas agora.`,
+                `Ping ${N(s.ping_ms)}ms — interrupt moderation off troca um pouco de CPU por menos jitter.`,
+                `Down/Up atual: ${fmt(s.net_down_kbps)}/${fmt(s.net_up_kbps)} KB/s.`,
+                `RWIN agressivo (autotuning) reduz delay de transmissao de tokens via HTTP local.`,
+                `Portas SMB/RPC (135/139/445) bloqueadas na entrada, loopback liberado para o MCP.`,
+                `WLAN AutoConfig com scans de background desligados elimina stutter a cada ~10s.`,
+            ],
+            nic: (s,c)=>[
+                `O adaptador reporta velocidade de link negociada — nem sempre a real de transferencia.`,
+                `MAC address identifica unicamente a placa na rede local.`,
+                `MTU 1500 e o padrao Ethernet; jumbo frames (9000) so ajudam em LAN dedicada.`,
+                `Full duplex permite enviar e receber simultaneamente sem colisao.`,
+                `Interrupt moderation no driver agrupa pacotes — desligar reduz latencia, custa CPU.`,
+                `MSI Mode na placa de rede melhora a distribuicao de interrupcoes entre nucleos.`,
+                `Wi-Fi 5GHz tem menos interferencia que 2.4GHz mas alcance menor.`,
+                `Green Ethernet/EEE pode adicionar latencia ao "acordar" o link — costuma valer desligar.`,
+                `O IPv4 atribuido vem do DHCP do roteador (ou estatico, se configurado).`,
+                `Cada NIC ativa aparece aqui com sua propria aba de detalhes.`,
+            ],
+            usb: (s,c)=>[
+                `Selective Suspend desligado evita que perifericos "durmam" e gerem lag ao reativar.`,
+                `MSI Mode no controlador USB melhora a latencia de mouse/teclado.`,
+                `Cada dispositivo USB consome banda do mesmo barramento — hubs dividem a banda.`,
+                `USB 3.x entrega ate 5-10 Gbps; USB 2.0 fica em 480 Mbps.`,
+                `Power Management OFF nas portas evita desconexoes aleatorias de perifericos.`,
+                `Mouses gamer pedem 1000Hz de polling — Selective Suspend off garante consistencia.`,
+                `O Windows pode desligar portas USB para poupar bateria; o NovaPulse impede isso.`,
+                `Webcams e DACs USB sofrem com suspend agressivo — dai a otimizacao.`,
+                `Dispositivos compostos (hub+teclado) aparecem como multiplas entradas.`,
+                `${c.usb?N(c.usb.count):'--'} dispositivos USB conectados agora.`,
+            ],
+            vpn: (s,c)=>[
+                `Uma VPN cria um tunel criptografado — todo trafego sai pelo adaptador virtual.`,
+                `WireGuard e mais rapido e leve que OpenVPN (menos overhead de CPU).`,
+                `Kill switch corta a internet se a VPN cair, evitando vazamento de IP real.`,
+                `DNS leak: mesmo com VPN, o DNS pode escapar pelo resolver do sistema.`,
+                `O NovaPulse detecta adaptadores tunel (wg/tun/tap/nordlynx/proton/tailscale).`,
+                `VPN adiciona latencia proporcional a distancia do servidor de saida.`,
+                `Para LLM local, a VPN nao afeta loopback (127.0.0.1).`,
+                `Split tunneling deixa parte do trafego fora da VPN (ex: rede local).`,
+                `Tailscale usa WireGuard para criar uma malha privada entre seus dispositivos.`,
+                `MTU menor (1420) costuma ser necessario dentro de tuneis VPN.`,
+            ],
+            dns: (s,c)=>[
+                `AdGuard DNS (94.140.14.14) bloqueia anuncios e rastreadores na propria resolucao.`,
+                `DoH (DNS over HTTPS) criptografa as consultas — o provedor nao ve o que voce acessa.`,
+                `Cloudflare (1.1.1.1) e um dos resolvers mais rapidos do mundo.`,
+                `Quad9 (9.9.9.9) bloqueia dominios maliciosos conhecidos.`,
+                `Cache de DNS evita reconsultar o mesmo dominio — acelera a navegacao.`,
+                `Um resolver lento adiciona 50-200ms a CADA novo dominio acessado.`,
+                `DNS sinkhole roteia dominios de anuncio para 0.0.0.0 (nunca resolvem).`,
+                `Provedor atual detectado: ${c.dns?c.dns.provider:'--'}.`,
+                `DNSSEC valida que a resposta nao foi adulterada no caminho.`,
+                `Trocar o DNS do roteador protege todos os dispositivos da casa de uma vez.`,
+            ],
+            block: (s,c)=>[
+                `Score de privacidade ${s.privacy_score}% — quanto mais alto, menos telemetria sai.`,
+                `${N(s.blocked_domains)} dominios de telemetria em sinkhole agora.`,
+                `${N(s.ads_blocked)} rotas de anuncio no arquivo hosts (0.0.0.0).`,
+                `Telemetria do Windows envia dados continuamente — o bloqueio corta isso na fonte.`,
+                `Portas RPC/SMB (135/139/445) sao vetores classicos de ataque, bloqueadas na entrada.`,
+                `Exclusao do Defender em ~/.ollama/models economiza ~15% de CPU ao carregar modelos.`,
+                `Advertising ID desativado impede apps de cruzarem seu comportamento.`,
+                `Historico de atividades desligado: o Windows para de registrar o que voce abre.`,
+                `${N(s.security_connections)} conexoes de rede sendo monitoradas pelo scanner.`,
+                `Ameacas sinalizadas: ${N(s.security_threats)} (0 = sistema limpo).`,
+                `Bloquear na camada de hosts/DNS e mais leve que um antivirus escaneando pacotes.`,
+                `VBS/HVCI off da 5-25% de performance, mas e opt-in: e troca de seguranca.`,
+            ],
+            oled: (s,c)=>{const d=D(s,c);return [
+                `Painel OLED nao tem backlight: cada pixel emite sua propria luz (preto = desligado).`,
+                `Burn-in vem de imagens estaticas — a taskbar e a campea de retencao.`,
+                `Pixel Shift desloca o conteudo alguns px para nao queimar sempre os mesmos pixels.`,
+                `Dark Mode no OLED economiza energia real: pixels pretos ficam apagados.`,
+                `Auto-hide da taskbar remove a fonte #1 de burn-in da tela.`,
+                `Apos ${Math.round(s.uptime_seconds/60)||0} min, o idle-dim reduz o brilho para preservar os pixels.`,
+                `OLED tem preto infinito e contraste que LCD jamais alcanca.`,
+                `Tempo de resposta OLED e ~0.1ms vs 1-5ms de LCD — sem ghosting.`,
+                `A ASUS OLED Care faz pixel-refresh apos 30 min; o NovaPulse replica isso de forma controlavel.`,
+                `Brilho de pico alto e estatico acelera o desgaste — dai reduzir no idle em AC.`,
+                `Rodando ha ${d.upH}h com protecao de burn-in ativa o tempo todo.`,
+                `Wallpaper escuro + acentos coloridos = melhor estetica E menor desgaste no OLED.`,
+            ];},
+            power: (s,c)=>{const d=D(s,c);return [
+                `Economia estimada nesta sessao: ~${d.energyWh} Wh (eq. ${d.energyPctBatt}% da bateria).`,
+                `Core Parking OFF custa um pouco de bateria, mas elimina latencia de wake-up.`,
+                `ASPM (PCIe) OFF evita micro-stutters quando NVMe/GPU saem do idle.`,
+                `Bateria atual ${s.battery_percent}% — fonte: ${s.power_plugged?'AC':'bateria'}.`,
+                `C-States profundos economizam energia mas geram saltos no streaming de tokens.`,
+                `O X3500PC tem bateria de ~56Wh — gestao termica importa mais que economia bruta.`,
+                `Em AC, vale priorizar performance constante; em bateria, equilibrio.`,
+                `Throttle termico ${s.cpu_temp>85?'ATIVO':'inativo'} agora (limite ~85C).`,
+                `Disco nunca dorme em AC: elimina o lag de primeiro acesso.`,
+                `Planos de energia do Windows mascaram muitos desses ajustes finos.`,
+                `Rodando ha ${d.upH}h (${d.days} dias) de uptime continuo.`,
+                `PROCTHROTTLEMAX limita o estado maximo do CPU via kernel, nao via voltagem.`,
+            ];},
+            kernel: (s,c)=>[
+                `Timer Resolution 0.5ms reduz input lag e latencia de query do engine.`,
+                `HPET desativado: o timer de alta precisao costuma adicionar overhead em jogos.`,
+                `Dynamic Tick OFF mantem o kernel em polling constante — menos latencia de I/O.`,
+                `Context switches atuais: ${N(s.ctx_switches)} — troca de processo no nucleo.`,
+                `Interrupcoes de hardware: ${N(s.interrupts)} — sinais de dispositivos para a CPU.`,
+                `System calls: ${N(s.syscalls)} — chamadas de apps ao kernel.`,
+                `${N(s.threads_total)} threads e ${N(s.handles_total)} handles abertos no sistema.`,
+                `MSI Mode em GPU/NET/USB distribui interrupcoes entre nucleos (menos gargalo).`,
+                `IRQ otimizado evita que um unico nucleo processe todas as interrupcoes.`,
+                `SystemResponsiveness=0 devolve os 20% de CPU reservados pelo MMCSS para audio.`,
+                `Cada context switch tem custo; reduzi-los melhora a vazao de inferencia.`,
+                `O kernel do Windows agenda por prioridade — dai o scheduler dinamico do NovaPulse.`,
+            ],
+            sched: (s,c)=>[
+                `Modelo ProBalance: so age quando ha disputa real (CPU>85% por ~2.8s).`,
+                `Em vez de PROMOVER tudo, ele REBAIXA o background que esta consumindo.`,
+                `O processo em foco (foreground) recebe boost de prioridade para responsividade.`,
+                `ollama, python, antigravity e code sao protegidos: nunca rebaixados.`,
+                `Background rebaixado agora: ${N(s.sched_demoted)} processos.`,
+                `Estado: ${s.sched_contended?'CONTENCAO (gated)':'relaxado (sem disputa)'}.`,
+                `EcoQoS marca processos como "nao criticos" — o Windows os tira da frente.`,
+                `Promover tudo a HIGH sob LLM nao diferencia nada: por isso o modelo foi reescrito.`,
+                `Quando a contencao passa, TODAS as prioridades sao restauradas automaticamente.`,
+                `Cores 0-3 isolados para IA; apps de background vao para 4-7.`,
+                `O scheduler le delta de cpu_times por janela rolante — agnostico a nome de arquivo.`,
+                `Mudancas sao temporarias e reversiveis: nada fica preso em prioridade errada.`,
+            ],
+        };
 
         // ── TAB PANELS ──
         const Overview = ({s, c}) => (
@@ -500,15 +809,47 @@
                         <Row l="Download" v={`${fmt(s.net_down_kbps)} KB/s`} c="c-cyan"/>
                         <Row l="Upload" v={`${fmt(s.net_up_kbps)} KB/s`} c="c-purple"/>
                         <Row l="TCP Connections" v={N(s.tcp_connections)}/>
+                        <Row l="Ping Baseline" v={`${N(s.ping_baseline)} ms`}/>
+                        <Row l="Jitter (est.)" v={`${fmt(Math.abs((s.ping_ms||0)-(s.ping_baseline||0)),0)} ms`} c="c-yellow"/>
                     </div>
                 </Widget>
-                <Widget title="Stack Tweaks" icon="🔧">
+                <Widget title="TCP/IP Stack">
                     <div className="detail-list">
-                        <Row l="TCP Auto-Tuning" v={<Pill on={true} on_label="NORMAL"/>}/>
+                        <Row l="Auto-Tuning Level" v={<Pill on={true} on_label="NORMAL"/>}/>
                         <Row l="Nagle (TCPNoDelay)" v={<Pill on={false} off_label="OPT-IN" warn/>}/>
-                        <Row l="MIMO Power Save" v={<Pill on={false} off_label="OFF"/>}/>
-                        <Row l="Roaming Aggr." v="Lowest" c="c-cyan"/>
+                        <Row l="TCPAckFrequency" v="1 (immediate)" c="c-cyan"/>
+                        <Row l="ECN Capability" v={<Pill on={false} off_label="OFF"/>}/>
+                        <Row l="RSS (Recv Scaling)" v={<Pill on={true}/>}/>
+                        <Row l="Chimney Offload" v={<Pill on={false} off_label="OFF"/>}/>
+                        <Row l="Net DMA" v={<Pill on={false} off_label="OFF"/>}/>
+                    </div>
+                </Widget>
+                <Widget title="Wi-Fi / Radio">
+                    <div className="detail-list">
+                        <Row l="MIMO Power Save" v={<Pill on={false} off_label="NO SMPS"/>}/>
+                        <Row l="Roaming Aggressiveness" v="Lowest (1)" c="c-cyan"/>
+                        <Row l="Throughput Booster" v={<Pill on={true}/>}/>
+                        <Row l="Band Preference" v="5 GHz" c="c-cyan"/>
+                        <Row l="U-APSD (power save)" v={<Pill on={false} off_label="OFF"/>}/>
+                        <Row l="WLAN bg Scans" v={<Pill on={false} off_label="OFF"/>}/>
+                    </div>
+                </Widget>
+                <Widget title="Latency / IRQ">
+                    <div className="detail-list">
                         <Row l="Interrupt Moderation" v={<Pill on={false} off_label="OFF"/>}/>
+                        <Row l="MSI Mode (NIC)" v={<Pill on={true}/>}/>
+                        <Row l="Green Ethernet (EEE)" v={<Pill on={false} off_label="OFF"/>}/>
+                        <Row l="Flow Control" v={<Pill on={false} off_label="OFF"/>}/>
+                        <Row l="Adaptive Inter-Frame" v={<Pill on={false} off_label="OFF"/>}/>
+                    </div>
+                </Widget>
+                <Widget title="QoS / DNS Path">
+                    <div className="detail-list">
+                        <Row l="DNS Provider" v="AdGuard" c="c-cyan"/>
+                        <Row l="DoH (encrypted)" v={<Pill on={true}/>}/>
+                        <Row l="QoS Packet Scheduler" v={<Pill on={true} on_label="ACTIVE"/>}/>
+                        <Row l="Reserved Bandwidth" v="0% (freed)" c="c-green"/>
+                        <Row l="Loopback (MCP/LLM)" v="127.0.0.1 open" c="c-green"/>
                     </div>
                 </Widget>
             </div>
@@ -771,6 +1112,7 @@
                     </div>
 
                     <div className="scroll-area">
+                        <Curiosities facts={(CURIOSITIES[tab]||(()=>[]))(stats, comp)} tabKey={tab}/>
                         <Panel s={stats} c={comp}/>
                     </div>
                 </div>

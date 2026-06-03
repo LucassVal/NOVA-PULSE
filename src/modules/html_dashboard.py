@@ -437,6 +437,99 @@ class NovaPulseAPI:
         
         return stats
     
+    def get_components(self):
+        """Detailed per-component info (NIC, DNS, USB, VPN). Semi-static.
+
+        Called less frequently than get_stats() (every ~5s). Returns real
+        data via psutil/WMI where available, with safe fallbacks.
+        """
+        comp = {}
+
+        # ── NIC (network adapters) ──
+        nics = []
+        try:
+            stats = psutil.net_if_stats()
+            addrs = psutil.net_if_addrs()
+            import socket
+            for name, st in stats.items():
+                if not st.isup or name.lower().startswith('loopback') or name == 'lo':
+                    continue
+                mac = ''
+                ipv4 = ''
+                for a in addrs.get(name, []):
+                    if a.family == psutil.AF_LINK:
+                        mac = a.address
+                    elif a.family == socket.AF_INET:
+                        ipv4 = a.address
+                nics.append({
+                    'name': name,
+                    'speed_mbps': st.speed,
+                    'mtu': st.mtu,
+                    'mac': mac,
+                    'ipv4': ipv4,
+                    'duplex': str(st.duplex).split('.')[-1],
+                })
+        except Exception:
+            pass
+        comp['nics'] = nics
+
+        # ── VPN detection (virtual/tunnel adapter up) ──
+        vpn = {'active': False, 'name': ''}
+        try:
+            for n in (nic['name'] for nic in nics):
+                low = n.lower()
+                if any(k in low for k in ('vpn', 'wireguard', 'wg', 'openvpn',
+                                          'tap', 'tun', 'nordlynx', 'proton',
+                                          'mullvad', 'tailscale')):
+                    vpn = {'active': True, 'name': n}
+                    break
+        except Exception:
+            pass
+        comp['vpn'] = vpn
+
+        # ── DNS servers ──
+        dns = []
+        try:
+            import wmi
+            c = wmi.WMI()
+            for cfg in c.Win32_NetworkAdapterConfiguration(IPEnabled=True):
+                if cfg.DNSServerSearchOrder:
+                    dns.extend(list(cfg.DNSServerSearchOrder))
+            dns = list(dict.fromkeys(dns))  # dedup, keep order
+        except Exception:
+            pass
+        # Known privacy DNS map
+        dns_provider = 'Unknown'
+        known = {
+            '94.140.14.14': 'AdGuard', '94.140.15.15': 'AdGuard',
+            '1.1.1.1': 'Cloudflare', '1.0.0.1': 'Cloudflare',
+            '8.8.8.8': 'Google', '8.8.4.4': 'Google',
+            '9.9.9.9': 'Quad9',
+        }
+        for d in dns:
+            if d in known:
+                dns_provider = known[d]
+                break
+        comp['dns'] = {'servers': dns, 'provider': dns_provider}
+
+        # ── USB devices ──
+        usb = {'count': 0, 'devices': []}
+        try:
+            import wmi
+            c = wmi.WMI()
+            devs = []
+            for dev in c.Win32_PnPEntity():
+                pnp = (dev.PNPDeviceID or '')
+                if pnp.startswith('USB\\') and dev.Name:
+                    devs.append(dev.Name)
+            usb['devices'] = devs[:20]
+            usb['count'] = len(devs)
+        except Exception:
+            pass
+        comp['usb'] = usb
+
+        return comp
+
     def get_history(self):
         """Return rolling history arrays for charts."""
         return {

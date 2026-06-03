@@ -21,6 +21,10 @@
             --danger-neon: #ff0055;
             --warning-neon: #ffaa00;
             --success-neon: #00ff77;
+            --gemini-blue: #4a8cff;
+            --gemini-purple: #9b5cff;
+            --gemini-pink: #ff5ca8;
+            --gemini-yellow: #ffd24a;
             --text-main: #f0f0f5;
             --text-dim: #8b92a5;
         }
@@ -59,13 +63,40 @@
             0%,100% { opacity: 0.55; }
             50%     { opacity: 1; }
         }
+        /* ── Adaptive Glass: liquid color-cloud mesh (AI "thinking" state) ── */
+        .mesh { position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events: none; filter: blur(60px) saturate(1.4); }
+        .blob { position: absolute; border-radius: 50%; mix-blend-mode: screen; opacity: 0.55; }
+        .blob.b1 { width: 46vw; height: 46vw; left: -8vw; top: -10vw;
+            background: radial-gradient(circle, var(--gemini-blue), transparent 65%);
+            animation: blob-a 26s ease-in-out infinite alternate; }
+        .blob.b2 { width: 42vw; height: 42vw; right: -6vw; top: -8vw;
+            background: radial-gradient(circle, var(--gemini-purple), transparent 65%);
+            animation: blob-b 30s ease-in-out infinite alternate; }
+        .blob.b3 { width: 40vw; height: 40vw; right: 6vw; bottom: -14vw;
+            background: radial-gradient(circle, var(--gemini-pink), transparent 65%);
+            animation: blob-c 24s ease-in-out infinite alternate; }
+        .blob.b4 { width: 30vw; height: 30vw; left: 10vw; bottom: -10vw;
+            background: radial-gradient(circle, var(--gemini-yellow), transparent 68%);
+            animation: blob-d 34s ease-in-out infinite alternate; opacity: 0.4; }
+        @keyframes blob-a { 0%{transform:translate(0,0) scale(1);} 50%{transform:translate(18vw,12vh) scale(1.25);} 100%{transform:translate(8vw,28vh) scale(1.1);} }
+        @keyframes blob-b { 0%{transform:translate(0,0) scale(1.1);} 50%{transform:translate(-14vw,18vh) scale(1.3);} 100%{transform:translate(-6vw,6vh) scale(1);} }
+        @keyframes blob-c { 0%{transform:translate(0,0) scale(1);} 50%{transform:translate(-16vw,-14vh) scale(1.2);} 100%{transform:translate(-4vw,-24vh) scale(1.15);} }
+        @keyframes blob-d { 0%{transform:translate(0,0) scale(1);} 50%{transform:translate(16vw,-10vh) scale(1.3);} 100%{transform:translate(24vw,-4vh) scale(1.05);} }
+        /* Thinking state: under contention the mesh accelerates + brightens (cognition) */
+        body.thinking .mesh { animation: think-pulse 2.2s ease-in-out infinite; filter: blur(54px) saturate(1.7); }
+        body.thinking .blob { animation-duration: 9s, 9s; }
+        @keyframes think-pulse { 0%,100%{opacity:0.85;} 50%{opacity:1;} }
         .glass-panel {
             position: relative;
             background: var(--glass-bg); backdrop-filter: var(--glass-blur);
             -webkit-backdrop-filter: var(--glass-blur);
             border: 1px solid var(--glass-border); border-radius: 14px;
-            box-shadow: 0 15px 35px 0 rgba(0, 0, 0, 0.5); transition: all 0.3s ease;
-            overflow: hidden;
+            /* Drop shadow + specular highlights (top edge bright = glass thickness) */
+            box-shadow: 0 15px 35px 0 rgba(0,0,0,0.5),
+                        inset 0 1px 0 rgba(255,255,255,0.18),
+                        inset 0 0 0 1px rgba(255,255,255,0.03),
+                        inset 0 -16px 40px -20px rgba(0,0,0,0.4);
+            transition: all 0.3s ease; overflow: hidden;
         }
         /* Animated gradient border — rotating conic cloud of colors on the edge */
         .glass-panel::before {
@@ -257,6 +288,7 @@
     </style>
 </head>
 <body>
+    <div class="mesh"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span></div>
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -1076,6 +1108,11 @@
                 window.addEventListener('pywebviewready', init);
                 return ()=>{ clearInterval(statInt); clearInterval(compInt); };
             }, []);
+
+            useEffect(()=>{
+                const thinking = !!stats && (stats.sched_contended || (stats.cpu_percent||0) > 80 || (stats.gpu_nvidia_percent||0) > 85);
+                document.body.classList.toggle('thinking', thinking);
+            }, [stats]);
 
             if (!connected || !stats) return <div className="loader">INITIALIZING NOVAPULSE 2.5 KERNEL...</div>;
 

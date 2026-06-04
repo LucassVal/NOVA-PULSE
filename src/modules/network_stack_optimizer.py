@@ -47,7 +47,7 @@ class NetworkStackOptimizer:
         try:
             result = subprocess.run(
                 f"netsh {args}",
-                shell=True, capture_output=True, text=True
+                shell=True, capture_output=True, encoding='utf-8', errors='replace'
             , errors='replace')
             return result.returncode == 0
         except Exception:
@@ -280,7 +280,7 @@ class NetworkStackOptimizer:
         try:
             result = subprocess.run(
                 "netsh int tcp show global",
-                shell=True, capture_output=True, text=True
+                shell=True, capture_output=True, encoding='utf-8', errors='replace'
             , errors='replace')
             output = result.stdout.lower()
             if "rss" in output:
@@ -319,7 +319,7 @@ class NetworkStackOptimizer:
                 Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Interrupt Moderation" -DisplayValue "Disabled" -ErrorAction SilentlyContinue
             }
             '''
-            result = subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, errors='replace')
+            result = subprocess.run(["powershell", "-Command", ps_script], capture_output=True, encoding='utf-8', errors='replace')
             success = result.returncode == 0
             if success:
                 print("[NETSTACK] ✓ Adapter Roaming, MIMO SMPS, Throughput and Interrupts optimized")

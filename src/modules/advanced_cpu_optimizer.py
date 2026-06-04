@@ -235,7 +235,7 @@ class AdvancedCPUOptimizer:
         try:
             result = subprocess.run(
                 "bcdedit /set disabledynamictick yes",
-                shell=True, capture_output=True, text=True
+                shell=True, capture_output=True, encoding='utf-8', errors='replace'
             , errors='replace')
             success = result.returncode == 0
             if success:

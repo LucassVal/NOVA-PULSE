@@ -23,7 +23,7 @@ class ExtremeAIOptimizer:
     def _run_cmd(self, cmd: str) -> bool:
         try:
             result = subprocess.run(
-                cmd, shell=True, capture_output=True, text=True
+                cmd, shell=True, capture_output=True, encoding='utf-8', errors='replace'
             , errors='replace')
             return result.returncode == 0
         except Exception:
@@ -33,7 +33,7 @@ class ExtremeAIOptimizer:
         try:
             result = subprocess.run(
                 f'powershell -Command "{cmd}"',
-                shell=True, capture_output=True, text=True
+                shell=True, capture_output=True, encoding='utf-8', errors='replace'
             , errors='replace')
             return result.returncode == 0
         except Exception:
@@ -224,7 +224,7 @@ class ExtremeAIOptimizer:
     def is_optimized(self) -> bool:
         """Verify if TCP experimental is active as a proxy for this module"""
         try:
-            res = subprocess.run("netsh int tcp show global", shell=True, capture_output=True, text=True, errors='replace')
+            res = subprocess.run("netsh int tcp show global", shell=True, capture_output=True, encoding='utf-8', errors='replace')
             return "experimental" in res.stdout.lower()
         except Exception:
             return False

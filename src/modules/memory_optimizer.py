@@ -59,7 +59,7 @@ class MemoryOptimizerPro:
         try:
             result = subprocess.run(
                 f"sc {action} {service}",
-                shell=True, capture_output=True, text=True
+                shell=True, capture_output=True, encoding='utf-8', errors='replace'
             , errors='replace')
             return result.returncode == 0 or "1062" in result.stderr  # 1062 = already stopped
         except Exception:
@@ -84,7 +84,7 @@ class MemoryOptimizerPro:
             # Disable via PowerShell
             result = subprocess.run(
                 'powershell -Command "Disable-MMAgent -MemoryCompression"',
-                shell=True, capture_output=True, text=True
+                shell=True, capture_output=True, encoding='utf-8', errors='replace'
             , errors='replace')
             
             if result.returncode == 0:
@@ -280,7 +280,7 @@ class MemoryOptimizerPro:
             try:
                 result = subprocess.run(
                     f'powershell -Command "Enable-MMAgent -{feat}"',
-                    shell=True, capture_output=True, text=True
+                    shell=True, capture_output=True, encoding='utf-8', errors='replace'
                 , errors='replace')
                 if result.returncode == 0:
                     print(f"[MEMORY] ✓ {feat} enabled")
@@ -535,7 +535,7 @@ class MemoryOptimizerPro:
             # Check compression
             result = subprocess.run(
                 'powershell -Command "(Get-MMAgent).MemoryCompression"',
-                shell=True, capture_output=True, text=True
+                shell=True, capture_output=True, encoding='utf-8', errors='replace'
             )
             status['compression'] = "Enabled" if "True" in result.stdout else "Disabled"
         except Exception:

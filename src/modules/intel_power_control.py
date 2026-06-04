@@ -80,7 +80,7 @@ class IntelPowerControl:
         try:
             result = subprocess.run(
                 ['powercfg', '/getactivescheme'],
-                capture_output=True, text=True, timeout=5
+                capture_output=True, encoding='utf-8', errors='replace', timeout=5
             , errors='replace')
             # Parse: "GUID do Esquema de Energia: xxx-xxx-xxx  (Name)"
             for line in result.stdout.split('\n'):
@@ -98,7 +98,7 @@ class IntelPowerControl:
         try:
             result = subprocess.run(
                 ['powercfg'] + args,
-                capture_output=True, text=True, timeout=10
+                capture_output=True, encoding='utf-8', errors='replace', timeout=10
             , errors='replace')
             return result.returncode == 0
         except Exception:
@@ -204,7 +204,7 @@ class IntelPowerControl:
         try:
             result = subprocess.run(
                 ['powercfg', '/query', self._current_scheme, self.GUID_SUB_PROCESSOR],
-                capture_output=True, text=True, timeout=10
+                capture_output=True, encoding='utf-8', errors='replace', timeout=10
             , errors='replace')
             
             lines = result.stdout.split('\n')

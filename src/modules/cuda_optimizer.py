@@ -431,7 +431,7 @@ class CUDAOptimizer:
         """Verifies if the NVIDIA GPU is already locked (Persistent Mode active)"""
         try:
             # Quick check if persistent mode is active via SMI
-            result = subprocess.run(["nvidia-smi", "-q", "-d", "PERFORMANCE"], capture_output=True, text=True, errors='replace')
+            result = subprocess.run(["nvidia-smi", "-q", "-d", "PERFORMANCE"], capture_output=True, encoding='utf-8', errors='replace')
             if "Persistent Mode" in result.stdout and "Enabled" in result.stdout:
                 return True
         except Exception:

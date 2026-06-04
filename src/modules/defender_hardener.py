@@ -42,7 +42,7 @@ def run_ps(command, description=""):
     try:
         result = subprocess.run(
             ['powershell', '-NoProfile', '-Command', command],
-            capture_output=True, text=True, timeout=30
+            capture_output=True, encoding='utf-8', errors='replace', timeout=30
         , errors='replace')
         if result.returncode == 0:
             print(f"  ✓ {description}")
@@ -68,7 +68,7 @@ def run_cmd(command, description=""):
     try:
         result = subprocess.run(
             command, shell=True,
-            capture_output=True, text=True, timeout=30
+            capture_output=True, encoding='utf-8', errors='replace', timeout=30
         , errors='replace')
         if result.returncode == 0:
             print(f"  ✓ {description}")
@@ -133,7 +133,7 @@ class DefenderHardener:
             result = subprocess.run(
                 ['powershell', '-NoProfile', '-Command',
                  '(Get-CimInstance Win32_OperatingSystem).Caption'],
-                capture_output=True, text=True, timeout=10
+                capture_output=True, encoding='utf-8', errors='replace', timeout=10
             )
             return result.stdout.strip() or "Windows"
         except Exception:
@@ -375,7 +375,7 @@ class DefenderHardener:
             result = subprocess.run(
                 ['powershell', '-NoProfile', '-Command',
                  '(Get-MpComputerStatus).RealTimeProtectionEnabled'],
-                capture_output=True, text=True, timeout=10
+                capture_output=True, encoding='utf-8', errors='replace', timeout=10
             )
             return result.stdout.strip().lower() == 'true'
         except Exception:

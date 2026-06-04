@@ -196,7 +196,7 @@ class USBPollingOptimizer:
         try:
             result = subprocess.run(
                 'wmic path Win32_USBHub get DeviceID,Name,Status',
-                shell=True, capture_output=True, text=True
+                shell=True, capture_output=True, encoding='utf-8', errors='replace'
             , errors='replace')
             lines = result.stdout.strip().split('\n')[1:]  # Skip header
             for line in lines:

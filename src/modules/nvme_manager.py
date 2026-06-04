@@ -22,7 +22,7 @@ class NVMeManager:
         try:
             # Check current status
             check = subprocess.run(['fsutil', 'behavior', 'query', 'DisableLastAccess'], 
-                                 capture_output=True, text=True, errors='replace')
+                                 capture_output=True, encoding='utf-8', errors='replace')
             
             if " = 1" not in check.stdout:
                 print("[NVMe] Disabling 'Last Access Update' (Optimizing IOPS)...")

@@ -152,13 +152,13 @@ class NTFSOptimizer:
             # Query current settings
             result = subprocess.run(
                 "fsutil behavior query disable8dot3",
-                shell=True, capture_output=True, text=True
+                shell=True, capture_output=True, encoding='utf-8', errors='replace'
             , errors='replace')
             status['8dot3'] = "Disabled" if "1" in result.stdout else "Enabled"
             
             result = subprocess.run(
                 "fsutil behavior query disablelastaccess",
-                shell=True, capture_output=True, text=True
+                shell=True, capture_output=True, encoding='utf-8', errors='replace'
             , errors='replace')
             status['lastaccess'] = "Disabled" if "1" in result.stdout or "2" in result.stdout else "Enabled"
             

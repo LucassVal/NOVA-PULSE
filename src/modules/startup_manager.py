@@ -115,7 +115,7 @@ class StartupManager:
         try:
             result = subprocess.run(
                 cmd, shell=True,
-                capture_output=True, text=True, timeout=15
+                capture_output=True, encoding='utf-8', errors='replace', timeout=15
             , errors='replace')
 
             if result.returncode == 0:
@@ -154,7 +154,7 @@ Register-ScheduledTask -TaskName "{self.TASK_NAME}" -Action $action -Trigger $tr
 '''
             result = subprocess.run(
                 ['powershell', '-NoProfile', '-Command', ps_cmd],
-                capture_output=True, text=True, timeout=15
+                capture_output=True, encoding='utf-8', errors='replace', timeout=15
             , errors='replace')
 
             if result.returncode == 0:
@@ -173,7 +173,7 @@ Register-ScheduledTask -TaskName "{self.TASK_NAME}" -Action $action -Trigger $tr
         try:
             result = subprocess.run(
                 f'schtasks /Delete /TN "{self.TASK_NAME}" /F',
-                shell=True, capture_output=True, text=True, timeout=10
+                shell=True, capture_output=True, encoding='utf-8', errors='replace', timeout=10
             , errors='replace')
             if result.returncode == 0 and not quiet:
                 print("✓ NovaPulse removed from Windows startup")
@@ -186,7 +186,7 @@ Register-ScheduledTask -TaskName "{self.TASK_NAME}" -Action $action -Trigger $tr
         try:
             result = subprocess.run(
                 f'schtasks /Query /TN "{self.TASK_NAME}" /FO CSV /NH',
-                shell=True, capture_output=True, text=True, timeout=10
+                shell=True, capture_output=True, encoding='utf-8', errors='replace', timeout=10
             , errors='replace')
             return result.returncode == 0 and self.TASK_NAME in result.stdout
         except Exception:

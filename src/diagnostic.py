@@ -432,7 +432,7 @@ def run_diagnostics():
     try:
         cmd = 'Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Select-Object -First 1 -ExpandProperty Name'
         result = subprocess.run(['powershell', '-Command', cmd],
-                               capture_output=True, text=True, timeout=5, errors='replace')
+                               capture_output=True, encoding='utf-8', errors='replace', timeout=5, errors='replace')
         if result.stdout.strip():
             results.append(f"[OK]   Network Adapter: {result.stdout.strip()}")
         else:

@@ -247,7 +247,7 @@ class AdvancedStorageOptimizer:
         if not self.is_admin:
             return False
         try:
-            result = subprocess.run("fsutil behavior set memoryusage 2", shell=True, capture_output=True, text=True, errors='replace')
+            result = subprocess.run("fsutil behavior set memoryusage 2", shell=True, capture_output=True, encoding='utf-8', errors='replace')
             if result.returncode == 0:
                 print("[STORAGE] ✓ NTFS memory usage set to 2 (Increased pool)")
                 self.applied_changes['ntfs_memory_usage'] = True
@@ -262,11 +262,11 @@ class AdvancedStorageOptimizer:
         ntfs_ok = False
         
         try:
-            result = subprocess.run("powercfg /q scheme_current sub_pci express", shell=True, capture_output=True, text=True, errors='replace')
+            result = subprocess.run("powercfg /q scheme_current sub_pci express", shell=True, capture_output=True, encoding='utf-8', errors='replace')
             if "0x00000000" in result.stdout:
                 aspm_ok = True
                 
-            res_fsutil = subprocess.run("fsutil behavior query memoryusage", shell=True, capture_output=True, text=True, errors='replace')
+            res_fsutil = subprocess.run("fsutil behavior query memoryusage", shell=True, capture_output=True, encoding='utf-8', errors='replace')
             if "2" in res_fsutil.stdout:
                 ntfs_ok = True
         except Exception:

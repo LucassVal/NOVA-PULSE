@@ -10,13 +10,14 @@ Architecture:
   - pywebview creates a native OS window (WebView2 on Win11, ~30-50MB RAM)
 """
 import os
-import sys
-import time
-import threading
 import subprocess
+import sys
+import threading
+import time
 from collections import deque
 
 import psutil
+
 
 # Resolve asset path for PyInstaller bundled or source mode
 def _asset_path(filename):
@@ -40,18 +41,18 @@ class NovaPulseAPI:
     
     Methods must return JSON-serializable types (dict, list, str, int, float, bool, None).
     """
-    
+
     def __init__(self, services=None):
         self.services = services or {}
         self._start_time = time.time()
-        
+
         # History buffers (60 data points = 2 minutes at 2s interval)
         self._history_len = 60
         self._cpu_history = deque(maxlen=self._history_len)
         self._gpu_history = deque(maxlen=self._history_len)
         self._ram_history = deque(maxlen=self._history_len)
         self._temp_history = deque(maxlen=self._history_len)
-        
+
         # GPU initialization (NVIDIA via pynvml)
         self.has_nvidia = False
         self.nvidia_handle = None
@@ -68,7 +69,7 @@ class NovaPulseAPI:
                 self.has_nvidia = True
         except Exception:
             pass
-        
+
         # Intel iGPU (cached via WMI)
         self.has_intel = False
         self._intel_name = "Intel Integrated Graphics"
@@ -82,7 +83,7 @@ class NovaPulseAPI:
                     break
         except Exception:
             pass
-        
+
         # CPU temperature service
         self._temp_service = None
         try:
@@ -90,41 +91,41 @@ class NovaPulseAPI:
             self._temp_service = temperature_service.get_service()
         except Exception:
             pass
-        
+
         # Cache max CPU frequency
         try:
             freq = psutil.cpu_freq()
             self._cpu_max_ghz = freq.max / 1000 if freq and freq.max else 0
         except Exception:
             self._cpu_max_ghz = 0
-        
+
         # Cached priority counts (updated every 30s, not every call)
         self._cached_priority_high = 0
         self._cached_priority_low = 0
         self._priority_cache_time = 0
-        
+
         # Ping (background thread)
         self._ping_ms = 0
         self._ping_baseline = 0
         self._ping_running = True
         self._ping_thread = threading.Thread(target=self._ping_loop, daemon=True)
         self._ping_thread.start()
-        
+
         # CRITICAL: Prime psutil's cpu_percent — first call ALWAYS returns 0.0
         # because there's no previous measurement. This primes the internal counter.
         psutil.cpu_percent(percpu=True)
-    
+
     # ─── PUBLIC API (callable from JavaScript) ───
-    
+
     def get_stats(self):
         """Return all system metrics as a dict. Called every 2s from JS."""
         stats = {}
-        
+
         # CPU — single call, derive total from per-core average
         cores = psutil.cpu_percent(percpu=True)
         stats['cpu_cores'] = cores
         stats['cpu_percent'] = round(sum(cores) / len(cores), 1) if cores else 0
-        
+
         # CPU temperature
         if self._temp_service:
             try:
@@ -133,7 +134,7 @@ class NovaPulseAPI:
                 stats['cpu_temp'] = 0
         else:
             stats['cpu_temp'] = 0
-        
+
         # CPU frequency
         try:
             freq = psutil.cpu_freq(percpu=True)
@@ -149,7 +150,7 @@ class NovaPulseAPI:
             stats['cpu_freq_ghz'] = 0
             stats['cpu_freq_max_ghz'] = 0
             stats['cpu_core_freqs_ghz'] = [0] * len(cores)
-        
+
         # CPU cap and auto-profiler mode
         stats['cpu_limit'] = 80
         stats['auto_mode'] = 'ACTIVE'
@@ -159,7 +160,7 @@ class NovaPulseAPI:
             stats['auto_mode'] = profiler.get_current_mode().value.upper()
             stats['auto_avg_cpu'] = profiler.get_avg_cpu()
             stats['cpu_limit'] = profiler.active_cpu_cap
-        
+
         # GPU (NVIDIA)
         stats['gpu_nvidia_name'] = self._nvidia_name
         stats['has_nvidia'] = self.has_nvidia
@@ -189,13 +190,13 @@ class NovaPulseAPI:
             stats['gpu_nvidia_mem_used'] = 0
             stats['gpu_nvidia_mem_total'] = 0
             stats['gpu_nvidia_clock_mhz'] = 0
-        
+
         # GPU Power Limit
         if 'gpu_ctrl' in self.services and hasattr(self.services['gpu_ctrl'], 'applied_percent'):
             stats['gpu_nvidia_power_limit'] = self.services['gpu_ctrl'].applied_percent
         else:
             stats['gpu_nvidia_power_limit'] = 0
-        
+
         # Intel iGPU (Simulated from shared system metrics since WMI is slow/unreliable for real-time)
         stats['has_intel'] = self.has_intel
         stats['gpu_intel_name'] = self._intel_name
@@ -213,7 +214,7 @@ class NovaPulseAPI:
             stats['gpu_intel_mem_used'] = 0
             stats['gpu_intel_mem_total'] = 0
             stats['gpu_intel_clock_mhz'] = 0
-        
+
         # RAM
         mem = psutil.virtual_memory()
         stats['ram_used_mb'] = round(mem.used / 1024 / 1024)
@@ -221,13 +222,13 @@ class NovaPulseAPI:
         stats['ram_percent'] = mem.percent
         stats['ram_used_gb'] = round(mem.used / 1024 / 1024 / 1024, 1)
         stats['ram_total_gb'] = round(mem.total / 1024 / 1024 / 1024, 1)
-        
+
         # SWAP
         swap = psutil.swap_memory()
         stats['swap_percent'] = swap.percent
         stats['swap_used_gb'] = round(swap.used / 1024 / 1024 / 1024, 1)
         stats['swap_total_gb'] = round(swap.total / 1024 / 1024 / 1024, 1)
-        
+
         # Advanced OS Metrics
         try:
             cpu_stats = psutil.cpu_stats()
@@ -238,7 +239,7 @@ class NovaPulseAPI:
             stats['ctx_switches'] = 0
             stats['interrupts'] = 0
             stats['syscalls'] = 0
-            
+
         try:
             battery = psutil.sensors_battery()
             stats['battery_percent'] = round(battery.percent) if battery else 100
@@ -246,7 +247,7 @@ class NovaPulseAPI:
         except Exception:
             stats['battery_percent'] = 100
             stats['power_plugged'] = True
-            
+
         # Hardware estimates for missing sensors
         stats['cpu_power_w'] = round(stats.get('cpu_percent', 0) * 0.45 + 10, 1)
         stats['cpu_voltage'] = round(1.1 + (stats.get('cpu_percent', 0)/100) * 0.3, 2)
@@ -254,7 +255,7 @@ class NovaPulseAPI:
             stats['gpu_nvidia_power_w'] = round(stats.get('gpu_nvidia_percent', 0) * 0.8 + 15, 1)
         else:
             stats['gpu_nvidia_power_w'] = 0
-        
+
         # RAM Advanced
         stats['ram_compression_ratio'] = "2.4x" # Windows compression ratio is hard to query quickly
         try:
@@ -263,7 +264,7 @@ class NovaPulseAPI:
             stats['ram_page_faults'] = 0
         if stats['ram_page_faults'] == 0:
             stats['ram_page_faults'] = int(stats.get('ram_percent', 0) * 12 + 200) # Estimate if failed
-        
+
         # RAM Cleaning Stats
         stats['ram_cleaned_mb'] = 0
         stats['ram_cleanups'] = 0
@@ -274,16 +275,16 @@ class NovaPulseAPI:
                 stats['ram_cleanups'] = cleaner.clean_count
             elif hasattr(cleaner, 'clean_count'):
                 stats['ram_cleanups'] = cleaner.clean_count
-        
+
         # Process priorities (cached every 30s)
         self._update_priority_cache()
         stats['priority_high'] = self._cached_priority_high
         stats['priority_low'] = self._cached_priority_low
-        
+
         # Network
         stats['ping_ms'] = self._ping_ms
         stats['ping_baseline'] = self._ping_baseline
-        
+
         # Network Throughput
         try:
             net_io = psutil.net_io_counters()
@@ -301,7 +302,7 @@ class NovaPulseAPI:
                 stats['net_up_kbps'] = 0
             self._last_net_io = net_io
             self._last_net_time = time.time()
-            
+
             stats['tcp_connections'] = len(psutil.net_connections(kind='tcp'))
         except Exception:
             stats['net_down_kbps'] = 0
@@ -331,7 +332,7 @@ class NovaPulseAPI:
                 stats['disk_write_iops'] = 0
             self._last_disk_io = disk_io
             self._last_disk_time = time.time()
-            
+
             disk_usage = psutil.disk_usage('C:\\')
             stats['disk_percent'] = disk_usage.percent
         except Exception:
@@ -356,7 +357,7 @@ class NovaPulseAPI:
             stats['security_status'] = sec_status.get('status', 'idle')
             last = sec_status.get('last_scan', None)
             stats['security_last_scan'] = last.strftime('%H:%M:%S') if last else ''
-        
+
         # Privacy / Telemetry
         stats['privacy_score'] = 98
         stats['blocked_domains'] = 21
@@ -367,19 +368,19 @@ class NovaPulseAPI:
             stats['privacy_score'] = tel.get('privacy_score', 98)
             stats['blocked_domains'] = tel.get('blocked_domains', 21)
             stats['telemetry_status'] = tel.get('status', 'idle')
-        
+
         # Uptime
         uptime = int(time.time() - self._start_time)
         stats['uptime_seconds'] = uptime
         h, rem = divmod(uptime, 3600)
         m, s = divmod(rem, 60)
         stats['uptime_str'] = f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
-        
+
         # Real Ads / Telemetry Blocked (count hosts file zero-routing)
         try:
             hosts_path = r"C:\Windows\System32\drivers\etc\hosts"
             if os.path.exists(hosts_path):
-                with open(hosts_path, 'r', encoding='utf-8') as f:
+                with open(hosts_path, encoding='utf-8') as f:
                     content = f.read()
                     # Count lines that route to 0.0.0.0 (common for adblockers)
                     stats['ads_blocked'] = content.count('0.0.0.0 ')
@@ -387,7 +388,7 @@ class NovaPulseAPI:
                 stats['ads_blocked'] = 0
         except Exception:
             stats['ads_blocked'] = 0
-        
+
         # Total processes threads/handles
         try:
             total_threads = 0
@@ -402,7 +403,44 @@ class NovaPulseAPI:
         except Exception:
             stats['threads_total'] = 3450
             stats['handles_total'] = 125430
-        
+
+        # ISA (Intelligence with Stoic Agency) — cognitive feed
+        stats['isa_active'] = False
+        stats['isa_mode'] = 'offline'
+        stats['isa_ciclo'] = 0
+        stats['isa_amplitude'] = 0.0
+        stats['isa_profundidade'] = 0.0
+        stats['isa_autoconhecimento'] = 0.0
+        stats['isa_gpu_livre'] = False
+        stats['isa_formigas_ativas'] = []
+        stats['isa_formigas_bloqueadas'] = []
+        if 'isa' in self.services:
+            try:
+                isa = self.services['isa']
+                stats['isa_active'] = bool(isa)
+                stats['isa_mode'] = isa.get('modo', 'estudo')
+                stats['isa_ciclo'] = isa.get('ciclo', 0)
+                curvas = isa.get('curvas', {})
+                stats['isa_amplitude'] = float(curvas.get('amplitude', 0.0))
+                stats['isa_profundidade'] = float(curvas.get('profundidade', 0.0))
+                stats['isa_autoconhecimento'] = float(
+                    curvas.get('autoconhecimento', 0.0)
+                )
+                gpu = isa.get('gpu', {})
+                stats['isa_gpu_livre'] = bool(gpu.get('gpu_livre', False))
+                # formigas from last boot result if available
+                isa_boot = self.services.get('isa_boot')
+                if isa_boot and hasattr(isa_boot, '_resultados'):
+                    f7 = isa_boot._resultados.get('fases', {}).get(
+                        'fase_7_formigas', {}
+                    )
+                    stats['isa_formigas_ativas'] = f7.get('formigas_ativas', [])
+                    stats['isa_formigas_bloqueadas'] = f7.get(
+                        'formigas_bloqueadas', []
+                    )
+            except Exception:
+                pass
+
         # OLED Care status (burn-in protection)
         stats['oled_active'] = False
         stats['oled_dimmed'] = False
@@ -434,9 +472,9 @@ class NovaPulseAPI:
         self._gpu_history.append(stats['gpu_nvidia_percent'])
         self._ram_history.append(stats['ram_percent'])
         self._temp_history.append(stats['cpu_temp'])
-        
+
         return stats
-    
+
     def get_components(self):
         """Detailed per-component info (NIC, DNS, USB, VPN). Semi-static.
 
@@ -538,7 +576,7 @@ class NovaPulseAPI:
             'ram': list(self._ram_history),
             'temp': list(self._temp_history),
         }
-    
+
     def get_boot_info(self):
         """Return static boot-time optimization info (called once on load)."""
         return {
@@ -563,7 +601,7 @@ class NovaPulseAPI:
                 {'name': 'Port Hardening', 'status': '135/139/445 BLOCKED', 'icon': '✓'},
             ]
         }
-    
+
     def clean_ram(self):
         """Trigger manual RAM cleanup."""
         if 'cleaner' in self.services:
@@ -573,7 +611,7 @@ class NovaPulseAPI:
             except Exception as e:
                 return {'status': 'error', 'message': str(e)}
         return {'status': 'error', 'message': 'Cleaner not available'}
-    
+
     def set_mode(self, mode):
         """Set Auto-Profiler mode (ACTIVE/IDLE/BOOST)."""
         if 'auto_profiler' in self.services:
@@ -583,11 +621,11 @@ class NovaPulseAPI:
             except Exception as e:
                 return {'status': 'error', 'message': str(e)}
         return {'status': 'error', 'message': 'Auto-Profiler not available'}
-        
+
     def check_profile(self, profile_name):
         """Dry-run check to see what modules will be applied for a profile."""
         try:
-            from modules.optimization_engine import get_engine, OptimizationLevel
+            from modules.optimization_engine import OptimizationLevel, get_engine
             levels = {
                 'AI INFERENCE': OptimizationLevel.AGGRESSIVE,
                 'EXTREME GAMING': OptimizationLevel.GAMING,
@@ -599,7 +637,7 @@ class NovaPulseAPI:
             engine = get_engine()
             # Dry run: get results without actually applying anything
             results = engine.apply_all(level, interactive=False, dry_run=True)
-            
+
             # Find what needs restart
             pending_restarts = [res.module for res in results.values() if res.requires_restart]
             return {'status': 'ok', 'requires_restart': len(pending_restarts) > 0, 'modules': pending_restarts}
@@ -609,7 +647,7 @@ class NovaPulseAPI:
     def apply_optimization_profile(self, profile_name):
         """Apply an optimization profile system-wide."""
         try:
-            from modules.optimization_engine import get_engine, OptimizationLevel
+            from modules.optimization_engine import OptimizationLevel, get_engine
             levels = {
                 'AI INFERENCE': OptimizationLevel.AGGRESSIVE,
                 'EXTREME GAMING': OptimizationLevel.GAMING,
@@ -620,25 +658,25 @@ class NovaPulseAPI:
             level = levels.get(profile_name, OptimizationLevel.BALANCED)
             engine = get_engine()
             results = engine.apply_all(level, interactive=False, dry_run=False)
-            
+
             return {
-                'status': 'ok', 
-                'message': f'Profile {profile_name} applied', 
+                'status': 'ok',
+                'message': f'Profile {profile_name} applied',
                 'requires_restart': engine.requires_restart,
                 'results': results
             }
         except Exception as e:
             return {'status': 'error', 'message': str(e)}
-    
+
     # ─── PRIVATE METHODS ───
-    
+
     def _update_priority_cache(self):
         """Update cached process priority counts (expensive, every 30s)."""
         now = time.time()
         if now - self._priority_cache_time < 30:
             return
         self._priority_cache_time = now
-        
+
         high = low = 0
         if 'smart_priority' in self.services:
             sp = self.services['smart_priority']
@@ -646,12 +684,12 @@ class NovaPulseAPI:
                 high = len(sp.promoted_pids)
             elif hasattr(sp, 'high_count'):
                 high = sp.high_count
-                
+
             if hasattr(sp, 'low_count'):
                 low = sp.low_count
         self._cached_priority_high = high
         self._cached_priority_low = low
-    
+
     def _ping_loop(self):
         """Background ping thread for latency measurement."""
         target = "8.8.8.8"
@@ -676,7 +714,7 @@ class NovaPulseAPI:
             except Exception:
                 pass
             time.sleep(5)
-    
+
     def stop(self):
         """Stop background threads."""
         self._ping_running = False
@@ -684,26 +722,26 @@ class NovaPulseAPI:
 
 class HtmlDashboard:
     """Manages the pywebview window and NovaPulseAPI lifecycle."""
-    
+
     def __init__(self, services=None):
         self.services = services or {}
         self.api = NovaPulseAPI(services)
         self._window = None
-    
+
     def start(self):
         """Open the dashboard window. Blocks until window is closed."""
         import webview
-        
+
         html_path = _asset_path('dashboard.html')
-        
+
         # Verify the HTML file exists
         if not os.path.exists(html_path):
             print(f"[DASHBOARD] ERROR: dashboard.html not found at {html_path}")
             print("[DASHBOARD] Falling back to console mode...")
             return False
-        
+
         print("[DASHBOARD] Opening HTML dashboard...")
-        
+
         self._window = webview.create_window(
             'NovaPulse 2.2.1',
             url=html_path,
@@ -714,14 +752,14 @@ class HtmlDashboard:
             background_color='#0a0a1a',
             text_select=False,
         )
-        
+
         # Start pywebview event loop (blocks until window closes)
         webview.start(debug=False)
-        
+
         # Cleanup
         self.api.stop()
         return True
-    
+
     def stop(self):
         """Close the dashboard window."""
         self.api.stop()

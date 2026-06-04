@@ -15,51 +15,51 @@ v2.2.1: Codebase audit, 2-stage profiler, security shield
 v2.2:   Security Scanner + Telemetry Blocker + Defender Hardener
 v2.0:   Optimization Engine with 13 kernel-level modules
 """
+import ctypes
 import sys
 import time
+
 import yaml
-import ctypes
-from colorama import init, Fore, Style
+from colorama import Fore, Style, init
+from modules.cpu_power import CPUPowerManager
+from modules.dashboard import Dashboard  # Rich console fallback
+from modules.dynamic_scheduler import DynamicScheduler
 
 # Core Modules
 from modules.standby_cleaner import StandbyMemoryCleaner
-from modules.cpu_power import CPUPowerManager
-from modules.dynamic_scheduler import DynamicScheduler
-from modules.dashboard import Dashboard  # Rich console fallback
+
 try:
     from modules.html_dashboard import HtmlDashboard
     HTML_DASHBOARD_AVAILABLE = True
 except ImportError:
     HTML_DASHBOARD_AVAILABLE = False
-from modules.nvme_manager import NVMeManager
-from modules.oled_care import OledCare
-
-# Detection Modules
-
-# Optimizer Modules
-from modules.network_qos import NetworkQoSManager
-from modules.timer_resolution import TimerResolutionOptimizer
-from modules.services_optimizer import WindowsServicesOptimizer
-from modules.gamebar_optimizer import GameBarOptimizer
-
 # NovaPulse Core
 from modules.auto_profiler import get_profiler
+from modules.gamebar_optimizer import GameBarOptimizer
 from modules.history_logger import get_logger as get_history_logger
+
+# Detection Modules
+# Optimizer Modules
+from modules.network_qos import NetworkQoSManager
+from modules.nvme_manager import NVMeManager
+from modules.oled_care import OledCare
+from modules.services_optimizer import WindowsServicesOptimizer
+from modules.timer_resolution import TimerResolutionOptimizer
 from modules.tray_icon import SystemTrayIcon
 
 # NovaPulse 2.2.1 - Optimization Engine
 try:
-    from modules.optimization_engine import get_engine, OptimizationLevel
+    from modules.optimization_engine import OptimizationLevel, get_engine
     OPTIMIZATION_ENGINE_AVAILABLE = True
 except ImportError:
     OPTIMIZATION_ENGINE_AVAILABLE = False
 
 # NovaPulse 2.2.1 - Security & Privacy
 try:
-    from modules.telemetry_blocker import get_blocker
-    from modules.security_scanner import get_scanner
     from modules.defender_hardener import get_hardener
+    from modules.security_scanner import get_scanner
     from modules.startup_manager import get_startup_manager
+    from modules.telemetry_blocker import get_blocker
     SECURITY_AVAILABLE = True
 except ImportError:
     SECURITY_AVAILABLE = False
@@ -83,7 +83,7 @@ def is_admin():
 def load_config():
     """Load configuration from YAML file"""
     import os
-    
+
     # Determine base path (works with PyInstaller)
     if getattr(sys, 'frozen', False):
         # Running as packaged EXE
@@ -91,11 +91,11 @@ def load_config():
     else:
         # Running as Python script
         base_path = os.path.dirname(os.path.abspath(__file__))
-    
+
     config_path = os.path.join(base_path, 'config.yaml')
-    
+
     try:
-        with open(config_path, 'r', encoding='utf-8') as f:
+        with open(config_path, encoding='utf-8') as f:
             return yaml.safe_load(f)
     except Exception:
         print(f"{Fore.YELLOW}[WARN] Config not found, using defaults{Style.RESET_ALL}")
@@ -148,17 +148,17 @@ def print_header():
 
 def run_startup_diagnostic():
     """Run pre-flight diagnostic and write to Desktop log."""
-    from diagnostic import run_diagnostics, LOG_FILE
-    
+    from diagnostic import LOG_FILE, run_diagnostics
+
     report = run_diagnostics()
-    
+
     try:
         with open(LOG_FILE, 'w', encoding='utf-8') as f:
             f.write(report)
         print(f"{Fore.GREEN}[OK] Diagnostic saved: {LOG_FILE}{Style.RESET_ALL}")
     except Exception as e:
         print(f"{Fore.YELLOW}[WARN] Could not save diagnostic: {e}{Style.RESET_ALL}")
-    
+
     ok = report.count("[OK]")
     fail = report.count("[FAIL]")
     warn = report.count("[WARN]")
@@ -168,31 +168,31 @@ def run_startup_diagnostic():
 def main():
     """Main entry point."""
     print_header()
-    
+
     # Check administrator privileges
     if not is_admin():
         print(f"{Fore.RED}[ERROR] {APP_NAME} requires Administrator privileges!{Style.RESET_ALL}")
         print(f"{Fore.YELLOW}Please run as Administrator.{Style.RESET_ALL}\n")
         input("Press ENTER to exit...")
         sys.exit(1)
-    
+
     print(f"{Fore.GREEN}[OK] Running as Administrator{Style.RESET_ALL}\n")
-    
+
     # Run pre-flight diagnostic
     print(f"{Fore.CYAN}[DIAG] Running system diagnostic...{Style.RESET_ALL}")
     ok, fail, warn = run_startup_diagnostic()
     print(f"{Fore.CYAN}[DIAG] Result: {ok} OK, {fail} Failures, {warn} Warnings{Style.RESET_ALL}\n")
-    
+
     # Initialize Runtime Logger (appends all events to Desktop TXT)
     from diagnostic import RuntimeLogger
     rlog = RuntimeLogger.get()
     rlog.log("BOOT", "novapulse", f"NovaPulse {VERSION} starting (diag: {ok} OK, {fail} fail, {warn} warn)")
-    
+
     # Load configuration
     print(f"{Fore.CYAN}[INFO] Loading configuration...{Style.RESET_ALL}")
     config = load_config()
     rlog.log("BOOT", "config", "Configuration loaded from config.yaml")
-    
+
     # === NOVAPULSE 2.2.1: OPTIMIZATION ENGINE ===
     if OPTIMIZATION_ENGINE_AVAILABLE:
         opt_level_str = config.get('optimization_level', 'gaming')
@@ -203,11 +203,11 @@ def main():
             'aggressive': OptimizationLevel.AGGRESSIVE
         }
         opt_level = level_map.get(opt_level_str, OptimizationLevel.GAMING)
-        
+
         print(f"\n{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
         print(f"{Fore.MAGENTA}NovaPulse 2.2.1 - Advanced Optimizations{Style.RESET_ALL}")
         print(f"{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}\n")
-        
+
         try:
             engine = get_engine()
             engine.apply_all(opt_level)
@@ -215,7 +215,7 @@ def main():
         except Exception as e:
             print(f"{Fore.YELLOW}[WARN] Optimization Engine: {e}{Style.RESET_ALL}")
             rlog.log_error("optimization_engine", str(e))
-    
+
     # Initialize services
     services = {}
 
@@ -235,7 +235,7 @@ def main():
         )
         services['cleaner'].start()
         rlog.log("MODULE", "standby_cleaner", f"Started (threshold={threshold}MB, interval={interval}s)")
-    
+
     # === DYNAMIC SCHEDULER ===
     services['smart_priority'] = DynamicScheduler()
     services['smart_priority'].start()
@@ -250,34 +250,70 @@ def main():
         services['oled_care'].start()
         print(f"{Fore.GREEN}[OK] OLED Care active (burn-in protection){Style.RESET_ALL}")
         rlog.log("MODULE", "oled_care", "Started — pixel-shift + taskbar-dim + idle-refresh")
-    
+
+    # === ISA (Intelligence with Stoic Agency) — optional, daemon thread ===
+    # ISA is a separate AI entity in NC011_ISA_SANDBOX. NovaPulse wires her
+    # GPU watcher and cognitive state into the dashboard as a read-only feed.
+    # Fails gracefully: NovaPulse runs without ISA if sandbox is unavailable.
+    _isa_status: dict = {}
+    try:
+        import importlib.util as _ilu
+        import threading as _thr
+        _isa_path = (
+            "C:/Workspace/NeoCortex_V43/11_APPS/NC011_ISA_SANDBOX/NC-BOOT_ISA.py"
+        )
+        _spec = _ilu.spec_from_file_location("NC_BOOT_ISA", _isa_path)
+        if _spec and _spec.loader:
+            _isa_mod = _ilu.module_from_spec(_spec)
+            _spec.loader.exec_module(_isa_mod)
+            _isa_boot = _isa_mod.ISABoot()
+
+            def _isa_callback(estado: dict) -> None:
+                _isa_status.update(estado)
+
+            _thr.Thread(
+                target=_isa_boot.loop_presenca_continua,
+                kwargs={"callback_status": _isa_callback},
+                daemon=True,
+                name="NovaPulse-ISA",
+            ).start()
+            services['isa'] = _isa_status
+            services['isa_boot'] = _isa_boot
+            print(f"{Fore.GREEN}[OK] ISA daemon wired (cognitive feed active){Style.RESET_ALL}")
+            rlog.log("MODULE", "isa", "Daemon thread started — loop_presenca_continua")
+        else:
+            rlog.log("WARN", "isa", "ISA spec not found — running without ISA")
+    except Exception as _e:
+        rlog.log("WARN", "isa", f"ISA unavailable (graceful skip): {_e}")
+        print(f"{Fore.YELLOW}[WARN] ISA not available: {_e}{Style.RESET_ALL}")
+
     # === CPU POWER MANAGER ===
     services['cpu_power'] = CPUPowerManager()
-    
+
     cpu_config = config.get('cpu_control', {})
     max_freq = cpu_config.get('max_frequency_percent', 80)
     min_freq = cpu_config.get('min_frequency_percent', 5)
-    
+
     if max_freq != 100:
         services['cpu_power'].set_max_cpu_frequency(max_freq)
-    
+
     if min_freq != 5:
         services['cpu_power'].set_min_cpu_frequency(min_freq)
-    
+
     rlog.log_optimization("cpu_power", f"Governor set: max={max_freq}%, min={min_freq}%")
-    
+
     # === NVMe/SSD OPTIMIZER ===
     nvme_config = config.get('nvme', {'enabled': True})
     if nvme_config.get('enabled', True):
         nvme_mgr = NVMeManager(nvme_config)
-        
+
         if nvme_config.get('disable_last_access', True):
             nvme_mgr.apply_filesystem_optimizations()
             rlog.log_optimization("nvme_manager", "NTFS last-access disabled")
-            
+
         if nvme_config.get('prevent_disk_sleep', True):
             nvme_mgr.apply_power_optimizations()
-            
+
         if nvme_config.get('periodic_trim', True):
             nvme_mgr.start_periodic_trim()
             services['nvme'] = nvme_mgr
@@ -290,13 +326,13 @@ def main():
         if qos_mgr.apply_qos_rules():
             services['network_qos'] = qos_mgr
             rlog.log_optimization("network_qos", "QoS rules applied (Nagle OFF, AdGuard DNS)")
-    
-    
+
+
     # === HISTORY LOGGER ===
     history = get_history_logger()
     history.log_event("novapulse_start", f"NovaPulse {VERSION} Initialized")
     services['history'] = history
-    
+
     # === TIMER RESOLUTION ===
     print(f"\n{Fore.CYAN}[OPT] Applying advanced optimizations...{Style.RESET_ALL}")
     timer_opt = TimerResolutionOptimizer()
@@ -304,13 +340,13 @@ def main():
         timer_opt.start_persistent()
         services['timer'] = timer_opt
         rlog.log_optimization("timer_resolution", "Set to 0.5ms (persistent)")
-    
+
     # === GAME BAR DISABLER ===
     gamebar_opt = GameBarOptimizer()
     gamebar_opt.apply_all_optimizations()
     services['gamebar'] = gamebar_opt
     rlog.log_optimization("gamebar_optimizer", "Game Bar, Game DVR, Game Mode disabled")
-    
+
     # === WINDOWS SERVICES OPTIMIZER ===
     services_opt = WindowsServicesOptimizer()
     services_opt.optimize()
@@ -322,7 +358,7 @@ def main():
         print(f"\n{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}")
         print(f"{Fore.MAGENTA}NovaPulse 2.2.1 - Security & Privacy Shield{Style.RESET_ALL}")
         print(f"{Fore.MAGENTA}{'='*60}{Style.RESET_ALL}\n")
-        
+
         # Telemetry Blocker (blocks Microsoft data collection)
         try:
             blocker = get_blocker()
@@ -332,7 +368,7 @@ def main():
         except Exception as e:
             print(f"{Fore.YELLOW}[WARN] Telemetry Blocker: {e}{Style.RESET_ALL}")
             rlog.log_error("telemetry_blocker", str(e))
-        
+
         # Security Scanner (process/network/startup/port monitoring)
         try:
             scanner = get_scanner()
@@ -385,9 +421,9 @@ def main():
 
     print(f"\n{Fore.GREEN}[OK] All NovaPulse services started{Style.RESET_ALL}")
     rlog.log("BOOT", "novapulse", f"All services started ({len(services)} active)")
-    
+
     time.sleep(1)
-    
+
     # === SYSTEM TRAY ===
     tray = None
     try:
@@ -397,7 +433,7 @@ def main():
             rlog.log("MODULE", "tray_icon", "System tray icon active")
     except Exception:
         pass
-    
+
     # === DASHBOARD ===
     try:
         if HTML_DASHBOARD_AVAILABLE:
@@ -415,24 +451,24 @@ def main():
             rlog.log("MODULE", "dashboard", "Rich console dashboard starting (pywebview not available)")
             dashboard = Dashboard()
             dashboard.run(services)
-            
+
     except KeyboardInterrupt:
         rlog.log("SHUTDOWN", "dashboard", "User pressed Ctrl+C")
     except Exception as e:
         print(f"{Fore.RED}[ERROR] Dashboard: {e}{Style.RESET_ALL}")
         rlog.log_error("dashboard", str(e))
-    
+
     # Cleanup
     print(f"\n{Fore.YELLOW}[INFO] Stopping services...{Style.RESET_ALL}")
     rlog.log("SHUTDOWN", "novapulse", "Stopping all services...")
     stop_all_services(services)
-    
+
     # Write session summary to Desktop log
     rlog.write_summary({
         'Services active': len(services),
         'Version': VERSION,
     })
-    
+
     print(f"{Fore.GREEN}[OK] NovaPulse stopped{Style.RESET_ALL}\n")
 
 

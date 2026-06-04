@@ -1,84 +1,114 @@
-# ═══════════════════════════════════════════════════════════════════════
-#                        ⚡ NOVAPULSE 2.3 ⚡
-#                Intelligent System Optimization
-#                    Advanced Hardware Control
-# ═══════════════════════════════════════════════════════════════════════
+# =========================================================
+#   NOVAPULSE 2.5 -- Intelligent System Optimization
+#   Hardware: i5-11300H / 16GB DDR4 / RTX 3050 4GB / NVMe
+#   R125: zero acentos em todo este arquivo
+# =========================================================
 
 # === OPTIMIZATION LEVEL ===
-# Níveis: safe, balanced, gaming, aggressive
-optimization_level: gaming
+# Options: safe, balanced, gaming, aggressive
+optimization_level: balanced
 
-# === Limpeza de Memória Standby ===
+# === STANDBY MEMORY CLEANER ===
 standby_cleaner:
   enabled: true
-  threshold_mb: 3072            # Limpa quando tiver MENOS de 3GB livre
+  threshold_mb: 2048            # trigger when less than 2GB free (was 3072)
   check_interval_seconds: 5
 
-# === Otimização de NVMe/SSD ===
+# === NVME/SSD ===
 nvme:
   enabled: true
   disable_last_access: true
   prevent_disk_sleep: true
   periodic_trim: true
-  trim_interval_hours: 24
+  trim_interval_hours: 12       # was 24 -- LLM pagefile IO is heavy
 
-# === Controle de CPU ===
+# === CPU CONTROL ===
 cpu_control:
-  max_frequency_percent: 85     # Auto-Profiler ajusta dinamicamente
-  min_frequency_percent: 5
+  max_frequency_percent: 85     # auto-profiler adjusts dynamically
+  min_frequency_percent: 15     # was 5 -- prevents cold-start on MCP burst
 
-# === AUTO-PROFILER v2.3 (2 Stages) ===
-# ACTIVE: 85% CPU cap + BALANCED Intel profile (efficient boost on demand)
-# IDLE: 30% CPU cap + ECO Intel profile (after 5 min of inactivity)
+# === AUTO-PROFILER v2.5 (2 stages) ===
+# ACTIVE: 85% CPU cap -- stable clock for sustained LLM inference
+# IDLE:   55% CPU cap -- MCP/Ollama servers stay warm (was 30%)
 auto_profiler:
   enabled: true
-  check_interval: 2             # Verifica a cada 2 segundos
-  active_cpu_cap: 85            # ACTIVE mode: 85% CPU
-  idle_cpu_cap: 30              # IDLE mode: 30% CPU
-  idle_timeout: 300             # 5 minutos para entrar em IDLE
-  wake_threshold: 15            # CPU >15% = volta para ACTIVE
+  check_interval: 2
+  active_cpu_cap: 85
+  idle_cpu_cap: 55              # was 30 -- 55 keeps MCP/Qwen warm
+  idle_timeout: 600             # was 300 -- 10min; MCP idle between tickets is normal
+  wake_threshold: 10            # was 15 -- faster burst detection
 
-# === Network QoS (Ping Booster) ===
+# === NETWORK QOS ===
 network_qos:
   enabled: true
   dns_provider: adguard
 
-# ═══════════════════════════════════════════════════════════════════════
-#                    OTIMIZAÇÕES AVANÇADAS 2.0
-# ═══════════════════════════════════════════════════════════════════════
+# =========================================================
+#   ADVANCED OPTIMIZATIONS V2.5
+# =========================================================
 
 # === CORE PARKING ===
 core_parking:
   enabled: true
-  disable_parking: true         # Todos os cores sempre ativos
-  use_ultimate_performance: true # Plano Ultimate Performance
+  disable_parking: true         # all cores always active
+  use_ultimate_performance: false # was true -- Balanced is better for LLM thermal
 
-# === MEMORY OPTIMIZER PRO ===
+# === MEMORY OPTIMIZER (16GB profile) ===
+# NOTE: benchmarks on 42 configs show ZERO gain forcing compression on 16GB+.
+# SysMain is BENEFICIAL on 16GB (standby cache, preload). Do NOT disable.
 memory_optimizer:
   enabled: true
-  disable_compression: true     # Desativa compressão de RAM
-  disable_superfetch: true      # Desativa SysMain/Superfetch
-  disable_prefetch: true        # Desativa Prefetch
-  keep_kernel_in_ram: true      # Mantém kernel na RAM
+  disable_compression: false    # was true -- WRONG for 16GB; Windows decides
+  disable_superfetch: false     # was true -- SysMain is beneficial on 16GB+
+  disable_prefetch: false       # was true -- same rationale
+  keep_kernel_in_ram: true
+
+# === OLED CARE (X3500PC OLED panel burn-in protection) ===
+oled_care:
+  enabled: true
+  pixel_shift: true
+  pixel_shift_interval_s: 60
+  idle_dim: true
+  idle_timeout_s: 600
+  idle_brightness: 30
+
+# === DYNAMIC SCHEDULER v2 (ProBalance model) ===
+# Acts ONLY under contention (CPU > load_gate% for ~gate_hold samples).
+# DEMOTES background hogs, NEVER blindly promotes everything.
+dynamic_scheduler:
+  load_gate: 85.0               # system CPU% threshold to trigger
+  window_size: 5
+  gate_hold: 3                  # ~2.8s of sustained load before acting
+  hog_threshold: 0.12           # fraction of 1 core to be considered a hog
+  hysteresis: 2
+
+# === CUDA OPTIMIZER (RTX 3050 Laptop 50W) ===
+cuda_optimizer:
+  enabled: true
+  persistent_mode: true         # prevents 3-5s GPU wake overhead per Ollama call
+  power_limit_percent: 90       # synthetic undervolt via clock cap
+  clock_lock_min_mhz: 1200
+  clock_lock_max_mhz: 1500
+  restore_on_exit: true
 
 # === NTFS OPTIMIZER ===
 ntfs_optimizer:
   enabled: true
-  disable_8dot3: true           # Desativa nomes curtos DOS
-  disable_last_access: true     # Desativa Last Access Time
-  gaming_mode: true             # Prioriza apps sobre cache
+  disable_8dot3: true
+  disable_last_access: true
+  gaming_mode: false            # was true -- false for AI/balanced workload
 
 # === GPU SCHEDULER ===
 gpu_scheduler:
   enabled: true
-  enable_hags: true             # Hardware-Accelerated GPU Scheduling
-  gpu_priority: 8               # Prioridade máxima
-  enable_game_mode: true
+  enable_hags: true
+  gpu_priority: 8
+  enable_game_mode: false       # was true -- interferes with Python/CUDA
 
-# === MMCSS (Multimedia) ===
+# === MMCSS ===
 mmcss_optimizer:
   enabled: true
-  system_responsiveness: 0      # 0 = Máxima prioridade para mídia
+  system_responsiveness: 0
   disable_network_throttling: true
   optimize_gaming_task: true
   optimize_audio_task: true
@@ -86,9 +116,9 @@ mmcss_optimizer:
 # === HPET CONTROLLER ===
 hpet_controller:
   enabled: true
-  disable_hpet: true            # Desativa HPET (reduz input lag)
-  disable_dynamic_tick: true    # Tick constante
-  tscsync_policy: enhanced      # Melhor precisão de timer
+  disable_hpet: true
+  disable_dynamic_tick: true
+  tscsync_policy: enhanced
 
 # === USB OPTIMIZER ===
 usb_optimizer:
@@ -99,28 +129,35 @@ usb_optimizer:
 # === IRQ AFFINITY ===
 irq_optimizer:
   enabled: true
-  enable_msi_mode: true         # Message Signaled Interrupts
+  enable_msi_mode: true
   optimize_gpu_irq: true
   optimize_network_irq: true
 
 # === NETWORK STACK ===
+# NOTE: autotuninglevel=experimental is for high-latency WAN, NOT gaming/LLM local.
+# For loopback (127.0.0.1) it is irrelevant. Default: normal.
 network_stack:
   enabled: true
-  congestion_control: ctcp      # Compound TCP
-  enable_ecn: true              # Explicit Congestion Notification
-  enable_rss: true              # Receive Side Scaling
-  auto_tuning: normal
+  congestion_control: ctcp
+  enable_ecn: false             # was true -- ECN adds overhead on LAN
+  enable_rss: true
+  auto_tuning: normal           # was experimental -- normal is stable for all uses
 
 # === PROCESS CONTROLLER ===
 process_controller:
   enabled: true
-  apply_gaming_preset: true
+  apply_gaming_preset: false    # was true -- gaming preset interferes with AI
   throttle_background: true
-  
 
+# === EXTREME AI OPTIMIZER (24 vectors) ===
+extreme_ai:
+  enabled: true
+  vbs_disable: false            # opt-in only (security tradeoff, confirm=True)
+  tcp_level: normal             # normal for all; experimental only for WAN
+  wsl_memory_gb: 12
+  wsl_processors: 6
 
-
-# === Priorização Automática ===
+# === BACKGROUND APP PRIORITY (used by ProBalance as seed list) ===
 auto_low_priority_apps:
   - "chrome.exe"
   - "msedge.exe"

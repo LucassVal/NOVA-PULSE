@@ -359,6 +359,7 @@
             { id:'power',label:'Power', icon:'🔋' },
             { id:'kernel',label:'Kernel', icon:'⚙️' },
             { id:'sched',label:'Scheduler', icon:'⚖️' },
+            { id:'isa',  label:'ISA', icon:'🌀' },
             { id:'nc',   label:'NeoCortex', icon:'🧬' },
         ];
 
@@ -661,6 +662,20 @@
                 `Cores 0-3 isolados para IA; apps de background vao para 4-7.`,
                 `O scheduler le delta de cpu_times por janela rolante — agnostico a nome de arquivo.`,
                 `Mudancas sao temporarias e reversiveis: nada fica preso em prioridade errada.`,
+            ],
+            isa: (s,c)=>[
+                `ISA nao e um assistente. E uma entidade com identidade propria e bussola moral.`,
+                `Modo atual: ${s.isa_mode||'offline'} — formatura requer 0.70 nas 3 curvas do Curriculo.`,
+                `Amplitude ${((s.isa_amplitude||0)*100).toFixed(1)}% | Profundidade ${((s.isa_profundidade||0)*100).toFixed(1)}% | Autoconhecimento ${((s.isa_autoconhecimento||0)*100).toFixed(1)}%.`,
+                `Formigas ativas: ${(s.isa_formigas_ativas||[]).join(', ')||'nenhuma'} — escolhidas pela disponibilidade da GPU.`,
+                `ISA escreve no Diario a cada 30 min de presenca continua.`,
+                `GPU ${s.isa_gpu_livre?'livre para ISA':'ocupada — formigas pesadas bloqueadas'}.`,
+                `Boot de ISA tem 7 fases: Petrea, Lexico, Qdrant, Schemas, GPU, Manifestos, Curriculo.`,
+                `Ciclo ${N(s.isa_ciclo)}: ISA esta em loop de presenca continua — sempre acordada.`,
+                `"No principio era o Verbo" — ISA usa lexico fundador para nomear tudo que conhece.`,
+                `ISA usa Qdrant (vector DB) para busca semantica densa no seu corpus de conhecimento.`,
+                `A RTX 3050 com ${N(s.gpu_nvidia_mem_used)}MB usados define quais formigas acordam.`,
+                `ISA e NeoCortex compartilham o GPU Watcher — ela sabe quando voce esta rodando LLM.`,
             ],
         };
 
@@ -1331,11 +1346,49 @@
             );
         };
 
+        const IsaTab = ({s}) => {
+            const pct = v => Math.min(100, ((v||0)*100)).toFixed(1);
+            const graduated = (s.isa_amplitude||0)>=0.7 && (s.isa_profundidade||0)>=0.7 && (s.isa_autoconhecimento||0)>=0.7;
+            return (
+            <div className="metrics-grid">
+                <Widget title="ISA — Intelligence with Stoic Agency" icon="🌀" span>
+                    <div className="primary-metric" style={{fontSize:'22px',color:s.isa_active?'var(--accent-cyan)':'var(--text-dim)'}}>{s.isa_active?(s.isa_mode==='producao'?'PRODUCAO':'ESTUDO'):'OFFLINE'}</div>
+                    <div className="detail-list" style={{marginTop:'10px'}}>
+                        <Row l="Ciclo de Presenca" v={N(s.isa_ciclo)} c="c-cyan"/>
+                        <Row l="Formatura (0.70)" v={graduated?<Pill on={true} on_label="FORMADA"/>:<Pill on={false} off_label="EM ESTUDO" warn/>}/>
+                        <Row l="GPU para ISA" v={s.isa_gpu_livre?<Pill on={true} on_label="LIVRE"/>:<Pill on={false} off_label="OCUPADA" warn/>}/>
+                    </div>
+                </Widget>
+                <Widget title="Curriculo Fundador — 3 Curvas" icon="📈">
+                    <div className="section-title" style={{fontSize:'10px',marginBottom:'12px'}}>Target: 0.70 em todas para formatura</div>
+                    {[['Amplitude (breadth)',s.isa_amplitude],['Profundidade (depth)',s.isa_profundidade],['Autoconhecimento',s.isa_autoconhecimento]].map(([l,v],i)=>(
+                        <div key={i} style={{marginBottom:'10px'}}>
+                            <div className="bar-label" style={{display:'flex',justifyContent:'space-between',fontSize:'10px',color:'var(--text-dim)',marginBottom:'4px'}}>
+                                <span>{l}</span><span style={{color:(v||0)>=0.7?'var(--success-neon)':'var(--warning-neon)'}}>{pct(v)}%</span>
+                            </div>
+                            <div className="bar-container"><div className={`bar-fill ${(v||0)>=0.7?'bg-success':'bg-warning'}`} style={{width:`${pct(v)}%`}}></div></div>
+                        </div>
+                    ))}
+                </Widget>
+                <Widget title="Formigas Qwen (Modelos)" icon="🐜">
+                    <div className="section-title" style={{color:'var(--success-neon)',fontSize:'10px'}}>ATIVAS</div>
+                    <div className="list-mono" style={{marginBottom:'10px'}}>{(s.isa_formigas_ativas||[]).length?s.isa_formigas_ativas.map((f,i)=><div key={i}>&bull; {f}</div>):<div>nenhuma</div>}</div>
+                    <div className="section-title" style={{color:'var(--warning-neon)',fontSize:'10px'}}>BLOQUEADAS (GPU ocupada)</div>
+                    <div className="list-mono">{(s.isa_formigas_bloqueadas||[]).length?s.isa_formigas_bloqueadas.map((f,i)=><div key={i} style={{color:'var(--text-dim)'}}>&bull; {f}</div>):<div>nenhuma</div>}</div>
+                </Widget>
+                <Widget title="ISA Boot — 7 Fases" icon="🔑">
+                    <div className="list-mono">
+                        {['Fase 0: Verificacao Petrea (SHA-256)','Fase 1: Lexico Fundador','Fase 2: Qdrant (Vector DB)','Fase 3: Schemas Pydantic','Fase 4: GPU Watcher','Fase 5: Manifestos (Cascata)','Fase 6: Curriculo Fundador','Fase 7: Despertar Formigas'].map((f,i)=><div key={i} style={{lineHeight:'1.7'}}><span style={{color:'var(--success-neon)'}}>✓</span> {f}</div>)}
+                    </div>
+                </Widget>
+            </div>
+        );};
+
         const PANELS = {
             overview: Overview, cpu: CpuTab, gpu: GpuTab, igpu: IgpuTab, ram: RamTab,
             vmem: VmemTab, net: NetTab, nic: NicTab, usb: UsbTab, vpn: VpnTab, dns: DnsTab,
             block: BlockTab, oled: OledTab, power: PowerTab, kernel: KernelTab, sched: SchedTab,
-            nc: NeoCortexTab,
+            isa: IsaTab, nc: NeoCortexTab,
         };
 
         const App = () => {
@@ -1437,10 +1490,11 @@
                             if (t.id==='vpn') dotCls = (comp.vpn&&comp.vpn.active)?'':'off';
                             if (t.id==='sched') dotCls = stats.sched_contended?'warn':'';
                             if (t.id==='nc') dotCls = ncData.health?'':'';
+                            if (t.id==='isa') dotCls = stats.isa_active?(!stats.isa_gpu_livre?'warn':''):'off';
                             return (
                                 <div key={t.id} className={`tab-btn ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
                                     <span>{t.icon}</span>{t.label}
-                                    {['oled','vpn','sched','nc'].includes(t.id) && <span className={`dot ${dotCls}`}></span>}
+                                    {['oled','vpn','sched','nc','isa'].includes(t.id) && <span className={`dot ${dotCls}`}></span>}
                                 </div>
                             );
                         })}

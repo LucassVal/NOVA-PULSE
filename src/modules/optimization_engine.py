@@ -2,8 +2,7 @@
 NovaPulse - Optimization Engine
 Central engine that orchestrates all optimization modules
 """
-import threading
-from typing import Dict, Optional, List
+from typing import Dict, List
 from dataclasses import dataclass
 from enum import Enum
 
@@ -47,7 +46,7 @@ class OptimizationEngine:
         Apply all optimizations according to the level
         """
         print(f"\n{'='*60}")
-        print(f"⚡ NovaPulse Optimization Engine")
+        print("⚡ NovaPulse Optimization Engine")
         print(f"Level: {level.value}")
         print(f"{'='*60}\n")
         
@@ -307,7 +306,7 @@ class OptimizationEngine:
         print(f"\nResult: {success}/{total} modules applied successfully")
         
         if self.requires_restart:
-            print(f"\n⚠️  RESTART REQUIRED to apply some changes")
+            print("\n⚠️  RESTART REQUIRED to apply some changes")
         
         print(f"{'='*60}\n")
     
@@ -325,25 +324,25 @@ class OptimizationEngine:
         try:
             from modules.core_parking import get_manager
             modules_status['core_parking'] = get_manager().get_status()
-        except:
+        except Exception:
             pass
         
         try:
             from modules.memory_optimizer import get_optimizer
             modules_status['memory'] = get_optimizer().get_status()
-        except:
+        except Exception:
             pass
         
         try:
             from modules.gpu_scheduler import get_controller
             modules_status['gpu'] = get_controller().get_status()
-        except:
+        except Exception:
             pass
         
         try:
             from modules.hpet_controller import get_controller
             modules_status['hpet'] = get_controller().get_status()
-        except:
+        except Exception:
             pass
         
         status['modules'] = modules_status

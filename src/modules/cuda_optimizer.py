@@ -6,12 +6,13 @@ import os
 import winreg
 import subprocess
 import ctypes
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 try:
     import pynvml
     PYNVML_AVAILABLE = True
 except ImportError:
+    pynvml = None  # type: ignore[assignment]
     PYNVML_AVAILABLE = False
 
 
@@ -47,13 +48,13 @@ class CUDAOptimizer:
             try:
                 pynvml.nvmlInit()
                 self.gpu_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-            except:
+            except Exception:
                 self.nvidia_available = False
     
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_env_var(self, name, value, system=True):
@@ -70,7 +71,7 @@ class CUDAOptimizer:
             winreg.CloseKey(key)
             os.environ[name] = value
             return True
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data,
@@ -80,7 +81,7 @@ class CUDAOptimizer:
             winreg.SetValueEx(key, value_name, 0, value_type, value_data)
             winreg.CloseKey(key)
             return True
-        except:
+        except Exception:
             return False
     
     def set_cuda_environment(self) -> Dict[str, bool]:
@@ -145,7 +146,7 @@ class CUDAOptimizer:
             self._set_registry_value(nv_key, "PowerMizerEnable", 1)
             self._set_registry_value(nv_key, "PowerMizerLevel", 1)
             self._set_registry_value(nv_key, "PowerMizerLevelAC", 1)
-        except:
+        except Exception:
             pass
         self.applied_changes['power_mgmt'] = prefer_max_performance
         return success
@@ -156,7 +157,7 @@ class CUDAOptimizer:
             return 0
         try:
             return pynvml.nvmlDeviceGetTemperature(self.gpu_handle, pynvml.NVML_TEMPERATURE_GPU)
-        except:
+        except Exception:
             return 0
     
     def get_gpu_power_limit(self) -> Tuple[int, int, int]:
@@ -167,7 +168,7 @@ class CUDAOptimizer:
             current = pynvml.nvmlDeviceGetPowerManagementLimit(self.gpu_handle) // 1000
             constraints = pynvml.nvmlDeviceGetPowerManagementLimitConstraints(self.gpu_handle)
             return (current, constraints[0] // 1000, constraints[1] // 1000)
-        except:
+        except Exception:
             return (0, 0, 0)
     
     def set_gpu_power_limit(self, watts) -> bool:
@@ -325,6 +326,76 @@ class CUDAOptimizer:
             self.applied_changes['threaded_opt'] = enabled
         return success
     
+    def _run_nvidia_smi(self, args: list) -> bool:
+        """Run nvidia-smi command."""
+        candidates = [
+            r"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe",
+            r"C:\Windows\System32\nvidia-smi.exe",
+            "nvidia-smi",
+        ]
+        smi = next((p for p in candidates if os.path.exists(p)), "nvidia-smi")
+        try:
+            r = subprocess.run([smi] + args, capture_output=True, text=True, timeout=10)
+            return r.returncode == 0
+        except Exception as e:
+            print(f"[CUDA] nvidia-smi nao disponivel: {e}")
+            return False
+
+    def set_persistent_mode(self, enable: bool = True) -> bool:
+        """
+        Persistent mode: GPU nao hiberna entre requests Ollama.
+        Sem: 2-4s overhead por troca de modelo.
+        Com: ~0.8-1.2s por troca.
+        """
+        ok = self._run_nvidia_smi(["-pm", "1" if enable else "0"])
+        if ok:
+            print(f"[CUDA] Persistent mode: {'ON' if enable else 'OFF'}")
+        return ok
+
+    def set_power_limit_percent(self, percent: int = 90) -> bool:
+        """
+        Limita TDP da RTX 4060 a 90%.
+        Inference sustentada sem thermal throttle da GPU.
+        """
+        try:
+            candidates = [
+                r"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe",
+                "nvidia-smi",
+            ]
+            smi = next((p for p in candidates if os.path.exists(p)), "nvidia-smi")
+            r = subprocess.run(
+                [smi, "--query-gpu=power.default_limit", "--format=csv,noheader,nounits"],
+                capture_output=True, text=True, timeout=5
+            )
+            default_w = float(r.stdout.strip())
+            target_w  = int(default_w * percent / 100)
+            ok = self._run_nvidia_smi(["-pl", str(target_w)])
+            if ok:
+                print(f"[CUDA] Power limit: {target_w}W ({percent}% de {default_w:.0f}W)")
+            return ok
+        except Exception as e:
+            print(f"[CUDA] Power limit via nvidia-smi nao aplicado: {e}")
+            return False
+
+    def apply_ai_workload_profile(self) -> Dict[str, bool]:
+        """
+        Perfil AI-Workload para RTX 4060 + Ollama.
+        Aplica persistent mode + power limit + otimizacoes base.
+        """
+        print("\n[CUDA] Aplicando perfil AI-Workload RTX 4060...")
+        results = {}
+        results['persistent_mode']  = self.set_persistent_mode(True)
+        results['power_limit_90pct'] = self.set_power_limit_percent(90)
+        results['cuda_env']         = bool(self.set_cuda_environment())
+        results['hw_accel']         = self.enable_hardware_acceleration()
+        results['power_mgmt']       = self.set_gpu_power_management(prefer_max_performance=True)
+        results['shader_cache']     = self.set_shader_cache_unlimited()
+        results['dpc_per_core']     = self.enable_dpc_per_core()
+        results['aspm']             = self.disable_gpu_aspm()
+        ok = sum(1 for v in results.values() if v)
+        print(f"[CUDA] {ok}/{len(results)} configuracoes AI-Workload aplicadas")
+        return results
+
     def apply_all_optimizations(self) -> Dict[str, bool]:
         """Apply all CUDA/GPU optimizations"""
         print("\n[CUDA] Applying CUDA and GPU optimizations...")

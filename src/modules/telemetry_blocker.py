@@ -19,7 +19,6 @@ Design Decision: We use the hosts file approach because it's:
 """
 import subprocess
 import ctypes
-import os
 import winreg
 from datetime import datetime
 
@@ -202,7 +201,7 @@ class TelemetryBlocker:
         """Check for administrator privileges (required for hosts file and registry)."""
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     # ──────────────────────────────────────────────
@@ -404,11 +403,11 @@ class TelemetryBlocker:
         self.status = 'protected'
         
         total = self.blocked_domains + self.registry_applied + self.tasks_disabled
-        print(f"\n[TELEMETRY] ═══════════════════════════════════════")
+        print("\n[TELEMETRY] ═══════════════════════════════════════")
         print(f"[TELEMETRY]  Privacy Shield ACTIVE — {total} items blocked")
         print(f"[TELEMETRY]  Domains: {self.blocked_domains} | Registry: {self.registry_applied} | Tasks: {self.tasks_disabled}")
         print(f"[TELEMETRY]  Defender data sharing: {'BLOCKED' if self.defender_hardened else 'UNCHANGED'}")
-        print(f"[TELEMETRY] ═══════════════════════════════════════\n")
+        print("[TELEMETRY] ═══════════════════════════════════════\n")
         
         return self.get_status()
     

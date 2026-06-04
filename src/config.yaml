@@ -1,84 +1,94 @@
 # ═══════════════════════════════════════════════════════════════════════
-#                        ⚡ NOVAPULSE 2.3 ⚡
-#                Intelligent System Optimization
-#                    Advanced Hardware Control
+#                        ⚡ NOVAPULSE 2.4 ⚡
+#           AI-Workload Profile — i5-11300H / RTX 4060 / 16GB
 # ═══════════════════════════════════════════════════════════════════════
 
 # === OPTIMIZATION LEVEL ===
-# Níveis: safe, balanced, gaming, aggressive
-optimization_level: gaming
+optimization_level: balanced
 
-# === Limpeza de Memória Standby ===
+# === Limpeza de Memoria Standby ===
 standby_cleaner:
   enabled: true
-  threshold_mb: 3072            # Limpa quando tiver MENOS de 3GB livre
+  threshold_mb: 2048            # era 3072 — acionar mais cedo com 16GB
   check_interval_seconds: 5
 
-# === Otimização de NVMe/SSD ===
+# === Otimizacao de NVMe/SSD ===
 nvme:
   enabled: true
   disable_last_access: true
   prevent_disk_sleep: true
   periodic_trim: true
-  trim_interval_hours: 24
+  trim_interval_hours: 12       # era 24 — 250GB com pagefile precisa trim frequente
 
 # === Controle de CPU ===
+# i5-11300H nao permite undervolt. 85% = ~3.1GHz clock estavel sem
+# thermal throttle do firmware. 100% livre -> burst 28-56s -> queda brusca.
+# Para inference sustentada (Qwen RAG): clock estavel supera burst+throttle.
 cpu_control:
-  max_frequency_percent: 85     # Auto-Profiler ajusta dinamicamente
-  min_frequency_percent: 5
+  max_frequency_percent: 85     # MANTER — thermal throttle acima disso no i5-11300H
+  min_frequency_percent: 15     # era 5 — evita cold start ao receber ticket MCP
 
 # === AUTO-PROFILER v2.3 (2 Stages) ===
-# ACTIVE: 85% CPU cap + BALANCED Intel profile (efficient boost on demand)
-# IDLE: 30% CPU cap + ECO Intel profile (after 5 min of inactivity)
+# ACTIVE: 85% — clock estavel para inference Qwen sem throttle termico
+# IDLE:   55% — Qwen/MCP ficam "mornos" entre tickets (era 30%, agressivo demais)
 auto_profiler:
   enabled: true
-  check_interval: 2             # Verifica a cada 2 segundos
-  active_cpu_cap: 85            # ACTIVE mode: 85% CPU
-  idle_cpu_cap: 30              # IDLE mode: 30% CPU
-  idle_timeout: 300             # 5 minutos para entrar em IDLE
-  wake_threshold: 15            # CPU >15% = volta para ACTIVE
+  check_interval: 2
+  active_cpu_cap: 85            # MANTER — racional termico valido, nao alterar
+  idle_cpu_cap: 55              # era 30 — servidor MCP precisa responder rapido
+  idle_timeout: 600             # era 300 — 10min; MCP idle entre tickets e normal
+  wake_threshold: 10            # era 15 — burst detection mais rapido
 
-# === Network QoS (Ping Booster) ===
+# === Network QoS ===
 network_qos:
   enabled: true
   dns_provider: adguard
 
 # ═══════════════════════════════════════════════════════════════════════
-#                    OTIMIZAÇÕES AVANÇADAS 2.0
+#                    OTIMIZACOES AVANCADAS
 # ═══════════════════════════════════════════════════════════════════════
 
 # === CORE PARKING ===
 core_parking:
   enabled: true
-  disable_parking: true         # Todos os cores sempre ativos
-  use_ultimate_performance: true # Plano Ultimate Performance
+  disable_parking: true
+  use_ultimate_performance: false   # era true — Balanced ativa HWP/Speed Shift
 
 # === MEMORY OPTIMIZER PRO ===
+# CPU sobra -> compressao troca ciclos livres por RAM extra (essencial com 16GB)
 memory_optimizer:
   enabled: true
-  disable_compression: true     # Desativa compressão de RAM
-  disable_superfetch: true      # Desativa SysMain/Superfetch
-  disable_prefetch: true        # Desativa Prefetch
-  keep_kernel_in_ram: true      # Mantém kernel na RAM
+  disable_compression: false    # era true — ERRADO; reativar compressao
+  gaming_mode: false            # false = workstation mode (compressao ON, dedup ON)
+  disable_superfetch: true
+  disable_prefetch: true
+  keep_kernel_in_ram: true
 
 # === NTFS OPTIMIZER ===
 ntfs_optimizer:
   enabled: true
-  disable_8dot3: true           # Desativa nomes curtos DOS
-  disable_last_access: true     # Desativa Last Access Time
-  gaming_mode: true             # Prioriza apps sobre cache
+  disable_8dot3: true
+  disable_last_access: true
+  gaming_mode: true
 
 # === GPU SCHEDULER ===
 gpu_scheduler:
   enabled: true
-  enable_hags: true             # Hardware-Accelerated GPU Scheduling
-  gpu_priority: 8               # Prioridade máxima
-  enable_game_mode: true
+  enable_hags: true             # reduz latencia CPU<->GPU em inference CUDA
+  gpu_priority: 8
+  enable_game_mode: false       # era true — interfere com processos Python/CUDA
+
+# === CUDA OPTIMIZER (RTX 4060 4GB) ===
+cuda_optimizer:
+  enabled: true
+  persistent_mode: true         # GPU nao hiberna entre requests Ollama
+  power_limit_percent: 90       # 90% TDP — inference sustentada sem throttle GPU
+  restore_on_exit: true
 
 # === MMCSS (Multimedia) ===
 mmcss_optimizer:
   enabled: true
-  system_responsiveness: 0      # 0 = Máxima prioridade para mídia
+  system_responsiveness: 20     # era 0 — reserva 20% para sistema/Qwen
   disable_network_throttling: true
   optimize_gaming_task: true
   optimize_audio_task: true
@@ -86,9 +96,9 @@ mmcss_optimizer:
 # === HPET CONTROLLER ===
 hpet_controller:
   enabled: true
-  disable_hpet: true            # Desativa HPET (reduz input lag)
-  disable_dynamic_tick: true    # Tick constante
-  tscsync_policy: enhanced      # Melhor precisão de timer
+  disable_hpet: true
+  disable_dynamic_tick: true
+  tscsync_policy: enhanced
 
 # === USB OPTIMIZER ===
 usb_optimizer:
@@ -99,35 +109,31 @@ usb_optimizer:
 # === IRQ AFFINITY ===
 irq_optimizer:
   enabled: true
-  enable_msi_mode: true         # Message Signaled Interrupts
+  enable_msi_mode: true
   optimize_gpu_irq: true
   optimize_network_irq: true
 
 # === NETWORK STACK ===
 network_stack:
   enabled: true
-  congestion_control: ctcp      # Compound TCP
-  enable_ecn: true              # Explicit Congestion Notification
-  enable_rss: true              # Receive Side Scaling
+  congestion_control: ctcp
+  enable_ecn: true
+  enable_rss: true
   auto_tuning: normal
 
 # === PROCESS CONTROLLER ===
 process_controller:
   enabled: true
-  apply_gaming_preset: true
-  throttle_background: true
-  
+  apply_gaming_preset: false    # era true — dynamic_scheduler assume esse papel
+  throttle_background: false    # era true — dynamic_scheduler assume esse papel
 
-
-
-# === Priorização Automática ===
-auto_low_priority_apps:
-  - "chrome.exe"
-  - "msedge.exe"
-  - "firefox.exe"
-  - "discord.exe"
-  - "spotify.exe"
-  - "steam.exe"
-  - "epicgameslauncher.exe"
-  - "onedrive.exe"
-  - "dropbox.exe"
+# === DYNAMIC SCHEDULER (substitui lista estatica) ===
+# ProBalance: prioridade por demanda real de CPU, nao por nome de app.
+# python.exe pode ser Qwen inferindo OU MCP idle — nome nao diz nada.
+dynamic_scheduler:
+  enabled: true
+  sample_interval: 1.0          # segundos entre amostras
+  window_size: 5                # rolling window (5 amostras = 5 segundos)
+  burst_threshold: 0.15         # 15% de 1 core logico = processo ativo
+  idle_threshold: 0.03          # 3% = processo ocioso
+  hysteresis: 3                 # leituras consecutivas antes de agir

@@ -46,7 +46,7 @@ class WindowsServicesOptimizer:
         """Check for admin privileges"""
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def get_service_status(self, service_name):
@@ -63,7 +63,7 @@ class WindowsServicesOptimizer:
                 return 'stopped'
             else:
                 return 'unknown'
-        except:
+        except Exception:
             return 'unknown'
     
     def disable_service(self, service_name):
@@ -84,7 +84,7 @@ class WindowsServicesOptimizer:
             )
             
             return result.returncode == 0
-        except:
+        except Exception:
             return False
     
     def enable_service(self, service_name):
@@ -101,7 +101,7 @@ class WindowsServicesOptimizer:
                 encoding='utf-8', errors='ignore'
             )
             return True
-        except:
+        except Exception:
             return False
     
     def optimize(self, aggressive=False):

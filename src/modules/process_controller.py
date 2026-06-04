@@ -7,8 +7,7 @@ import json
 import threading
 import time
 import ctypes
-from ctypes import wintypes
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 from enum import IntEnum
 
@@ -176,7 +175,7 @@ class ProcessController:
                     ctypes.byref(priority_value), ctypes.sizeof(priority_value)
                 )
                 ctypes.windll.kernel32.CloseHandle(handle)
-        except:
+        except Exception:
             pass
     
     def _monitoring_loop(self):
@@ -224,7 +223,7 @@ class ProcessController:
                     proc.nice(psutil.HIGH_PRIORITY_CLASS)
                     proc.cpu_affinity(list(range(self.cpu_count)))
                     boosted = True
-                except:
+                except Exception:
                     pass
         if boosted:
             print(f"[PROCESS] ⚡ Boost applied: {process_name}")
@@ -246,7 +245,7 @@ class ProcessController:
                     if rule.priority and rule.priority < PriorityClass.NORMAL:
                         self._apply_rule_to_process(proc, rule)
                         count += 1
-                except:
+                except Exception:
                     pass
         if count > 0:
             print(f"[PROCESS] ✓ {count} background processes optimized")

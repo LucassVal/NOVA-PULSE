@@ -22,7 +22,6 @@ from ctypes import wintypes
 import time
 import threading
 import psutil
-from datetime import datetime
 
 
 # Windows API constants
@@ -200,7 +199,7 @@ class StandbyMemoryCleaner:
             if result:
                 self._privilege_enabled = True
 
-        except:
+        except Exception:
             pass  # Privilege may already be enabled
 
     def get_memory_info(self):

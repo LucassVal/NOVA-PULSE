@@ -9,7 +9,6 @@ FEATURE: Automatic minimize-to-tray
 """
 import threading
 import sys
-import os
 import ctypes
 import time
 
@@ -110,7 +109,7 @@ class SystemTrayIcon:
         """Generate mini-dashboard text for tooltip (max 128 chars)"""
         try:
             import psutil
-            cpu_percent = psutil.cpu_percent()
+            cpu_percent = psutil.cpu_percent(interval=1)
             mem = psutil.virtual_memory()
             ram_pct = mem.percent
             gpu_pct = 0
@@ -123,19 +122,19 @@ class SystemTrayIcon:
                     util = pynvml.nvmlDeviceGetUtilizationRates(handle)
                     gpu_pct = util.gpu
                     gpu_temp = pynvml.nvmlDeviceGetTemperature(handle, 0)
-            except:
+            except Exception:
                 pass
             mode = "NORMAL"
             if 'auto_profiler' in self.services:
                 try:
                     mode = self.services['auto_profiler'].get_current_mode().value.upper()
-                except:
+                except Exception:
                     pass
             tooltip = f"NovaPulse 2.2.1 | {mode}\n"
             tooltip += f"CPU:{cpu_percent:.0f}% RAM:{ram_pct:.0f}%\n"
             tooltip += f"GPU:{gpu_pct}% {gpu_temp}C"
             return tooltip, mode.lower()
-        except Exception as e:
+        except Exception:
             return "NovaPulse 2.2.1", "normal"
     
     def _tooltip_update_loop(self):
@@ -146,7 +145,7 @@ class SystemTrayIcon:
                 tooltip, mode = self._get_mini_dashboard()
                 self.icon.title = tooltip
                 self.icon.icon = self._create_icon_image(mode)
-            except:
+            except Exception:
                 pass
             time.sleep(2)
     

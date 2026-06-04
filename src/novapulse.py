@@ -2,15 +2,17 @@
 """
 ╔═══════════════════════════════════════════════════════════════════════╗
 ║                                                                       ║
-║                   ⚡ NOVAPULSE 2.2.1 ⚡                                ║
-║              Intelligent System Optimization                          ║
-║                 Advanced Hardware Control                             ║
+║                   ⚡ NOVAPULSE 2.4 ⚡                                  ║
+║              AI-Workload Profile                                      ║
+║              i5-11300H / RTX 4060 / 16GB / NeoCortex V43             ║
 ║                                                                       ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
 Automated optimization system with intelligent load detection.
 Auto-adjusts CPU, RAM, I/O, GPU and network based on real system usage.
 
+v2.4:   AI-Workload profile: CUDA persistent mode, Dynamic Scheduler
+        (ProBalance), RAM compression ON, Ollama HIGH priority
 v2.2.1: Codebase audit, 2-stage profiler, security shield
 v2.2:   Security Scanner + Telemetry Blocker + Defender Hardener
 v2.0:   Optimization Engine with 13 kernel-level modules
@@ -30,11 +32,11 @@ try:
     from modules.html_dashboard import HtmlDashboard
     HTML_DASHBOARD_AVAILABLE = True
 except ImportError:
+    HtmlDashboard = None  # type: ignore[assignment, misc]
     HTML_DASHBOARD_AVAILABLE = False
 from modules.nvme_manager import NVMeManager
 
 # Detection Modules
-from modules.temperature_service import get_service as get_temp_service
 
 # Optimizer Modules
 from modules.network_qos import NetworkQoSManager
@@ -43,7 +45,7 @@ from modules.services_optimizer import WindowsServicesOptimizer
 from modules.gamebar_optimizer import GameBarOptimizer
 
 # NovaPulse Core
-from modules.auto_profiler import AutoProfiler, get_profiler, SystemMode
+from modules.auto_profiler import get_profiler
 from modules.history_logger import get_logger as get_history_logger
 from modules.tray_icon import SystemTrayIcon
 
@@ -52,7 +54,24 @@ try:
     from modules.optimization_engine import get_engine, OptimizationLevel
     OPTIMIZATION_ENGINE_AVAILABLE = True
 except ImportError:
+    get_engine = None  # type: ignore[assignment]
+    OptimizationLevel = None  # type: ignore[assignment]
     OPTIMIZATION_ENGINE_AVAILABLE = False
+
+# NovaPulse 2.4 - AI-Workload modules
+try:
+    from modules.cuda_optimizer import get_optimizer as get_cuda_optimizer
+    CUDA_OPTIMIZER_AVAILABLE = True
+except ImportError:
+    get_cuda_optimizer = None  # type: ignore[assignment]
+    CUDA_OPTIMIZER_AVAILABLE = False
+
+try:
+    from modules.dynamic_scheduler import get_scheduler
+    DYNAMIC_SCHEDULER_AVAILABLE = True
+except ImportError:
+    get_scheduler = None  # type: ignore[assignment]
+    DYNAMIC_SCHEDULER_AVAILABLE = False
 
 # NovaPulse 2.2.1 - Security & Privacy
 try:
@@ -62,6 +81,10 @@ try:
     from modules.startup_manager import get_startup_manager
     SECURITY_AVAILABLE = True
 except ImportError:
+    get_blocker = None  # type: ignore[assignment]
+    get_scanner = None  # type: ignore[assignment]
+    get_hardener = None  # type: ignore[assignment]
+    get_startup_manager = None  # type: ignore[assignment]
     SECURITY_AVAILABLE = False
 
 # Initialize colorama for terminal colors
@@ -76,7 +99,7 @@ def is_admin():
     """Check if running as administrator"""
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
+    except Exception:
         return False
 
 
@@ -97,7 +120,7 @@ def load_config():
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
-    except Exception as e:
+    except Exception:
         print(f"{Fore.YELLOW}[WARN] Config not found, using defaults{Style.RESET_ALL}")
         return get_default_config()
 
@@ -191,7 +214,7 @@ def main():
     # Load configuration
     print(f"{Fore.CYAN}[INFO] Loading configuration...{Style.RESET_ALL}")
     config = load_config()
-    rlog.log("BOOT", "config", f"Configuration loaded from config.yaml")
+    rlog.log("BOOT", "config", "Configuration loaded from config.yaml")
     
     # === NOVAPULSE 2.2.1: OPTIMIZATION ENGINE ===
     if OPTIMIZATION_ENGINE_AVAILABLE:
@@ -369,6 +392,33 @@ def main():
         print(f"{Fore.GREEN}[OK] Auto-Profiler v2.2 (ACTIVE {profiler.active_cpu_cap}% / IDLE {profiler.idle_cpu_cap}% after {profiler.idle_timeout}s){Style.RESET_ALL}")
         rlog.log("MODULE", "auto_profiler", f"Started (active={profiler.active_cpu_cap}%, idle={profiler.idle_cpu_cap}%, timeout={profiler.idle_timeout}s)")
 
+    # === NOVAPULSE 2.4: CUDA AI-WORKLOAD PROFILE ===
+    if CUDA_OPTIMIZER_AVAILABLE:
+        cuda_cfg = config.get('cuda_optimizer', {})
+        if cuda_cfg.get('enabled', True):
+            try:
+                cuda_opt = get_cuda_optimizer()
+                cuda_opt.apply_ai_workload_profile()
+                services['cuda_optimizer'] = cuda_opt
+                rlog.log("MODULE", "cuda_optimizer", "AI-Workload profile applied (persistent mode + power limit 90%)")
+            except Exception as e:
+                print(f"{Fore.YELLOW}[WARN] CUDA Optimizer: {e}{Style.RESET_ALL}")
+                rlog.log_error("cuda_optimizer", str(e))
+
+    # === NOVAPULSE 2.4: DYNAMIC SCHEDULER (ProBalance) ===
+    if DYNAMIC_SCHEDULER_AVAILABLE:
+        dsch_cfg = config.get('dynamic_scheduler', {})
+        if dsch_cfg.get('enabled', True):
+            try:
+                scheduler = get_scheduler(dsch_cfg)
+                scheduler.start()
+                services['dynamic_scheduler'] = scheduler
+                print(f"{Fore.GREEN}[OK] Dynamic Scheduler active (ProBalance + EcoQoS){Style.RESET_ALL}")
+                rlog.log("MODULE", "dynamic_scheduler", "ProBalance started (demand-based, not name-based)")
+            except Exception as e:
+                print(f"{Fore.YELLOW}[WARN] Dynamic Scheduler: {e}{Style.RESET_ALL}")
+                rlog.log_error("dynamic_scheduler", str(e))
+
     print(f"\n{Fore.GREEN}[OK] All NovaPulse services started{Style.RESET_ALL}")
     rlog.log("BOOT", "novapulse", f"All services started ({len(services)} active)")
     
@@ -381,7 +431,7 @@ def main():
         if tray.start():
             services['tray'] = tray
             rlog.log("MODULE", "tray_icon", "System tray icon active")
-    except:
+    except Exception:
         pass
     
     # === DASHBOARD ===
@@ -433,17 +483,31 @@ def stop_all_services(services):
 
     if 'security_scanner' in services:
         services['security_scanner'].stop()
+    if 'dynamic_scheduler' in services:
+        services['dynamic_scheduler'].stop()
+    if 'cuda_optimizer' in services:
+        cuda_cfg = {}
+        try:
+            import yaml
+            import os
+            base = os.path.dirname(os.path.abspath(__file__))
+            with open(os.path.join(base, 'config.yaml'), encoding='utf-8') as f:
+                cuda_cfg = yaml.safe_load(f).get('cuda_optimizer', {})
+        except Exception:
+            pass
+        if cuda_cfg.get('restore_on_exit', True):
+            services['cuda_optimizer'].restore_defaults()
     if 'tray' in services:
         try:
             services['tray'].stop()
-        except:
+        except Exception:
             pass
 
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
+    except Exception:
         import traceback
         print(f"\n{Fore.RED}═══ FATAL ERROR ═══{Style.RESET_ALL}")
         print(f"{Fore.RED}An unhandled exception occurred:{Style.RESET_ALL}")

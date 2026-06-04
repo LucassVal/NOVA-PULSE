@@ -5,8 +5,6 @@ Specific optimizations for solid state drives (NVMe/SATA SSD)
 import subprocess
 import threading
 import time
-import ctypes
-import sys
 
 class NVMeManager:
     def __init__(self, config=None):
@@ -65,7 +63,8 @@ class NVMeManager:
 
     def start_periodic_trim(self):
         """Start periodic TRIM thread"""
-        if self.running: return
+        if self.running:
+            return
         
         self.running = True
         
@@ -77,7 +76,8 @@ class NVMeManager:
             while self.running:
                 # Wait for interval (default 24h)
                 for _ in range(int(self.trim_interval / 10)):
-                    if not self.running: break
+                    if not self.running:
+                        break
                     time.sleep(10)
                 
                 if self.running:

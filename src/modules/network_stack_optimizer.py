@@ -6,7 +6,7 @@ Complements network_qos.py
 import winreg
 import subprocess
 import ctypes
-from typing import Dict, Optional
+from typing import Dict
 
 
 class NetworkStackOptimizer:
@@ -31,7 +31,7 @@ class NetworkStackOptimizer:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data, value_type=winreg.REG_DWORD):
@@ -40,7 +40,7 @@ class NetworkStackOptimizer:
             winreg.SetValueEx(key, value_name, 0, value_type, value_data)
             winreg.CloseKey(key)
             return True
-        except Exception as e:
+        except Exception:
             return False
     
     def _run_netsh(self, args: str) -> bool:
@@ -50,7 +50,7 @@ class NetworkStackOptimizer:
                 shell=True, capture_output=True, text=True
             )
             return result.returncode == 0
-        except:
+        except Exception:
             return False
     
     def set_congestion_control(self, algorithm: str = "ctcp") -> bool:
@@ -286,7 +286,7 @@ class NetworkStackOptimizer:
                 status['rss'] = "enabled" in output.split("rss")[1][:50]
             if "ecn" in output:
                 status['ecn'] = "enabled" in output.split("ecn")[1][:50]
-        except:
+        except Exception:
             pass
         return status
 

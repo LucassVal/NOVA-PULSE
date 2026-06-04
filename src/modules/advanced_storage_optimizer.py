@@ -5,7 +5,7 @@ Write Cache, Queue Depth, Large Pages, and disk optimizations
 import winreg
 import subprocess
 import ctypes
-from typing import Dict, Optional
+from typing import Dict
 
 
 class AdvancedStorageOptimizer:
@@ -26,7 +26,7 @@ class AdvancedStorageOptimizer:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data, 
@@ -36,7 +36,7 @@ class AdvancedStorageOptimizer:
             winreg.SetValueEx(key, value_name, 0, value_type, value_data)
             winreg.CloseKey(key)
             return True
-        except:
+        except Exception:
             return False
     
     def enable_write_caching(self) -> bool:
@@ -53,7 +53,7 @@ class AdvancedStorageOptimizer:
         # This is usually done via Device Manager, but we can try via registry
         
         # Also configure flush policy
-        success = self._set_registry_value(
+        self._set_registry_value(
             r"SYSTEM\CurrentControlSet\Control\FileSystem",
             "NtfsDisableEncryption", 0
         )
@@ -99,7 +99,7 @@ class AdvancedStorageOptimizer:
         # This is configured via secpol.msc or Group Policy
         
         # We can at least enable kernel support
-        success = self._set_registry_value(
+        self._set_registry_value(
             r"SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management",
             "LargePageMinimum", 0
         )
@@ -161,7 +161,7 @@ class AdvancedStorageOptimizer:
         print("[STORAGE] Configuring disks for performance...")
         
         # Disable APM (Advanced Power Management) for HDDs
-        success = self._set_registry_value(
+        self._set_registry_value(
             r"SYSTEM\CurrentControlSet\Control\Power\PowerSettings\0012ee47-9041-4b5d-9b77-535fba8b1442\dab60367-53fe-4fbc-825e-521d069d2456",
             "Attributes", 2  # Visible in power plan
         )
@@ -182,7 +182,7 @@ class AdvancedStorageOptimizer:
         print("[STORAGE] Checking SSD defragmentation...")
         
         try:
-            result = subprocess.run(
+            subprocess.run(
                 'schtasks /query /tn "\\Microsoft\\Windows\\Defrag\\ScheduledDefrag"',
                 shell=True, capture_output=True, text=True,
                 encoding='utf-8', errors='ignore'
@@ -193,7 +193,7 @@ class AdvancedStorageOptimizer:
             self.applied_changes['ssd_defrag'] = False
             return True
             
-        except:
+        except Exception:
             return False
     
     def apply_all_optimizations(self) -> Dict[str, bool]:

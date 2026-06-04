@@ -7,7 +7,6 @@ V4: Compression + Deduplication + File Cache Limit + Working Set Trim
 import winreg
 import ctypes
 import subprocess
-import os
 import psutil
 from typing import Dict, Optional
 
@@ -33,7 +32,7 @@ class MemoryOptimizerPro:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path: str, value_name: str, value_data, value_type=winreg.REG_DWORD) -> bool:
@@ -52,7 +51,7 @@ class MemoryOptimizerPro:
             value, _ = winreg.QueryValueEx(key, value_name)
             winreg.CloseKey(key)
             return value
-        except:
+        except Exception:
             return None
     
     def _run_service_cmd(self, service: str, action: str) -> bool:
@@ -63,7 +62,7 @@ class MemoryOptimizerPro:
                 shell=True, capture_output=True, text=True
             )
             return result.returncode == 0 or "1062" in result.stderr  # 1062 = already stopped
-        except:
+        except Exception:
             return False
     
     def disable_memory_compression(self) -> bool:
@@ -93,7 +92,7 @@ class MemoryOptimizerPro:
                 self.applied_changes['compression'] = False
                 return True
             else:
-                print(f"[MEMORY] ℹ Compression may already be disabled")
+                print("[MEMORY] ℹ Compression may already be disabled")
                 return True
         except Exception as e:
             print(f"[MEMORY] ✗ Error disabling compression: {e}")
@@ -112,7 +111,7 @@ class MemoryOptimizerPro:
             print("[MEMORY] ✓ Memory compression re-enabled")
             self.applied_changes['compression'] = True
             return True
-        except:
+        except Exception:
             return False
     
     def configure_superfetch(self, mode: int = 0) -> bool:
@@ -477,7 +476,7 @@ class MemoryOptimizerPro:
                 shell=True, capture_output=True, text=True
             )
             status['compression'] = "Enabled" if "True" in result.stdout else "Disabled"
-        except:
+        except Exception:
             status['compression'] = "Unknown"
         
         status['superfetch'] = self._get_registry_value(self.PREFETCH_KEY, "EnableSuperfetch")

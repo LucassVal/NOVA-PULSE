@@ -28,6 +28,7 @@ echo.
 echo Iniciando NovaPulse...
 echo.
 
+cd /d "%~dp0"
 python novapulse.py
 
 if %errorLevel% neq 0 (

@@ -4,7 +4,6 @@ Optimizes Multimedia Class Scheduler Service for better audio/video
 """
 import winreg
 import ctypes
-from typing import Dict, Optional
 
 
 class MMCSSOptimizer:
@@ -23,7 +22,7 @@ class MMCSSOptimizer:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data, value_type=winreg.REG_DWORD):
@@ -44,7 +43,7 @@ class MMCSSOptimizer:
             value, _ = winreg.QueryValueEx(key, value_name)
             winreg.CloseKey(key)
             return value
-        except:
+        except Exception:
             return None
     
     def set_system_responsiveness(self, value=0):
@@ -54,7 +53,8 @@ class MMCSSOptimizer:
         10 = Recommended for gaming (good balance)
         20 = Windows default
         """
-        if not self.is_admin: return False
+        if not self.is_admin:
+            return False
         value = max(0, min(100, value))
         success = self._set_registry_value(self.MMCSS_KEY, "SystemResponsiveness", value)
         if success:
@@ -64,7 +64,8 @@ class MMCSSOptimizer:
     
     def disable_network_throttling(self):
         """Disable network throttling during media playback"""
-        if not self.is_admin: return False
+        if not self.is_admin:
+            return False
         # NetworkThrottlingIndex = FFFFFFFF (disabled)
         success = self._set_registry_value(self.MMCSS_KEY, "NetworkThrottlingIndex", 0xFFFFFFFF)
         if success:
@@ -74,7 +75,8 @@ class MMCSSOptimizer:
     
     def optimize_gaming_task(self):
         """Optimize 'Games' task settings"""
-        if not self.is_admin: return False
+        if not self.is_admin:
+            return False
         games_key = f"{self.TASKS_KEY}\\Games"
         try:
             key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, games_key, 0, winreg.KEY_SET_VALUE)
@@ -95,7 +97,8 @@ class MMCSSOptimizer:
     
     def optimize_audio_task(self):
         """Optimize 'Audio' task settings"""
-        if not self.is_admin: return False
+        if not self.is_admin:
+            return False
         audio_key = f"{self.TASKS_KEY}\\Audio"
         try:
             key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, audio_key, 0, winreg.KEY_SET_VALUE)
@@ -116,7 +119,8 @@ class MMCSSOptimizer:
     
     def optimize_pro_audio_task(self):
         """Optimize 'Pro Audio' task settings (DAWs, music production)"""
-        if not self.is_admin: return False
+        if not self.is_admin:
+            return False
         proaudio_key = f"{self.TASKS_KEY}\\Pro Audio"
         try:
             key = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, proaudio_key, 0, winreg.KEY_SET_VALUE)

@@ -5,7 +5,7 @@ C-States, Turbo Boost, Large Pages, and advanced optimizations
 import winreg
 import subprocess
 import ctypes
-from typing import Dict, Optional
+from typing import Dict
 
 
 class AdvancedCPUOptimizer:
@@ -29,7 +29,7 @@ class AdvancedCPUOptimizer:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data, 
@@ -39,7 +39,7 @@ class AdvancedCPUOptimizer:
             winreg.SetValueEx(key, value_name, 0, value_type, value_data)
             winreg.CloseKey(key)
             return True
-        except:
+        except Exception:
             return False
     
     def _run_powercfg(self, args: str) -> bool:
@@ -50,7 +50,7 @@ class AdvancedCPUOptimizer:
                 encoding='utf-8', errors='ignore'
             )
             return result.returncode == 0
-        except:
+        except Exception:
             return False
     
     def disable_c_states(self) -> bool:

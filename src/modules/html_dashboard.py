@@ -14,7 +14,6 @@ import sys
 import time
 import threading
 import subprocess
-from pathlib import Path
 from collections import deque
 
 import psutil
@@ -390,7 +389,7 @@ class HtmlDashboard:
             print("[DASHBOARD] Falling back to console mode...")
             return False
         
-        print(f"[DASHBOARD] Opening HTML dashboard...")
+        print("[DASHBOARD] Opening HTML dashboard...")
         
         self._window = webview.create_window(
             'NovaPulse 2.2.1',

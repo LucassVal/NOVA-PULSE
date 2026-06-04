@@ -4,8 +4,7 @@ Optimizes hardware interrupt distribution across CPU cores
 """
 import winreg
 import ctypes
-import subprocess
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 import os
 
 
@@ -26,7 +25,7 @@ class IRQAffinityOptimizer:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _set_registry_value(self, key_path, value_name, value_data, value_type=winreg.REG_DWORD):
@@ -35,7 +34,7 @@ class IRQAffinityOptimizer:
             winreg.SetValueEx(key, value_name, 0, value_type, value_data)
             winreg.CloseKey(key)
             return True
-        except Exception as e:
+        except Exception:
             return False
     
     def get_pci_devices(self) -> List[Dict]:
@@ -71,7 +70,7 @@ class IRQAffinityOptimizer:
                                     'name': name
                                 })
                                 winreg.CloseKey(inst_key)
-                            except:
+                            except Exception:
                                 pass
                             j += 1
                         except OSError:
@@ -105,7 +104,7 @@ class IRQAffinityOptimizer:
             winreg.SetValueEx(key, "MSISupported", 0, winreg.REG_DWORD, 1)
             winreg.CloseKey(key)
             return True
-        except Exception as e:
+        except Exception:
             return False
     
     def set_device_affinity(self, device_path: str, core_mask: int) -> bool:
@@ -128,7 +127,7 @@ class IRQAffinityOptimizer:
                 core_mask.to_bytes(8, 'little'))
             winreg.CloseKey(key)
             return True
-        except Exception as e:
+        except Exception:
             return False
     
     def optimize_gpu_irq(self) -> bool:

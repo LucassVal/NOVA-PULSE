@@ -26,7 +26,7 @@ class HPETController:
     def _check_admin(self) -> bool:
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
-        except:
+        except Exception:
             return False
     
     def _run_bcdedit(self, args: str) -> Tuple[bool, str]:
@@ -267,7 +267,7 @@ class HPETController:
             else:
                 status['tscsync'] = "Default"
                 
-        except:
+        except Exception:
             status['error'] = "Could not read settings"
         
         return status

@@ -29,7 +29,7 @@ def is_admin():
     """Check admin privileges."""
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
+    except Exception:
         return False
 
 
@@ -119,10 +119,10 @@ class StartupManager:
             )
 
             if result.returncode == 0:
-                print(f"✓ NovaPulse registered for Windows startup")
+                print("✓ NovaPulse registered for Windows startup")
                 print(f"  Path: {self.script_path}")
-                print(f"  Trigger: At system startup (30s delay)")
-                print(f"  Privileges: HIGHEST (Administrator)")
+                print("  Trigger: At system startup (30s delay)")
+                print("  Privileges: HIGHEST (Administrator)")
                 return True
             else:
                 # Fallback: try with PowerShell (more reliable on some systems)
@@ -158,7 +158,7 @@ Register-ScheduledTask -TaskName "{self.TASK_NAME}" -Action $action -Trigger $tr
             )
 
             if result.returncode == 0:
-                print(f"✓ NovaPulse registered for startup (PowerShell)")
+                print("✓ NovaPulse registered for startup (PowerShell)")
                 return True
             else:
                 print(f"✗ PowerShell registration failed: {result.stderr.strip()}")
@@ -176,9 +176,9 @@ Register-ScheduledTask -TaskName "{self.TASK_NAME}" -Action $action -Trigger $tr
                 shell=True, capture_output=True, text=True, timeout=10
             )
             if result.returncode == 0 and not quiet:
-                print(f"✓ NovaPulse removed from Windows startup")
+                print("✓ NovaPulse removed from Windows startup")
             return result.returncode == 0
-        except:
+        except Exception:
             return False
 
     def is_registered(self):
@@ -189,7 +189,7 @@ Register-ScheduledTask -TaskName "{self.TASK_NAME}" -Action $action -Trigger $tr
                 shell=True, capture_output=True, text=True, timeout=10
             )
             return result.returncode == 0 and self.TASK_NAME in result.stdout
-        except:
+        except Exception:
             return False
 
     def get_status(self):

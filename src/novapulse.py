@@ -251,41 +251,14 @@ def main():
         print(f"{Fore.GREEN}[OK] OLED Care active (burn-in protection){Style.RESET_ALL}")
         rlog.log("MODULE", "oled_care", "Started — pixel-shift + taskbar-dim + idle-refresh")
 
-    # === ISA (Intelligence with Stoic Agency) — optional, daemon thread ===
-    # ISA is a separate AI entity in NC011_ISA_SANDBOX. NovaPulse wires her
-    # GPU watcher and cognitive state into the dashboard as a read-only feed.
-    # Fails gracefully: NovaPulse runs without ISA if sandbox is unavailable.
-    _isa_status: dict = {}
-    try:
-        import importlib.util as _ilu
-        import threading as _thr
-        _isa_path = (
-            "C:/Workspace/NeoCortex_V43/11_APPS/NC011_ISA_SANDBOX/NC-BOOT_ISA.py"
-        )
-        _spec = _ilu.spec_from_file_location("NC_BOOT_ISA", _isa_path)
-        if _spec and _spec.loader:
-            _isa_mod = _ilu.module_from_spec(_spec)
-            _spec.loader.exec_module(_isa_mod)
-            _isa_boot = _isa_mod.ISABoot()
-
-            def _isa_callback(estado: dict) -> None:
-                _isa_status.update(estado)
-
-            _thr.Thread(
-                target=_isa_boot.loop_presenca_continua,
-                kwargs={"callback_status": _isa_callback},
-                daemon=True,
-                name="NovaPulse-ISA",
-            ).start()
-            services['isa'] = _isa_status
-            services['isa_boot'] = _isa_boot
-            print(f"{Fore.GREEN}[OK] ISA daemon wired (cognitive feed active){Style.RESET_ALL}")
-            rlog.log("MODULE", "isa", "Daemon thread started — loop_presenca_continua")
-        else:
-            rlog.log("WARN", "isa", "ISA spec not found — running without ISA")
-    except Exception as _e:
-        rlog.log("WARN", "isa", f"ISA unavailable (graceful skip): {_e}")
-        print(f"{Fore.YELLOW}[WARN] ISA not available: {_e}{Style.RESET_ALL}")
+    # === ISA (Intelligence with Stoic Agency) — on-demand via dashboard button ===
+    # ISA is NOT started automatically. She is activated by the user via the
+    # "ATIVAR ISA" button in the dashboard ISA tab.
+    # NovaPulse registers the service slot so the API can fill it on demand.
+    services['isa'] = {}
+    services['isa_boot'] = None
+    services['_isa_running'] = False
+    rlog.log("MODULE", "isa", "ISA slot registered — awaiting user activation via dashboard")
 
     # === CPU POWER MANAGER ===
     services['cpu_power'] = CPUPowerManager()

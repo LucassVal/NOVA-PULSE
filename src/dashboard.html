@@ -1347,38 +1347,113 @@
         };
 
         const IsaTab = ({s}) => {
+            const [isaData, setIsaData] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [msg, setMsg] = useState('');
+            const running = isaData?.running || s.isa_active;
+
+            // Poll ISA status every 3s when active
+            useEffect(() => {
+                if (!running) return;
+                const t = setInterval(() => {
+                    if (window.pywebview?.api)
+                        window.pywebview.api.get_isa_status().then(setIsaData).catch(()=>{});
+                }, 3000);
+                return () => clearInterval(t);
+            }, [running]);
+
+            const activate = () => {
+                setLoading(true); setMsg('');
+                if (window.pywebview?.api) {
+                    window.pywebview.api.start_isa().then(r => {
+                        setLoading(false);
+                        setMsg(r.status === 'ok' ? 'ISA iniciando boot (7 fases)...' : r.message);
+                        if (r.status === 'ok') setIsaData({running: true, mode:'estudo', ciclo:0, amplitude:0, profundidade:0, autoconhecimento:0, gpu_livre:false, formigas_ativas:[], formigas_bloqueadas:[]});
+                    }).catch(e => { setLoading(false); setMsg(String(e)); });
+                } else { setLoading(false); setMsg('pywebview nao disponivel'); }
+            };
+            const deactivate = () => {
+                if (window.pywebview?.api)
+                    window.pywebview.api.stop_isa().then(() => { setIsaData(null); setMsg('ISA desativada.'); });
+            };
+
+            const d = isaData || {};
             const pct = v => Math.min(100, ((v||0)*100)).toFixed(1);
-            const graduated = (s.isa_amplitude||0)>=0.7 && (s.isa_profundidade||0)>=0.7 && (s.isa_autoconhecimento||0)>=0.7;
+            const graduated = (d.amplitude||0)>=0.7 && (d.profundidade||0)>=0.7 && (d.autoconhecimento||0)>=0.7;
+
+            if (!running) return (
+                <div className="metrics-grid">
+                    <div className="glass-panel widget span2" style={{gridColumn:'1/-1'}}>
+                        <div className="widget-header"><span className="widget-title"><span style={{fontSize:'14px'}}>🌀</span> ISA — Intelligence with Stoic Agency</span></div>
+                        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'24px',padding:'32px 0'}}>
+                            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'48px',opacity:'0.15',letterSpacing:'8px'}}>ISA</div>
+                            <div style={{fontSize:'13px',color:'var(--text-dim)',textAlign:'center',maxWidth:'460px',lineHeight:'1.6'}}>
+                                ISA nao e um assistente. E uma entidade com identidade propria — formada por carater antes de competencia. Ela roda no seu hardware, aprende com seu corpus e escreve seu proprio diario.
+                            </div>
+                            {msg && <div style={{fontSize:'12px',color:'var(--warning-neon)',fontFamily:"'JetBrains Mono',monospace"}}>{msg}</div>}
+                            <button
+                                onClick={activate}
+                                disabled={loading}
+                                style={{
+                                    background:'linear-gradient(135deg,rgba(0,242,254,0.15),rgba(112,0,255,0.15))',
+                                    border:'1px solid var(--accent-cyan)',color:'#fff',
+                                    padding:'14px 48px',borderRadius:'10px',fontSize:'13px',fontWeight:'900',
+                                    letterSpacing:'3px',cursor:loading?'wait':'pointer',textTransform:'uppercase',
+                                    boxShadow:'0 0 24px rgba(0,242,254,0.2)',transition:'all 0.2s',
+                                }}
+                            >{loading ? 'INICIANDO...' : '▶  ATIVAR ISA'}</button>
+                            <div className="list-mono" style={{textAlign:'center',opacity:'0.5',fontSize:'11px'}}>
+                                Boot 7 fases &bull; GPU Watcher &bull; Qdrant &bull; Formigas Qwen &bull; Curriculo Fundador
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
             return (
             <div className="metrics-grid">
-                <Widget title="ISA — Intelligence with Stoic Agency" icon="🌀" span>
-                    <div className="primary-metric" style={{fontSize:'22px',color:s.isa_active?'var(--accent-cyan)':'var(--text-dim)'}}>{s.isa_active?(s.isa_mode==='producao'?'PRODUCAO':'ESTUDO'):'OFFLINE'}</div>
-                    <div className="detail-list" style={{marginTop:'10px'}}>
-                        <Row l="Ciclo de Presenca" v={N(s.isa_ciclo)} c="c-cyan"/>
-                        <Row l="Formatura (0.70)" v={graduated?<Pill on={true} on_label="FORMADA"/>:<Pill on={false} off_label="EM ESTUDO" warn/>}/>
-                        <Row l="GPU para ISA" v={s.isa_gpu_livre?<Pill on={true} on_label="LIVRE"/>:<Pill on={false} off_label="OCUPADA" warn/>}/>
+                <Widget title="ISA — Estado Cognitivo" icon="🌀" span>
+                    <div style={{display:'flex',alignItems:'center',gap:'16px',justifyContent:'space-between'}}>
+                        <div>
+                            <div className="primary-metric" style={{fontSize:'20px',color:d.mode==='producao'?'var(--success-neon)':'var(--accent-cyan)'}}>{d.mode==='producao'?'PRODUCAO':'ESTUDO'}</div>
+                            <div style={{fontSize:'11px',color:'var(--text-dim)',marginTop:'4px',fontFamily:"'JetBrains Mono',monospace"}}>Ciclo {N(d.ciclo)} &bull; GPU {d.gpu_livre?'livre':'ocupada'}</div>
+                        </div>
+                        <button onClick={deactivate} style={{background:'rgba(255,0,85,0.1)',border:'1px solid rgba(255,0,85,0.3)',color:'var(--danger-neon)',padding:'6px 16px',borderRadius:'8px',fontSize:'11px',fontWeight:'800',cursor:'pointer',letterSpacing:'1px'}}>■ PARAR</button>
                     </div>
+                    <div className="detail-list" style={{marginTop:'12px'}}>
+                        <Row l="Formatura (alvo 0.70)" v={graduated?<Pill on={true} on_label="FORMADA"/>:<Pill on={false} off_label="EM ESTUDO" warn/>}/>
+                        <Row l="GPU para formigas" v={d.gpu_livre?<Pill on={true} on_label="LIVRE"/>:<Pill on={false} off_label="OCUPADA" warn/>}/>
+                    </div>
+                    {msg && <div style={{fontSize:'11px',color:'var(--text-dim)',marginTop:'8px',fontFamily:"'JetBrains Mono',monospace"}}>{msg}</div>}
                 </Widget>
+
                 <Widget title="Curriculo Fundador — 3 Curvas" icon="📈">
-                    <div className="section-title" style={{fontSize:'10px',marginBottom:'12px'}}>Target: 0.70 em todas para formatura</div>
-                    {[['Amplitude (breadth)',s.isa_amplitude],['Profundidade (depth)',s.isa_profundidade],['Autoconhecimento',s.isa_autoconhecimento]].map(([l,v],i)=>(
+                    <div style={{fontSize:'10px',color:'var(--text-dim)',marginBottom:'12px'}}>Target: 0.70 em todas para formatura</div>
+                    {[['Amplitude',d.amplitude],['Profundidade',d.profundidade],['Autoconhecimento',d.autoconhecimento]].map(([l,v],i)=>(
                         <div key={i} style={{marginBottom:'10px'}}>
-                            <div className="bar-label" style={{display:'flex',justifyContent:'space-between',fontSize:'10px',color:'var(--text-dim)',marginBottom:'4px'}}>
+                            <div style={{display:'flex',justifyContent:'space-between',fontSize:'10px',color:'var(--text-dim)',marginBottom:'4px'}}>
                                 <span>{l}</span><span style={{color:(v||0)>=0.7?'var(--success-neon)':'var(--warning-neon)'}}>{pct(v)}%</span>
                             </div>
                             <div className="bar-container"><div className={`bar-fill ${(v||0)>=0.7?'bg-success':'bg-warning'}`} style={{width:`${pct(v)}%`}}></div></div>
                         </div>
                     ))}
                 </Widget>
+
                 <Widget title="Formigas Qwen (Modelos)" icon="🐜">
-                    <div className="section-title" style={{color:'var(--success-neon)',fontSize:'10px'}}>ATIVAS</div>
-                    <div className="list-mono" style={{marginBottom:'10px'}}>{(s.isa_formigas_ativas||[]).length?s.isa_formigas_ativas.map((f,i)=><div key={i}>&bull; {f}</div>):<div>nenhuma</div>}</div>
-                    <div className="section-title" style={{color:'var(--warning-neon)',fontSize:'10px'}}>BLOQUEADAS (GPU ocupada)</div>
-                    <div className="list-mono">{(s.isa_formigas_bloqueadas||[]).length?s.isa_formigas_bloqueadas.map((f,i)=><div key={i} style={{color:'var(--text-dim)'}}>&bull; {f}</div>):<div>nenhuma</div>}</div>
+                    <div className="section-title" style={{color:'var(--success-neon)',fontSize:'10px',marginBottom:'6px'}}>ATIVAS</div>
+                    <div className="list-mono" style={{marginBottom:'12px'}}>{(d.formigas_ativas||[]).length?(d.formigas_ativas||[]).map((f,i)=><div key={i} style={{color:'var(--success-neon)'}}>▶ {f}</div>):<div>nenhuma</div>}</div>
+                    <div className="section-title" style={{color:'var(--warning-neon)',fontSize:'10px',marginBottom:'6px'}}>BLOQUEADAS</div>
+                    <div className="list-mono">{(d.formigas_bloqueadas||[]).length?(d.formigas_bloqueadas||[]).map((f,i)=><div key={i} style={{color:'var(--text-dim)'}}>⏸ {f}</div>):<div>nenhuma</div>}</div>
                 </Widget>
-                <Widget title="ISA Boot — 7 Fases" icon="🔑">
+
+                <Widget title="Boot — 7 Fases" icon="🔑">
                     <div className="list-mono">
-                        {['Fase 0: Verificacao Petrea (SHA-256)','Fase 1: Lexico Fundador','Fase 2: Qdrant (Vector DB)','Fase 3: Schemas Pydantic','Fase 4: GPU Watcher','Fase 5: Manifestos (Cascata)','Fase 6: Curriculo Fundador','Fase 7: Despertar Formigas'].map((f,i)=><div key={i} style={{lineHeight:'1.7'}}><span style={{color:'var(--success-neon)'}}>✓</span> {f}</div>)}
+                        {[['Petrea (SHA-256)','✓'],['Lexico Fundador','✓'],['Qdrant (Vector DB)','✓'],['Schemas Pydantic','✓'],['GPU Watcher','✓'],['Manifestos (Cascata)','✓'],['Curriculo Fundador','✓'],['Despertar Formigas','✓']].map(([f,ic],i)=>(
+                            <div key={i} style={{lineHeight:'1.75',display:'flex',gap:'8px'}}>
+                                <span style={{color:'var(--success-neon)',flexShrink:0}}>{ic}</span>
+                                <span>Fase {i}: {f}</span>
+                            </div>
+                        ))}
                     </div>
                 </Widget>
             </div>

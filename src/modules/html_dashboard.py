@@ -568,6 +568,90 @@ class NovaPulseAPI:
 
         return comp
 
+    # ── ISA public controls (callable from JS button) ──
+
+    def start_isa(self):
+        """Activate ISA daemon from the dashboard button.
+
+        Called by JS: pywebview.api.start_isa()
+        Starts the ISA boot + loop_presenca_continua daemon thread on demand.
+        Idempotent — safe to call multiple times.
+        """
+        if self.services.get('_isa_running'):
+            return {'status': 'ok', 'message': 'ISA already running'}
+
+        try:
+            import importlib.util
+            import threading
+
+            _isa_path = (
+                'C:/Workspace/NeoCortex_V43/11_APPS/'
+                'NC011_ISA_SANDBOX/NC-BOOT_ISA.py'
+            )
+            spec = importlib.util.spec_from_file_location('NC_BOOT_ISA', _isa_path)
+            if not spec or not spec.loader:
+                return {'status': 'error', 'message': 'ISA sandbox not found'}
+
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+
+            isa_boot = mod.ISABoot()
+            isa_status: dict = {}
+
+            def _cb(estado: dict) -> None:
+                isa_status.update(estado)
+
+            threading.Thread(
+                target=isa_boot.loop_presenca_continua,
+                kwargs={'callback_status': _cb},
+                daemon=True,
+                name='NovaPulse-ISA',
+            ).start()
+
+            self.services['isa'] = isa_status
+            self.services['isa_boot'] = isa_boot
+            self.services['_isa_running'] = True
+
+            return {'status': 'ok', 'message': 'ISA activated'}
+        except Exception as exc:
+            return {'status': 'error', 'message': str(exc)}
+
+    def stop_isa(self):
+        """Stop ISA daemon (sets running flag; thread is daemon so it dies on exit)."""
+        self.services.pop('isa', None)
+        self.services.pop('isa_boot', None)
+        self.services['_isa_running'] = False
+        return {'status': 'ok', 'message': 'ISA deactivated'}
+
+    def get_isa_status(self):
+        """Return full ISA cognitive state snapshot for the dashboard."""
+        if not self.services.get('_isa_running'):
+            return {'running': False}
+
+        isa = self.services.get('isa', {})
+        isa_boot = self.services.get('isa_boot')
+        result = {
+            'running': True,
+            'mode': isa.get('modo', 'estudo'),
+            'ciclo': isa.get('ciclo', 0),
+        }
+        curvas = isa.get('curvas', {})
+        result['amplitude'] = float(curvas.get('amplitude', 0.0))
+        result['profundidade'] = float(curvas.get('profundidade', 0.0))
+        result['autoconhecimento'] = float(curvas.get('autoconhecimento', 0.0))
+        gpu = isa.get('gpu', {})
+        result['gpu_livre'] = bool(gpu.get('gpu_livre', False))
+
+        if isa_boot and hasattr(isa_boot, '_resultados'):
+            f7 = isa_boot._resultados.get('fases', {}).get('fase_7_formigas', {})
+            result['formigas_ativas'] = f7.get('formigas_ativas', [])
+            result['formigas_bloqueadas'] = f7.get('formigas_bloqueadas', [])
+        else:
+            result['formigas_ativas'] = []
+            result['formigas_bloqueadas'] = []
+
+        return result
+
     def get_history(self):
         """Return rolling history arrays for charts."""
         return {

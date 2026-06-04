@@ -37,7 +37,7 @@ class HPETController:
                 shell=True,
                 capture_output=True,
                 text=True
-            )
+            , errors='replace')
             return result.returncode == 0, result.stdout + result.stderr
         except Exception as e:
             return False, str(e)

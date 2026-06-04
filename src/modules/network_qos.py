@@ -93,7 +93,7 @@ class NetworkQoSManager:
             $adapter.Name
             '''
             result = subprocess.run(['powershell', '-Command', get_adapter_cmd], 
-                                    capture_output=True, text=True, timeout=10)
+                                    capture_output=True, text=True, timeout=10, errors='replace')
             adapter_name = result.stdout.strip()
             
             if adapter_name:
@@ -146,7 +146,7 @@ class NetworkQoSManager:
             $adapter.Name
             '''
             result = subprocess.run(['powershell', '-Command', get_adapter_cmd], 
-                                    capture_output=True, text=True, timeout=10)
+                                    capture_output=True, text=True, timeout=10, errors='replace')
             adapter_name = result.stdout.strip()
             
             if adapter_name:
@@ -162,7 +162,7 @@ class NetworkQoSManager:
         try:
             cmd = 'Get-DnsClientServerAddress -AddressFamily IPv4 | Select-Object -ExpandProperty ServerAddresses | Select-Object -First 1'
             result = subprocess.run(['powershell', '-Command', cmd], 
-                                    capture_output=True, text=True, timeout=5)
+                                    capture_output=True, text=True, timeout=5, errors='replace')
             return result.stdout.strip()
         except Exception:
             return "Unknown"

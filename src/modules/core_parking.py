@@ -42,7 +42,7 @@ class CoreParkingManager:
                 shell=True,
                 capture_output=True,
                 text=True
-            )
+            , errors='replace')
             return result.returncode == 0
         except Exception:
             return False
@@ -179,7 +179,7 @@ class CoreParkingManager:
             result = subprocess.run(
                 "powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61",
                 shell=True, capture_output=True, text=True
-            )
+            , errors='replace')
             if "e9a42b02" in result.stdout or result.returncode == 0:
                 success = self._run_powercfg("/setactive e9a42b02-d5df-448d-aa00-03f14749eb61")
         
@@ -226,7 +226,7 @@ class CoreParkingManager:
             result = subprocess.run(
                 "powercfg /getactivescheme",
                 shell=True, capture_output=True, text=True
-            )
+            , errors='replace')
             if "Ultimate" in result.stdout:
                 status['power_scheme'] = "Ultimate Performance"
             elif "High" in result.stdout:

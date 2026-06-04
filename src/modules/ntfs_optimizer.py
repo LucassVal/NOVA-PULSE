@@ -153,13 +153,13 @@ class NTFSOptimizer:
             result = subprocess.run(
                 "fsutil behavior query disable8dot3",
                 shell=True, capture_output=True, text=True
-            )
+            , errors='replace')
             status['8dot3'] = "Disabled" if "1" in result.stdout else "Enabled"
             
             result = subprocess.run(
                 "fsutil behavior query disablelastaccess",
                 shell=True, capture_output=True, text=True
-            )
+            , errors='replace')
             status['lastaccess'] = "Disabled" if "1" in result.stdout or "2" in result.stdout else "Enabled"
             
         except Exception:

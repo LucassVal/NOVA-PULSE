@@ -236,7 +236,7 @@ class AdvancedCPUOptimizer:
             result = subprocess.run(
                 "bcdedit /set disabledynamictick yes",
                 shell=True, capture_output=True, text=True
-            )
+            , errors='replace')
             success = result.returncode == 0
             if success:
                 print("[CPU ADV] ✓ Dynamic Ticks disabled")

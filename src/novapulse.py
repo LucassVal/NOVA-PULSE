@@ -210,7 +210,7 @@ def main():
 
         try:
             engine = get_engine()
-            engine.apply_all(opt_level)
+            engine.apply_all(opt_level, interactive=False)
             rlog.log_optimization("optimization_engine", f"Applied level: {opt_level_str.upper()}")
         except Exception as e:
             print(f"{Fore.YELLOW}[WARN] Optimization Engine: {e}{Style.RESET_ALL}")

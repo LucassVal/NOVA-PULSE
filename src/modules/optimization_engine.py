@@ -58,13 +58,14 @@ class OptimizationEngine:
         def _should_apply(module_name: str, module_obj: any = None, requires_restart_flag: bool = False) -> bool:
             if module_obj and hasattr(module_obj, 'is_optimized'):
                 try:
-                    if module_obj.is_optimized():
+                    result = module_obj.is_optimized()
+                    if result is True:  # explicit True — None/other means check failed
                         if not dry_run:
-                            print(f"[✓] {module_name} is already active. Skipping.")
+                            print(f"[v] {module_name} already active. Skipping.")
                         return False
                 except Exception as e:
                     if not dry_run:
-                        print(f"    [!] Warning checking {module_name} status: {e}")
+                        print(f"    [!] {module_name} status check skipped: {e}")
             
             if dry_run:
                 return True # We return True so the engine records that it *would* apply it

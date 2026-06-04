@@ -43,7 +43,7 @@ def run_ps(command, description=""):
         result = subprocess.run(
             ['powershell', '-NoProfile', '-Command', command],
             capture_output=True, text=True, timeout=30
-        )
+        , errors='replace')
         if result.returncode == 0:
             print(f"  ✓ {description}")
             return True
@@ -69,7 +69,7 @@ def run_cmd(command, description=""):
         result = subprocess.run(
             command, shell=True,
             capture_output=True, text=True, timeout=30
-        )
+        , errors='replace')
         if result.returncode == 0:
             print(f"  ✓ {description}")
             return True

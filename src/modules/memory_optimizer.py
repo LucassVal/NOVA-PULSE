@@ -60,7 +60,7 @@ class MemoryOptimizerPro:
             result = subprocess.run(
                 f"sc {action} {service}",
                 shell=True, capture_output=True, text=True
-            )
+            , errors='replace')
             return result.returncode == 0 or "1062" in result.stderr  # 1062 = already stopped
         except Exception:
             return False
@@ -85,7 +85,7 @@ class MemoryOptimizerPro:
             result = subprocess.run(
                 'powershell -Command "Disable-MMAgent -MemoryCompression"',
                 shell=True, capture_output=True, text=True
-            )
+            , errors='replace')
             
             if result.returncode == 0:
                 print("[MEMORY] ✓ Memory compression disabled")
@@ -281,7 +281,7 @@ class MemoryOptimizerPro:
                 result = subprocess.run(
                     f'powershell -Command "Enable-MMAgent -{feat}"',
                     shell=True, capture_output=True, text=True
-                )
+                , errors='replace')
                 if result.returncode == 0:
                     print(f"[MEMORY] ✓ {feat} enabled")
                 else:

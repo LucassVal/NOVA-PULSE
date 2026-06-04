@@ -81,7 +81,7 @@ class IntelPowerControl:
             result = subprocess.run(
                 ['powercfg', '/getactivescheme'],
                 capture_output=True, text=True, timeout=5
-            )
+            , errors='replace')
             # Parse: "GUID do Esquema de Energia: xxx-xxx-xxx  (Name)"
             for line in result.stdout.split('\n'):
                 if 'GUID' in line or 'Power Scheme' in line:
@@ -99,7 +99,7 @@ class IntelPowerControl:
             result = subprocess.run(
                 ['powercfg'] + args,
                 capture_output=True, text=True, timeout=10
-            )
+            , errors='replace')
             return result.returncode == 0
         except Exception:
             return False
@@ -205,7 +205,7 @@ class IntelPowerControl:
             result = subprocess.run(
                 ['powercfg', '/query', self._current_scheme, self.GUID_SUB_PROCESSOR],
                 capture_output=True, text=True, timeout=10
-            )
+            , errors='replace')
             
             lines = result.stdout.split('\n')
             current_setting = None

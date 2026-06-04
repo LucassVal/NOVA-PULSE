@@ -783,7 +783,7 @@ class NovaPulseAPI:
                 result = subprocess.run(
                     ['ping', '-n', '1', '-w', '2000', target],
                     capture_output=True, text=True, timeout=5
-                )
+                , errors='replace')
                 for line in result.stdout.split('\n'):
                     if 'time=' in line.lower() or 'tempo=' in line.lower():
                         # Extract ms value
